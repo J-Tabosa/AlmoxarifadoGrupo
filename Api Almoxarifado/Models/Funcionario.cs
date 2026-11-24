@@ -17,5 +17,5 @@ public partial class Funcionario
 
     public string Senha { get; set; } = null!;
 
-    public virtual Setor IdsetorNavigation { get; set; } = null!;
+    public virtual Setor Setor { get; set; } = null!;
 }

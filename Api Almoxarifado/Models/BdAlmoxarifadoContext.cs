@@ -225,7 +225,7 @@ public partial class BdAlmoxarifadoContext : DbContext
                 .IsFixedLength()
                 .HasColumnName("status_fu");
 
-            entity.HasOne(d => d.IdsetorNavigation).WithMany(p => p.Funcionarios)
+            entity.HasOne(d => d.Setor).WithMany(p => p.Funcionarios)
                 .HasForeignKey(d => d.Idsetor)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_funcionario_setor1");
