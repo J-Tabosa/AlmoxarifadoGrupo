@@ -1,52 +1,165 @@
-<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden" xmlns="http://www.w3.org/2000/svg"><defs>
-<symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
-<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
-<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></symbol>
-<symbol id="i-box" viewBox="0 0 24 24"><path d="m3 7 9-4 9 4v10l-9 4-9-4V7Z M3 7l9 4 9-4M12 11v10"/></symbol>
-<symbol id="i-settings" viewBox="0 0 24 24"><path d="M10 2h4l.7 2.6 2 1.1 2.5-.8 2 3.4-1.8 2 .1 2.4 1.7 2-2 3.4-2.5-.8-2 1.1L14 22h-4l-.7-2.6-2-1.1-2.5.8-2-3.4 1.8-2-.1-2.4-1.7-2 2-3.4 2.5.8 2-1.1L10 2Z"/><circle cx="12" cy="12" r="3.2"/></symbol>
-<symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 16v-4m4 4V7m4 9V9"/></symbol>
-<symbol id="i-archive" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="5"/><path d="M5 9v11h14V9m-10 5h6"/></symbol>
-<symbol id="i-entry" viewBox="0 0 24 24"><path d="M4 4v16h16M9 14l4-4 3 3 5-6m-5 0h5v5"/></symbol>
-<symbol id="i-exit" viewBox="0 0 24 24"><path d="M4 4v16h16M8 8l5 5 3-3 5 6m-5 0h5v-5"/></symbol>
-<symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="18" rx="1"/><path d="M9 4V2h6v2M9 11h6m-6 4h6"/></symbol>
-<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
-<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></symbol>
-<symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3Z M12 10v5m0 3h.01"/></symbol>
-<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></symbol>
-<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></symbol>
-<symbol id="i-close" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
-<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2 21 6v6c0 6-5 9-9 10-4-1-9-4-9-10V6l9-4Z"/><path d="m8 12 3 3 5-6"/></symbol>
-<symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
-<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 1v3m0 16v3M1 12h3m16 0h3M4 4l2 2m12 12 2 2M4 20l2-2M18 6l2-2"/></symbol>
-</defs></svg>
+<!-- Estrutura permanente da aplicação. -->
 <div class="app" id="app">
- <div class="chrome"><div class="chrome-left"><span class="chrome-square"></span><span>Gestão de Materiais <span style="opacity:.45">/</span> Sistema Local - Demonstração</span></div><div class="chrome-right"><span>PQN - Labs 0.9</span><span class="chrome-line"></span></div></div>
 
- <div class="ribbon" role="toolbar" aria-label="Navegação principal">
-  <div class="ribbon-brand"><button class="logo" title="Voltar ao painel" aria-label="Ir para o painel" routerLink="/painel" routerLinkActive="active"><img src="data:image/png;base64,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vXzpjStPOfP0XFMhqFQVkp/JfvbhJ889+OjmJ18oDRWb25oRsFKtogASiggwiAApbSPjZb1LV19z9c03vbH9tYd/9e+H9x/wMj4pJWCDatn6mTMvnHvD7beMmTH9uTUP3nfX3T1HBzu7R/tKBdXAinXNkjoy4jTLdQd0DNti5BYHOAZEZosACJZtWC1lstlRufye19/eu3P3rLnnLb5qxbQzTmGAFx98fN2v7v9832ctba2NrS1hFDn4QgJgGUGICQXE2kJLc1/PkYd/8a8nnzNr7jWrJk2d/NSDD+dbmtkIW9s+pvO6r9+04MrLP3h/70+XX/Xeux+0dnZOnDAxrARhVEFEAnIBKCXFGYkkgU1jEumsg04scePV2SPGAgpthIJtHR0iuPHJTe+8vusnj635094P7rrjRwCqY/SoMAzL1Sq4OhagFSHXXBcAAYVEmsTK7u07t65/Yd+bb8++ZMklN93UPnHykUMHll2/6isnntTS2vmv/+efNz3+ZC7fOGnCJBNFYaksiEiKhZNmXwol68qlzuLjOImuAJceJkjQYQqoRECgWg0yfqaroyvksFosDfT0eZlMRmeiatVYBopbBwJMMVwTRmER0IoURpWyIFSjcMMjj7208dmzL7xw6S03TzplRhNc+sS996/97Rq2MnrseDG2WikLiAMmCG7iGOfVOrX1KFJcFxuBEONiMwE6RCJxi7VW8hIBQWYb2FBrVEpncgUQMWGgsz7WuqdxUTflBTMLIikdGQ6CEACbGptL1coT995fGhqaf+XyB+7+t20bX5w05XjPywTlirAgIgMmpxbSDddpU2LskGxQY4JealVfjAEixrFXasNTTyGuVs2WRSMhEKId2UWSBJOBCCARaWKHLljCKNJKd40d89rzL73wxIZMvjBl6nSxUi2V3W5YgGPPFBegR9ZK3XaTop1gol1uaC1xSTJDZ1KOAejalLGnAyWoMOlZoEKMpVmriroWd5oxgQAKi2FXscQwChExU2jINjRZlrAaiVgkSpss9RX0hIZYr0YkfclvHVeFJG63MSZZtDuNgEASE+NEpQktISJp7SntKUKNpGNESsnpojhrYUBCIgQrwsLuSINlGwlYQRQxoUFCcGdgkGREYosJBWkOlFR60/NEjjJEEdGGreGI2bKINdZxLz6+k8jQta4dclSEihQCa62UVgqRAAhR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" alt="PQN - Labs" class="pqn-brand-image"></button></div>
-  <div class="ribbon-group"><span class="ribbon-group-label">ARQUIVOS</span><div class="ribbon-tools">
-   <button data-view="painel" routerLink="/painel" routerLinkActive="active" title="Mapa do almoxarifado"><span class="ribbon-symbol blue"><svg class="ico lg"><use href="#i-archive"/></svg></span><span>Painel</span></button>
-   <button data-view="cadastro" routerLink="/cadastro" routerLinkActive="active" title="Cadastrar novo material"><span class="ribbon-symbol blue"><svg class="ico lg"><use href="#i-box"/></svg></span><span>Novo material</span></button>
-   <button data-view="fornecedores" routerLink="/fornecedores" routerLinkActive="active" title="Consultar fornecedores"><span class="ribbon-symbol blue"><svg class="ico lg"><use href="#i-user"/></svg></span><span>Fornecedores</span></button>
-   <button data-view="consulta" routerLink="/consulta" routerLinkActive="active" title="Pesquisar materiais"><span class="ribbon-symbol blue"><svg class="ico lg"><use href="#i-search"/></svg></span><span>Consulta</span></button>
-  </div></div>
-  <div class="ribbon-group"><span class="ribbon-group-label">MOVIMENTAÇÃO</span><div class="ribbon-tools">
-   <button data-view="entradas" routerLink="/entradas" routerLinkActive="active" title="Registrar entrada"><span class="ribbon-symbol teal"><svg class="ico lg"><use href="#i-entry"/></svg></span><span>Entrada</span></button>
-   <button data-view="saidas" routerLink="/saidas" routerLinkActive="active" title="Registrar saída"><span class="ribbon-symbol ruby"><svg class="ico lg"><use href="#i-exit"/></svg></span><span>Saída</span></button>
-   <button data-view="historico" routerLink="/historico" routerLinkActive="active" title="Ver histórico"><span class="ribbon-symbol slate"><svg class="ico lg"><use href="#i-clock"/></svg></span><span>Histórico</span></button>
-  </div></div>
-  <div class="ribbon-group"><span class="ribbon-group-label">CONTROLE</span><div class="ribbon-tools">
-   <button data-view="conferencia" routerLink="/conferencia" routerLinkActive="active"><span class="ribbon-symbol blue"><svg class="ico lg"><use href="#i-clipboard"/></svg></span><span>Inventário</span></button>
-   <button data-view="divergencias" routerLink="/divergencias" routerLinkActive="active"><span class="ribbon-symbol ruby"><svg class="ico lg"><use href="#i-alert"/></svg></span><span>Alertas</span></button>
-   <button data-view="relatorios" routerLink="/relatorios" routerLinkActive="active"><span class="ribbon-symbol teal"><svg class="ico lg"><use href="#i-chart"/></svg></span><span>Relatórios</span></button>
-  </div></div>
-  <div class="topright"><button class="top-btn" title="Configurações" aria-label="Configurações" routerLink="/configuracoes" routerLinkActive="active"><svg class="ico"><use href="#i-settings"/></svg><span>Configurações</span></button><button class="avatar" title="Perfil administrador (ilustrativo)" routerLink="/configuracoes" routerLinkActive="active">AD</button></div>
- </div>
- <main class="work">
-    <router-outlet></router-outlet>
- </main>
- <footer class="foot">
-  <span><svg class="ico sm"><use href="#i-shield"/></svg> Ambiente de desenvolvimento · Sem conexão com banco de dados</span>
-  <span>Administrador demonstrativo | Ambiente local</span>
- </footer>
+    <!-- Barra de título: nome e versão do sistema. -->
+    <div class="chrome">
+        <div class="chrome-left">
+            <span class="chrome-square">
+            </span>
+            <span>Gestão de Materiais <span style="opacity:.45">/</span> Sistema Local - Demonstração</span>
+        </div>
+        <div class="chrome-right">
+            <span>PQN - Labs 0.9</span>
+            <span class="chrome-line">
+            </span>
+        </div>
+    </div>
+
+    <!-- Menu principal: routerLink navega; routerLinkActive destaca a rota. -->
+    <div class="ribbon" role="toolbar" aria-label="Navegação principal">
+
+        <!-- Logo em public/assets; retorna ao painel. -->
+        <div class="ribbon-brand">
+            <button class="logo" title="Voltar ao painel" aria-label="Ir para o painel" routerLink="/painel" routerLinkActive="active">
+                <img src="assets/logo-pqn.png" alt="PQN - Labs" class="pqn-brand-image">
+            </button>
+        </div>
+
+        <!-- Grupo: arquivos. -->
+        <div class="ribbon-group">
+            <span class="ribbon-group-label">ARQUIVOS</span>
+            <div class="ribbon-tools">
+
+                <button data-view="painel" routerLink="/painel" routerLinkActive="active" title="Mapa do almoxarifado">
+                    <span class="ribbon-symbol blue">
+                        <svg class="ico lg">
+                            <use href="assets/icons.svg#i-archive"/>
+                        </svg>
+                    </span>
+                    <span>Painel</span>
+                </button>
+
+                <button data-view="cadastro" routerLink="/cadastro" routerLinkActive="active" title="Cadastrar novo material">
+                    <span class="ribbon-symbol blue">
+                        <svg class="ico lg">
+                            <use href="assets/icons.svg#i-box"/>
+                        </svg>
+                    </span>
+                    <span>Novo material</span>
+                </button>
+
+                <button data-view="fornecedores" routerLink="/fornecedores" routerLinkActive="active" title="Consultar fornecedores">
+                    <span class="ribbon-symbol blue">
+                        <svg class="ico lg">
+                            <use href="assets/icons.svg#i-user"/>
+                        </svg>
+                    </span>
+                    <span>Fornecedores</span>
+                </button>
+
+                <button data-view="consulta" routerLink="/consulta" routerLinkActive="active" title="Pesquisar materiais">
+                    <span class="ribbon-symbol blue">
+                        <svg class="ico lg">
+                            <use href="assets/icons.svg#i-search"/>
+                        </svg>
+                    </span>
+                    <span>Consulta</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Grupo: movimentação. -->
+        <div class="ribbon-group">
+            <span class="ribbon-group-label">MOVIMENTAÇÃO</span>
+            <div class="ribbon-tools">
+
+                <button data-view="entradas" routerLink="/entradas" routerLinkActive="active" title="Registrar entrada">
+                    <span class="ribbon-symbol teal">
+                        <svg class="ico lg">
+                            <use href="assets/icons.svg#i-entry"/>
+                        </svg>
+                    </span>
+                    <span>Entrada</span>
+                </button>
+
+                <button data-view="saidas" routerLink="/saidas" routerLinkActive="active" title="Registrar saída">
+                    <span class="ribbon-symbol ruby">
+                        <svg class="ico lg">
+                            <use href="assets/icons.svg#i-exit"/>
+                        </svg>
+                    </span>
+                    <span>Saída</span>
+                </button>
+
+                <button data-view="historico" routerLink="/historico" routerLinkActive="active" title="Ver histórico">
+                    <span class="ribbon-symbol slate">
+                        <svg class="ico lg">
+                            <use href="assets/icons.svg#i-clock"/>
+                        </svg>
+                    </span>
+                    <span>Histórico</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Grupo: controle. -->
+        <div class="ribbon-group">
+            <span class="ribbon-group-label">CONTROLE</span>
+            <div class="ribbon-tools">
+
+                <button data-view="conferencia" routerLink="/conferencia" routerLinkActive="active">
+                    <span class="ribbon-symbol blue">
+                        <svg class="ico lg">
+                            <use href="assets/icons.svg#i-clipboard"/>
+                        </svg>
+                    </span>
+                    <span>Inventário</span>
+                </button>
+
+                <button data-view="divergencias" routerLink="/divergencias" routerLinkActive="active">
+                    <span class="ribbon-symbol ruby">
+                        <svg class="ico lg">
+                            <use href="assets/icons.svg#i-alert"/>
+                        </svg>
+                    </span>
+                    <span>Alertas</span>
+                </button>
+
+                <button data-view="relatorios" routerLink="/relatorios" routerLinkActive="active">
+                    <span class="ribbon-symbol teal">
+                        <svg class="ico lg">
+                            <use href="assets/icons.svg#i-chart"/>
+                        </svg>
+                    </span>
+                    <span>Relatórios</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Configurações e perfil demonstrativo. -->
+        <div class="topright">
+            <button class="top-btn" title="Configurações" aria-label="Configurações" routerLink="/configuracoes" routerLinkActive="active">
+                <svg class="ico">
+                    <use href="assets/icons.svg#i-settings"/>
+                </svg>
+                <span>Configurações</span>
+            </button>
+            <button class="avatar" title="Perfil administrador (ilustrativo)" routerLink="/configuracoes" routerLinkActive="active">AD</button>
+        </div>
+    </div>
+
+    <!-- Área dinâmica: router-outlet renderiza a página selecionada. -->
+    <main class="work">
+        <router-outlet>
+        </router-outlet>
+    </main>
+
+    <!-- Rodapé com informações do ambiente. -->
+    <footer class="foot">
+        <span>
+            <svg class="ico sm">
+                <use href="assets/icons.svg#i-shield"/>
+            </svg> Ambiente de desenvolvimento · Sem conexão com banco de dados</span>
+        <span>Administrador demonstrativo | Ambiente local</span>
+    </footer>
 </div>
