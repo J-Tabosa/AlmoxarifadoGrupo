@@ -4481,3 +4481,28 @@ body.dark .map-search-status.has-results {
     border-color: #0085a5;
     box-shadow: 0 0 5px #00cee9;
 }
+
+/* Layout web: ocupa a área útil do navegador sem limitar a largura em pixels. */
+body {
+    padding: 0;
+}
+
+.app {
+    width: 92.5%;
+    max-width: none;
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+/* O conteúdo acompanha a largura da janela; o rodapé fica no final da área útil. */
+.work {
+    max-width: none;
+    min-width: 0;
+}
+
+/* Em telas menores, aproveita toda a largura disponível. */
+@media (max-width: 760px) {
+    .app {
+        width: 100%;
+    }
+}
