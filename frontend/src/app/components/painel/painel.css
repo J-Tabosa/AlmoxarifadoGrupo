@@ -1,0 +1,26 @@
+/* Complementos específicos do Painel. A identidade visual permanece no styles.css. */
+:host {
+    display: block;
+}
+
+.painel-notice {
+    margin-bottom: 12px;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#addressGrid .address-tile {
+    height: 54px;
+    width: 100%;
+    min-width: 0;
+}
+
+.rack-message {
+    margin: 0 14px 8px;
+}
+
+@media (max-width: 760px) {
+    .storage-tools {
+        flex-wrap: wrap;
+    }
+}

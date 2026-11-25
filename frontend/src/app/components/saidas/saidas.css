@@ -1,0 +1,10 @@
+@import "../crud-shared.css";
+.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 20px 0 14px; }
+.section-heading h3 { margin: 0 0 3px; }
+.section-heading p { margin: 0; }
+.request-items-table select { min-width: 220px; max-width: 100%; }
+.quantity-input { width: 112px; }
+.request-item-summary { padding: 2px 0; }
+.toolbar .toolbar-left { gap: 10px; }
+.filter-field { min-width: 190px; }
+@media (max-width: 650px) { .section-heading { align-items: stretch; flex-direction: column; } .filter-field { min-width: 100%; } }

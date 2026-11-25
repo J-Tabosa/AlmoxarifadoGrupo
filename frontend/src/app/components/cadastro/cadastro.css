@@ -1,0 +1,5 @@
+@import "../crud-shared.css";
+.stock-config-row { display: grid; grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(100px, 1fr)) auto; gap: 12px; align-items: end; padding: 12px; margin-top: 10px; background: var(--paper2); border: 1px solid var(--line); }
+.remove-stock { align-self: end; }
+@media (max-width: 850px) { .stock-config-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } .remove-stock { grid-column: 1 / -1; } }
+@media (max-width: 520px) { .stock-config-row { grid-template-columns: 1fr; } }

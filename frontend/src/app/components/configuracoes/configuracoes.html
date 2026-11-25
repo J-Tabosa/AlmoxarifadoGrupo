@@ -1,1 +1,125 @@
-<p>configuracoes works!</p>
+<!-- Configurações administrativas. Apenas planta, prateleiras e tema têm persistência local. -->
+<section class="view section-settings">
+    <div class="path">Sistema / <em>Configurações</em></div>
+    <div class="heading">
+        <div>
+            <div class="heading-meta"><span class="badge-ico">⚙</span><span>Módulo administrativo</span><span class="section-chip">Configurações</span></div>
+            <h1>Configurações</h1>
+            <p>Preferências da interface, usuários e controles gerais — organizados fora das operações diárias.</p>
+        </div>
+        <button class="btn" routerLink="/painel">Fechar configurações</button>
+    </div>
+    <div class="pill-tabs">
+        @for (item of tabs; track item.key) {
+            <button [class.active]="tab === item.key" (click)="tab = item.key">{{ item.label }}</button>
+        }
+    </div>
+
+    <div class="panel"><div class="panel-pad">
+        @switch (tab) {
+            @case ('enderecamento') {
+                <div class="location-settings">
+                    <div class="manager-head">
+                        <div><h3>Editor da planta do almoxarifado</h3>
+                            <p>Desenhe a sala real: defina grupo, linhas e colunas; depois pinte os quadrados que não devem ser usados como posições de armazenamento (corredores, portas, paredes e espaços vazios).</p>
+                        </div>
+                        <span class="tag neutral">GESTOR · SIMULAÇÃO</span>
+                    </div>
+
+                    <!-- Padrão de prateleiras e opção de sobrescrever as configurações individuais. -->
+                    <div class="rack-global-settings">
+                        <div><strong>Prateleiras · padrão geral</strong><p class="hint">Aplica-se a estantes novas e às que seguem o padrão. Cada estante pode ter uma configuração própria.</p></div>
+                        <div class="rack-global-controls">
+                            <input type="number" min="1" max="30" [(ngModel)]="defaultCount" aria-label="Quantidade padrão de prateleiras">
+                            <button class="btn primary" (click)="saveDefault()">Salvar padrão</button>
+                            <button class="btn" (click)="saveDefault(true)">Aplicar a todas</button>
+                        </div>
+                        <small id="globalShelfStatus" class="hint" role="status">{{ globalNotice || 'Padrão atual: ' + planta.defaultShelfCount + ' prateleiras' }}</small>
+                    </div>
+
+                    <div class="manager-layout">
+                        <div class="manager-fields">
+                            <div class="field">
+                                <label for="settingGroup">Grupo de localização</label>
+                                <select id="settingGroup" [ngModel]="groupKey" (ngModelChange)="changeGroup($event)">
+                                    @for (g of planta.groups; track g.key) { <option [value]="g.key">{{ g.name }}</option> }
+                                </select>
+                            </div>
+                            <div class="field"><label for="groupName">Nome do grupo</label><input id="groupName" maxlength="45" [(ngModel)]="name" (ngModelChange)="changed()"></div>
+                            <div class="grid g2">
+                                <div class="field"><label for="settingRows">Linhas da planta</label><input id="settingRows" type="number" min="1" max="15" step="1" [(ngModel)]="rows" (ngModelChange)="changed()"></div>
+                                <div class="field"><label for="settingCols">Colunas da planta</label><input id="settingCols" type="number" min="1" max="16" step="1" [(ngModel)]="cols" (ngModelChange)="changed()"></div>
+                            </div>
+                            <div class="settings-stats">
+                                @if (validSize) {
+                                    {{ rows }} linhas × {{ cols }} colunas · <span class="active-count">{{ enabledCount }} ativas</span> · <span class="masked-count">{{ blockedCount }} vazias</span>
+                                } @else { Informe 1–15 linhas e 1–16 colunas. }
+                            </div>
+                            <div class="map-brushbar" aria-label="Ferramentas de desenho">
+                                <button type="button" class="btn" [class.tool-active]="brush === 'block'" [attr.aria-pressed]="brush === 'block'" (click)="brush = 'block'">▨ Pintar espaço vazio</button>
+                                <button type="button" class="btn" [class.tool-active]="brush === 'restore'" [attr.aria-pressed]="brush === 'restore'" (click)="brush = 'restore'">▣ Reativar posição</button>
+                            </div>
+                            <p class="brush-tip">Toque ou arraste na prévia. Os quadrados listrados serão espaços vazios no painel.</p>
+                            <div class="manager-actions"><button class="btn" (click)="corridor()">Exemplo: corredor</button><button class="btn" (click)="restoreAll()">Reativar todos os vazios</button></div>
+                            <div class="manager-actions">
+                                <button class="btn primary" [disabled]="!validSize" (click)="save()">Aplicar mapa</button>
+                                <button class="btn" (click)="newGroup()">+ Novo grupo 8×8</button>
+                                <button class="btn" routerLink="/painel" (click)="viewPlant()">Ver planta</button>
+                            </div>
+                            <div class="note"><svg class="ico sm"><use href="assets/icons.svg#i-info"/></svg>
+                                <div>Não é permitido bloquear posições com materiais. O <strong>idlocalizacao</strong> é preservado ao desativar e reativar uma posição. Clique em <strong>Aplicar mapa</strong> para gravar a prévia no navegador.</div>
+                            </div>
+                            @if (notice) { <div class="note" role="status">{{ notice }}</div> }
+                        </div>
+
+                        <!-- A prévia preserva a geometria, inclusive as células pintadas. -->
+                        <div class="manager-preview">
+                            <div class="panel-head"><div><div class="panel-title">Planta do grupo · editor de pintura</div><p>Visão superior aproximada, personalizável</p></div><span class="hint">{{ name }}</span></div>
+                            <div class="manager-preview-viewport">
+                                <div class="preview-location-grid paintable" role="group" aria-label="Editor de planta com posições pintáveis"
+                                     [style.grid-template-columns]="'repeat(' + (validSize ? cols : 1) + ', minmax(40px, 1fr))'"
+                                     (pointermove)="movePaint($event)" (pointercancel)="endPaint()">
+                                    @for (cell of cells; track cell.key) {
+                                        <button type="button" class="preview-slot"
+                                                [class.masked]="cell.blocked"
+                                                [class.occupied]="!cell.blocked && !!cell.slot?.contents?.length"
+                                                [class.review]="!cell.blocked && state(cell.slot) === 'review'"
+                                                [attr.data-paint-cell]="cell.key" [attr.data-r]="cell.r" [attr.data-c]="cell.c"
+                                                [attr.aria-label]="'Linha ' + cell.r + ', coluna ' + cell.c + (cell.blocked ? ', espaço vazio' : ', posição ativa')"
+                                                (pointerdown)="beginPaint($event, cell.r, cell.c)"
+                                                (click)="paint(cell.r, cell.c)">
+                                            <b>{{ pad(cell.r) }}-{{ pad(cell.c) }}</b>
+                                            <small>{{ cell.blocked ? '—' : cell.slot ? '#' + cell.slot.idlocalizacao : 'Novo' }}</small>
+                                        </button>
+                                    }
+                                </div>
+                                <div class="map-preview-instructions"><span class="map-legend-mask"></span> Áreas listradas = espaços fora do estoque físico</div>
+                            </div>
+                            <div class="manager-key"><span><i class="led good"></i> Com material</span><span><i class="led empty"></i> Disponível</span><span><i class="led review"></i> Conferência</span><span><i class="map-legend-mask"></i> Removido da planta</span></div>
+                            <div class="panel-pad editor-footer"><span class="map-saved-tag">{{ dirty ? 'Prévia alterada · aplique para salvar' : 'Mapa salvo · ' + group.rows + '×' + group.cols }}</span></div>
+                        </div>
+                    </div>
+
+                    <div class="schema-note"><strong>Modelo de localização:</strong> <code>idlocalizacao, grupo, linha, coluna, ativo</code>. Pintar uma célula não apaga a chave primária nem altera os saldos. Em produção, as restrições e a permissão de gestor deverão ser garantidas pela API.</div>
+                </div>
+            }
+            @case ('aparencia') {
+                <div class="settings-block"><div class="setting-line"><div><strong>Tema de visualização</strong><p>Escolha entre o tema claro original e o tema escuro.</p></div><div class="segmented"><button [class.active]="!dark" (click)="setTheme(false)">Claro</button><button [class.active]="dark" (click)="setTheme(true)">Escuro</button></div></div></div>
+                <div class="settings-block"><div class="setting-line"><div><strong>Layout da aplicação</strong><p>Janela centralizada, botões retos e menu horizontal.</p></div><span class="tag ok">Ativo</span></div></div>
+                <div class="settings-block"><div class="setting-line"><div><strong>Fonte de interface</strong><p>Roboto, com Arial como alternativa local.</p></div><span class="tag neutral">Roboto / Arial</span></div></div>
+            }
+            @case ('usuarios') {
+                <div class="note">Usuários e perfis — em construção. A gestão real dependerá dos controllers e das permissões do back-end.</div>
+            }
+            @case ('seguranca') {
+                <div class="settings-block"><div class="setting-line"><div><strong>Identificação obrigatória nas movimentações</strong><p>Material, quantidade, data e responsável em cada entrada ou saída.</p></div><span class="tag neutral">Previsto</span></div></div>
+                <div class="settings-block"><div class="setting-line"><div><strong>Histórico de alterações</strong><p>Registros de usuário, data e justificativa.</p></div><span class="tag neutral">Previsto</span></div></div>
+                <div class="settings-block"><div class="setting-line"><div><strong>Confirmação de ajustes restrita</strong><p>Somente gestores autorizados.</p></div><span class="tag neutral">Em construção</span></div></div>
+            }
+            @case ('backup') {
+                <div class="note">Cópias automáticas, retenção e restauração — em construção. Este ambiente não realiza backups do banco.</div>
+                <div class="settings-block"><div class="setting-line"><div><strong>Última execução</strong><p>Indisponível neste ambiente.</p></div><span class="tag bad">Não configurado</span></div></div>
+            }
+        }
+    </div></div>
+</section>

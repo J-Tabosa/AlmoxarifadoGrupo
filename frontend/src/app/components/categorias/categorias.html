@@ -1,0 +1,47 @@
+<section class="panel">
+  <div class="panel-head">
+    <div><h2 class="panel-title">Categorias</h2><p>Cadastro auxiliar para classificar os itens.</p></div>
+    <span class="tag neutral">{{ categorias.length }} registro(s)</span>
+  </div>
+  <div class="panel-pad form-wrap">
+    @if (mensagem) { <p class="alert success" role="status">{{ mensagem }}</p> }
+    @if (erro) { <p class="alert error" role="alert">{{ erro }}</p> }
+    <form class="crud-form" (ngSubmit)="salvar()">
+      <div class="field">
+        <label for="tipoCategoria">Descrição da categoria <span class="req">*</span></label>
+        <input id="tipoCategoria" name="tipoCategoria" required maxlength="45"
+          [(ngModel)]="tipo" placeholder="Ex.: Material de expediente" />
+      </div>
+      <div class="form-actions">
+        <span class="hint">{{ idEditando ? 'Editando categoria #' + idEditando : 'idCategoria automático' }}</span>
+        <div class="actions">
+          <button class="btn primary" type="submit" [disabled]="salvando">
+            {{ salvando ? 'Salvando…' : idEditando ? 'Salvar alterações' : 'Cadastrar categoria' }}
+          </button>
+          <button class="btn" type="button" (click)="limpar()">Limpar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+  <div class="toolbar"><strong>Categorias cadastradas</strong><button class="btn small" type="button" (click)="carregar()">Atualizar lista</button></div>
+  @if (carregando) { <p class="empty-state">Consultando categorias…</p> }
+  <div class="table-scroller">
+    <table class="table">
+      <thead><tr><th>ID</th><th>Categoria</th><th>Ações</th></tr></thead>
+      <tbody>
+        @for (categoria of categorias; track categoria.idCategoria) {
+          <tr>
+            <td class="code">{{ categoria.idCategoria }}</td>
+            <td><strong>{{ categoria.tipo }}</strong></td>
+            <td class="row-actions">
+              <button class="link-btn" type="button" (click)="editar(categoria)">Editar</button>
+              <button class="link-btn danger-text" type="button" (click)="excluir(categoria)">Excluir</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="3" class="empty-state">Nenhuma categoria cadastrada.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

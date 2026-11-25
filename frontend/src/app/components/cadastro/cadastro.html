@@ -1,1 +1,115 @@
-<p>cadastro works!</p>
+<section class="panel">
+  <div class="panel-head">
+    <div><h2 class="panel-title">Itens e estoque por localização</h2><p>Cadastro de <code>item</code> com parâmetros de mínimo/máximo em <code>estoque</code>.</p></div>
+    <span class="tag neutral">{{ itens.length }} item(ns)</span>
+  </div>
+
+  <div class="panel-pad">
+    @if (mensagem) { <p class="alert success" role="status">{{ mensagem }}</p> }
+    @if (erro) { <p class="alert error" role="alert">{{ erro }}</p> }
+
+    <form class="crud-form" (ngSubmit)="salvar()">
+      <div class="form-grid">
+        <div class="field">
+          <label for="idCategoria">Categoria <span class="req">*</span></label>
+          <select id="idCategoria" name="idCategoria" required [(ngModel)]="idCategoria">
+            <option [ngValue]="null">Selecione uma categoria</option>
+            @for (categoria of categorias; track categoria.idCategoria) {
+              <option [ngValue]="categoria.idCategoria">{{ categoria.tipo }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="unidade">Unidade <span class="req">*</span></label>
+          <select id="unidade" name="unidade" [(ngModel)]="unidade">
+            @for (u of unidades; track u) { <option [value]="u">{{ u }}</option> }
+          </select>
+        </div>
+        <div class="field wide">
+          <label for="descricaoItem">Descrição do item <span class="req">*</span></label>
+          <input id="descricaoItem" name="descricaoItem" required maxlength="100"
+            [(ngModel)]="descricaoItem" placeholder="Ex.: Papel A4, pacote com 500 folhas" />
+        </div>
+        <div class="field">
+          <label for="statusIt">Situação</label>
+          <select id="statusIt" name="statusIt" [(ngModel)]="statusIt">
+            <option value="A">A · Ativo</option><option value="I">I · Inativo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="record-divider">estoque · localização e limites</div>
+      <p class="hint">Adicione as posições onde o item será controlado. O saldo não pode ser alterado aqui: é mantido pelas movimentações e triggers do banco.</p>
+      @for (linha of estoques; track $index; let i = $index) {
+        <div class="stock-config-row">
+          <div class="field">
+            <label [for]="'local-' + i">Localização</label>
+            <select [id]="'local-' + i" [name]="'local-' + i" [(ngModel)]="linha.idLocalizacao">
+              <option [ngValue]="null">Selecione</option>
+              @for (local of localizacoes; track local.idLocalizacao) {
+                <option [ngValue]="local.idLocalizacao">{{ localizacaoLabel(local) }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label [for]="'min-' + i">Estoque mínimo</label>
+            <input [id]="'min-' + i" [name]="'min-' + i" type="number" min="0" step="1" [(ngModel)]="linha.eMinimo" />
+          </div>
+          <div class="field">
+            <label [for]="'max-' + i">Estoque máximo</label>
+            <input [id]="'max-' + i" [name]="'max-' + i" type="number" min="0" step="1" [(ngModel)]="linha.eMaximo" />
+          </div>
+          <div class="field">
+            <label>Saldo atual</label>
+            <input [value]="linha.saldo ?? 0" readonly />
+          </div>
+          <button class="btn danger small remove-stock" type="button" (click)="removerLocalizacao(i)">Remover</button>
+        </div>
+      } @empty {
+        <p class="empty-state inset">Nenhuma localização configurada para este item.</p>
+      }
+      <div class="actions section-gap">
+        <button class="btn" type="button" (click)="adicionarLocalizacao()" [disabled]="localizacoes.length === 0">Adicionar localização</button>
+        @if (localizacoes.length === 0) {
+          <span class="hint">O protótipo já disponibiliza localizações de demonstração para vincular o estoque.</span>
+        }
+      </div>
+
+      <div class="form-actions">
+        <span class="hint">{{ idEditando ? 'Editando item #' + idEditando : 'ID gerado automaticamente no cadastro local.' }}</span>
+        <div class="actions">
+          <button class="btn primary" type="submit" [disabled]="salvando">
+            {{ salvando ? 'Salvando…' : idEditando ? 'Salvar alterações' : 'Cadastrar item' }}
+          </button>
+          <button class="btn" type="button" (click)="limpar()">Limpar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="toolbar"><strong>Itens cadastrados</strong><button class="btn small" type="button" (click)="carregar()">Atualizar lista</button></div>
+  @if (carregando) { <p class="empty-state">Consultando itens…</p> }
+  <div class="table-scroller">
+    <table class="table">
+      <thead><tr><th>ID</th><th>Descrição</th><th>Categoria</th><th>Unidade</th><th>Saldo total</th><th>Situação</th><th>Ações</th></tr></thead>
+      <tbody>
+        @for (item of itens; track item.idItem) {
+          <tr>
+            <td class="code">{{ item.idItem }}</td>
+            <td><strong>{{ item.descricaoItem }}</strong></td>
+            <td>{{ item.categoria?.tipo || ('Categoria #' + item.idCategoria) }}</td>
+            <td>{{ item.unidade }}</td>
+            <td class="numeric">{{ saldoItem(item) }}</td>
+            <td><span class="tag" [class.ok]="item.statusIt === 'A'" [class.bad]="item.statusIt !== 'A'">{{ item.statusIt === 'A' ? 'Ativo' : 'Inativo' }}</span></td>
+            <td class="row-actions">
+              <button class="link-btn" type="button" (click)="editar(item)">Editar</button>
+              <button class="link-btn danger-text" type="button" (click)="excluir(item)">Excluir</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="7" class="empty-state">Nenhum item cadastrado.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

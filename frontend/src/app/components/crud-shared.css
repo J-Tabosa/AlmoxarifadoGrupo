@@ -1,0 +1,11 @@
+ :host { display: block; min-width: 0; }
+.alert { padding: 10px 13px; margin: 0 0 14px; border: 1px solid var(--line); font-size: 12px; }
+.alert.success { color: var(--ok); background: var(--ok-soft); border-left: 4px solid var(--ok); }
+.alert.error { color: var(--red); background: var(--red-soft); border-left: 4px solid var(--red); }
+.empty-state { padding: 14px 16px; color: var(--muted); text-align: center; font-size: 12px; }
+.empty-state.inset { background: var(--paper2); border: 1px dashed var(--line); }
+.row-actions { white-space: nowrap; }
+.danger-text { color: var(--red) !important; }
+.numeric { text-align: right; font-variant-numeric: tabular-nums; }
+.crud-form { max-width: 100%; }
+.table-subline { display: block; color: var(--muted); font-size: 10px; }
