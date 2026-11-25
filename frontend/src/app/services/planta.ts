@@ -1,0 +1,247 @@
+import { Injectable } from '@angular/core';
+
+export type Busca = 'all' | 'name' | 'id' | 'category';
+export type Situacao = 'good' | 'low' | 'empty' | 'review';
+
+export interface Material {
+    code: string;
+    name: string;
+    category: string;
+    unit: string;
+    stock: number;
+    min: number;
+}
+
+export interface Conteudo {
+    level: number;
+    position: number;
+    itemCode: string;
+    qty: number;
+}
+
+export interface Posicao {
+    idlocalizacao: number;
+    r: number;
+    c: number;
+    blocked: boolean;
+    review: boolean;
+    shelfCount?: number;
+    contents: Conteudo[];
+}
+
+export interface Grupo {
+    key: string;
+    name: string;
+    rows: number;
+    cols: number;
+    slots: Posicao[];
+    // Posições fora das dimensões atuais conservam seus IDs ao ampliar novamente.
+    archived: Posicao[];
+}
+
+interface Estado {
+    groups: Grupo[];
+    nextId: number;
+    defaultShelfCount: number;
+    activeKey: string;
+}
+
+/** Estado demonstrativo compartilhado entre Painel e Configurações.
+ * A API substituirá a persistência local quando os controllers estiverem prontos.
+ */
+@Injectable({ providedIn: 'root' })
+export class PlantaService {
+    private readonly storageKey = 'pqn-angular-planta-v1';
+    readonly materials: Material[] = [
+        { code: 'MAT-001', name: 'Papel A4 75g', category: 'Papelaria', unit: 'pct.', stock: 240, min: 40 },
+        { code: 'MAT-015', name: 'Luva nitrílica', category: 'Segurança', unit: 'cx.', stock: 12, min: 20 },
+        { code: 'MAT-021', name: 'Cabo de rede CAT6', category: 'Insumos', unit: 'm', stock: 84, min: 25 },
+        { code: 'MAT-032', name: 'Fita isolante preta', category: 'Insumos', unit: 'un.', stock: 0, min: 12 },
+        { code: 'MAT-044', name: 'Detergente neutro', category: 'Limpeza', unit: 'L', stock: 46, min: 15 },
+        { code: 'MAT-053', name: 'Pasta organizadora', category: 'Escritório', unit: 'un.', stock: 18, min: 20 }
+    ];
+    private state: Estado;
+    avisoPersistencia = '';
+
+    constructor() {
+        this.state = this.load() ?? this.createInitial();
+        try {
+            document.body.classList.toggle('dark', localStorage.getItem('pqn-angular-tema') === 'dark');
+        } catch { /* O tema padrão permanece disponível. */ }
+    }
+
+    get groups(): Grupo[] { return this.state.groups; }
+    get defaultShelfCount(): number { return this.state.defaultShelfCount; }
+    get activeGroup(): Grupo {
+        return this.groups.find(g => g.key === this.state.activeKey) ?? this.groups[0];
+    }
+
+    private load(): Estado | null {
+        try {
+            const raw = localStorage.getItem(this.storageKey);
+            if (!raw) return null;
+            const data = JSON.parse(raw) as Estado;
+            if (!Array.isArray(data.groups) || !data.groups.length ||
+                !Number.isInteger(data.nextId) || !this.validCount(data.defaultShelfCount) ||
+                !data.groups.every(g => Array.isArray(g.slots) && Array.isArray(g.archived) &&
+                    g.slots.length === g.rows * g.cols && g.slots.some(s => !s.blocked))) return null;
+            return data;
+        } catch { return null; }
+    }
+
+    private persist(): void {
+        try {
+            localStorage.setItem(this.storageKey, JSON.stringify(this.state));
+            this.avisoPersistencia = '';
+        } catch {
+            this.avisoPersistencia = 'Não foi possível gravar no navegador. As alterações valem apenas nesta sessão.';
+        }
+    }
+
+    private newSlot(r: number, c: number, id: number): Posicao {
+        return { idlocalizacao: id, r, c, blocked: false, review: false, contents: [] };
+    }
+
+    private createInitial(): Estado {
+        let nextId = 1;
+        const groups = [
+            ['central', 'Depósito Central'],
+            ['anexo', 'Depósito Anexo'],
+            ['administrativo', 'Administrativo']
+        ].map(([key, name]): Grupo => ({
+            key, name, rows: 8, cols: 8, archived: [],
+            slots: Array.from({ length: 64 }, (_, i) =>
+                this.newSlot(Math.floor(i / 8) + 1, i % 8 + 1, nextId++))
+        }));
+
+        // Distribuição demonstrativa do protótipo, sem duplicar o saldo total.
+        const demos: [number, number, number, number][] = [
+            [0, 1, 2, 1], [0, 2, 3, 0], [0, 2, 4, 5],
+            [0, 3, 1, 4], [1, 1, 1, 3], [1, 4, 1, 2]
+        ];
+        const shared = groups[0].slots.find(s => s.idlocalizacao === 12)!;
+        for (const [g, r, c, index] of demos) {
+            const material = this.materials[index];
+            const slot = groups[g].slots.find(s => s.r === r && s.c === c)!;
+            const split = [0, 1, 2].includes(index) ? Math.floor(material.stock / 3) : 0;
+            if (split) shared.contents.push({ level: 1, position: shared.contents.length + 1, itemCode: material.code, qty: split });
+            slot.contents.push({ level: 1, position: 1, itemCode: material.code, qty: material.stock - split });
+        }
+        groups[0].slots[4].review = true;
+        return { groups, nextId, defaultShelfCount: 5, activeKey: 'central' };
+    }
+
+    selectGroup(key: string): void {
+        if (this.groups.some(g => g.key === key)) {
+            this.state.activeKey = key;
+            this.persist();
+        }
+    }
+
+    material(code: string): Material | undefined {
+        return this.materials.find(m => m.code === code);
+    }
+
+    shelfCount(slot: Posicao): number {
+        return slot.shelfCount ?? this.defaultShelfCount;
+    }
+
+    situacao(slot: Posicao): Situacao {
+        if (slot.review) return 'review';
+        if (slot.contents.some(p => p.qty > 0 && (this.material(p.itemCode)?.stock ?? 0) < (this.material(p.itemCode)?.min ?? 0))) return 'low';
+        return slot.contents.some(p => p.qty > 0) ? 'good' : 'empty';
+    }
+
+    normalize(value: string): string {
+        return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+    }
+
+    matches(item: Material, query: string, mode: Busca): boolean {
+        const q = this.normalize(query);
+        if (!q) return true;
+        const id = String(Number(item.code.slice(4)));
+        const values = mode === 'name' ? [item.name] : mode === 'id' ? [item.code, id] :
+            mode === 'category' ? [item.category] : [item.name, item.code, id, item.category];
+        return values.some(v => this.normalize(v).includes(q));
+    }
+
+    matchingRack(slot: Posicao, query: string, mode: Busca): boolean {
+        return !slot.blocked && !!this.normalize(query) &&
+            slot.contents.some(p => {
+                const item = this.material(p.itemCode);
+                return !!item && this.matches(item, query, mode);
+            });
+    }
+
+    private validCount(n: number): boolean { return Number.isInteger(n) && n >= 1 && n <= 30; }
+    private minimum(slot: Posicao): number {
+        return Math.max(1, ...slot.contents.map(p => p.level));
+    }
+
+    setShelfCount(slot: Posicao, n: number | null): string {
+        const count = n ?? this.defaultShelfCount;
+        if (!this.validCount(count)) return 'Informe de 1 a 30 prateleiras.';
+        if (count < this.minimum(slot)) return 'Não é possível remover prateleiras com materiais vinculados.';
+        if (n === null) delete slot.shelfCount;
+        else slot.shelfCount = n;
+        this.persist();
+        return '';
+    }
+
+    setDefault(n: number, all: boolean): string {
+        if (!this.validCount(n)) return 'Informe de 1 a 30 prateleiras.';
+        const affected = this.groups.flatMap(g => [...g.slots, ...g.archived]).filter(s => all || s.shelfCount == null);
+        if (affected.some(s => this.minimum(s) > n)) return 'Há materiais acima desse limite. Realocação necessária.';
+        this.state.defaultShelfCount = n;
+        if (all) affected.forEach(s => delete s.shelfCount);
+        this.persist();
+        return '';
+    }
+
+    /** Alterações são validadas antes de trocar a planta ou consumir novos IDs. */
+    saveGroup(key: string, name: string, rows: number, cols: number, disabled: Set<string>): string {
+        const group = this.groups.find(g => g.key === key);
+        name = name.trim();
+        if (!group || !name || name.length > 45 || !Number.isInteger(rows) || !Number.isInteger(cols) ||
+            rows < 1 || rows > 15 || cols < 1 || cols > 16) return 'Informe nome, 1–15 linhas e 1–16 colunas.';
+        const existing = [...group.slots, ...group.archived];
+        if (existing.some(s => s.contents.length && (s.r > rows || s.c > cols || disabled.has(this.coord(s.r, s.c))))) {
+            return 'Não é possível remover ou bloquear posições com material vinculado.';
+        }
+        const coordinates = Array.from({ length: rows * cols }, (_, i) => ({ r: Math.floor(i / cols) + 1, c: i % cols + 1 }));
+        if (coordinates.every(p => disabled.has(this.coord(p.r, p.c)))) return 'Deixe pelo menos uma posição ativa.';
+        const byCoord = new Map(existing.map(s => [this.coord(s.r, s.c), s]));
+        group.slots = coordinates.map(({ r, c }) => {
+            const old = byCoord.get(this.coord(r, c));
+            return { ...(old ?? this.newSlot(r, c, this.state.nextId++)), blocked: disabled.has(this.coord(r, c)) };
+        });
+        group.archived = existing.filter(s => s.r > rows || s.c > cols);
+        group.name = name;
+        group.rows = rows;
+        group.cols = cols;
+        this.state.activeKey = key;
+        this.persist();
+        return '';
+    }
+
+    coord(r: number, c: number): string { return r + ':' + c; }
+
+    createGroup(): Grupo | null {
+        if (this.groups.length >= 12) return null;
+        let n = 1;
+        while (this.groups.some(g => g.key === 'grupo' + n)) n++;
+        const group: Grupo = {
+            key: 'grupo' + n, name: 'Novo Grupo ' + String(this.groups.length + 1).padStart(2, '0'),
+            rows: 8, cols: 8, archived: [],
+            slots: Array.from({ length: 64 }, (_, i) => this.newSlot(Math.floor(i / 8) + 1, i % 8 + 1, this.state.nextId++))
+        };
+        this.groups.push(group);
+        this.selectGroup(group.key);
+        return group;
+    }
+
+    setTheme(dark: boolean): void {
+        document.body.classList.toggle('dark', dark);
+        try { localStorage.setItem('pqn-angular-tema', dark ? 'dark' : 'light'); } catch { }
+    }
+}

@@ -1,0 +1,18 @@
+/* A prévia permite pintura contínua com mouse ou toque. */
+:host {
+    display: block;
+}
+
+.preview-location-grid.paintable {
+    touch-action: none;
+    user-select: none;
+}
+
+.preview-slot {
+    width: 100%;
+    min-width: 0;
+}
+
+.editor-footer {
+    padding: 10px 14px;
+}
