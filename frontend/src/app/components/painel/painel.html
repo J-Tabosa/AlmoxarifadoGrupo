@@ -68,7 +68,7 @@
                     <span>{{ group.rows }} × {{ group.cols }} · {{ activeCount }} posições · {{ group.slots.length - activeCount }} espaços excluídos</span>
                 </div>
 
-                <!-- A posição bloqueada é omitida visualmente, mas a geometria da sala é preservada. -->
+                <!-- Espaços desativados podem ser exibidos ou ocultados, sem mudar a geometria da planta. -->
                 <div id="addressGrid" class="address-grid" [class.search-active]="!!query && countMatches(group) > 0"
                      [style.grid-template-columns]="'repeat(' + group.cols + ', var(--tile-width))'"
                      [style.grid-template-rows]="'repeat(' + group.rows + ', var(--tile-height))'"
@@ -92,6 +92,14 @@
                                 <span class="rack-mini-count">{{ slot.contents.length }} {{ slot.contents.length === 1 ? 'item' : 'itens' }}</span>
                                 <span class="mini-corner">{{ planta.situacao(slot) === 'low' ? '!' : planta.situacao(slot) === 'review' ? '~' : '' }}</span>
                             </button>
+                        } @else if (planta.showBlocked) {
+                            <div class="address-tile has-estante masked"
+                                 [style.grid-row]="slot.r" [style.grid-column]="slot.c"
+                                 [attr.aria-label]="'Espaço desativado ' + pad(slot.r) + '-' + pad(slot.c)"
+                                 [title]="'Espaço desativado · ' + pad(slot.r) + '-' + pad(slot.c)">
+                                <span class="tile-position">{{ pad(slot.r) }}-{{ pad(slot.c) }}</span>
+                                <span class="tile-id">Vazio</span>
+                            </div>
                         }
                     }
                 </div>

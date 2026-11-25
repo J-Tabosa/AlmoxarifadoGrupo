@@ -314,3 +314,55 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Prévia das duas formas de visualizar a planta, na aba Aparência. */
+.map-view-examples {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+    gap: 12px;
+    margin: 12px 0;
+    max-width: 660px;
+}
+
+.map-view-option {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    text-align: left;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+}
+
+.map-view-option.selected {
+    border-color: var(--wine);
+    box-shadow: inset 0 0 0 1px var(--wine);
+}
+
+.map-view-option small {
+    color: var(--muted);
+}
+
+.map-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 10px;
+    background-color: #faf9f4;
+    background-image: radial-gradient(circle, #d2cec3 0.8px, transparent 0.9px);
+    background-size: 12px 12px;
+}
+
+.map-mini-grid i {
+    aspect-ratio: 3 / 2;
+}
+
+.map-mini-grid .active-cell {
+    background: linear-gradient(180deg, #9fa8ad, #74828b);
+    border: 1px solid #6f828b;
+}
+
+.map-mini-grid .masked-cell {
+    border: 1px dashed #aeb6bd;
+    background: repeating-linear-gradient(135deg, #eeeae2 0, #eeeae2 5px, #cbd2d5 5px, #cbd2d5 7px);
+}

@@ -19,6 +19,27 @@ describe('Painel', () => {
     expect(component).toBeTruthy();
   });
 
+  it('exibe ou oculta as posições desativadas sem mudar suas coordenadas', async () => {
+    const slot = component.group.slots.find(s => !s.blocked && s !== component.selected)!;
+    const original = slot.blocked;
+    const preference = component.planta.showBlocked;
+    try {
+      slot.blocked = true;
+      component.planta.setShowBlocked(false);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelectorAll('.address-tile.masked').length).toBe(0);
+      component.planta.setShowBlocked(true);
+      fixture.detectChanges();
+      const masked = Array.from(fixture.nativeElement.querySelectorAll('.address-tile.masked') as NodeListOf<HTMLElement>)
+        .find(el => el.style.gridRow === String(slot.r) && el.style.gridColumn === String(slot.c));
+      expect(masked).toBeTruthy();
+      expect(masked?.tagName).toBe('DIV');
+    } finally {
+      slot.blocked = original;
+      component.planta.setShowBlocked(preference);
+    }
+  });
+
   it('deve selecionar a estante sem abrir o modal', async () => {
     const tile = fixture.nativeElement.querySelector('.address-tile') as HTMLButtonElement;
     tile.click();

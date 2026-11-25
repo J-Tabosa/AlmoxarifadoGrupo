@@ -200,6 +200,36 @@
                 </div>
             }
             @case ('aparencia') {
+                <div class="settings-block">
+                    <div class="setting-line map-appearance">
+                        <div>
+                            <strong>Visualização da planta no Painel</strong>
+                            <p>Escolha como mostrar corredores e posições desativadas. A preferência vale para todos os grupos.</p>
+                        </div>
+                        <div class="segmented" role="group" aria-label="Visualização da planta">
+                            <button type="button" [class.active]="planta.showBlocked" [attr.aria-pressed]="planta.showBlocked"
+                                    (click)="planta.setShowBlocked(true)">Mostrar desativadas</button>
+                            <button type="button" [class.active]="!planta.showBlocked" [attr.aria-pressed]="!planta.showBlocked"
+                                    (click)="planta.setShowBlocked(false)">Deixar em branco</button>
+                        </div>
+                    </div>
+                    <div class="map-view-examples">
+                        @for (show of [true, false]; track show) {
+                            <button type="button" class="map-view-option" [class.selected]="planta.showBlocked === show"
+                                    [attr.aria-pressed]="planta.showBlocked === show" (click)="planta.setShowBlocked(show)">
+                                <span class="map-mini-grid" aria-hidden="true">
+                                    @for (i of [1, 2, 3, 4, 5, 6, 7, 8, 9]; track i) {
+                                        <i [class.active-cell]="i !== 2 && i !== 5 && i !== 8"
+                                           [class.masked-cell]="show && (i === 2 || i === 5 || i === 8)"></i>
+                                    }
+                                </span>
+                                <strong>{{ show ? 'Mostrar posições desativadas' : 'Deixar espaços em branco' }}</strong>
+                                <small>{{ show ? 'Corredores identificados por células listradas.' : 'Apenas as estantes ativas ficam visíveis.' }}</small>
+                            </button>
+                        }
+                    </div>
+                    <p class="hint" role="status">{{ planta.avisoPersistencia || 'Preferência salva automaticamente neste navegador.' }}</p>
+                </div>
                 <div class="settings-block"><div class="setting-line"><div><strong>Tema de visualização</strong><p>Escolha entre o tema claro original e o tema escuro.</p></div><div class="segmented"><button [class.active]="!dark" (click)="setTheme(false)">Claro</button><button [class.active]="dark" (click)="setTheme(true)">Escuro</button></div></div></div>
                 <div class="settings-block"><div class="setting-line"><div><strong>Layout da aplicação</strong><p>Janela centralizada, botões retos e menu horizontal.</p></div><span class="tag ok">Ativo</span></div></div>
                 <div class="settings-block"><div class="setting-line"><div><strong>Fonte de interface</strong><p>Roboto, com Arial como alternativa local.</p></div><span class="tag neutral">Roboto / Arial</span></div></div>

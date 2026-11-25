@@ -57,3 +57,39 @@
         flex-wrap: wrap;
     }
 }
+
+/* Fundo bege quase branco, com pontilhado discreto de planta técnica. */
+.storage-board {
+    background-color: #faf9f4;
+    background-image: radial-gradient(circle, #d2cec3 0.8px, transparent 0.9px);
+    background-size: 12px 12px;
+}
+
+:host-context(body.dark) .storage-board {
+    background-color: var(--paper);
+    background-image: radial-gradient(circle, #465362 0.8px, transparent 0.9px);
+}
+
+/* Os espaços desativados têm as mesmas dimensões das estantes, mas não são clicáveis. */
+#addressGrid .address-tile.masked {
+    grid-template-rows: auto auto;
+    align-content: center;
+    gap: 4px;
+    opacity: 1;
+    cursor: default;
+}
+
+#addressGrid .address-tile.masked:hover {
+    filter: none;
+    outline: none;
+    z-index: auto;
+}
+
+#addressGrid .address-tile.masked .tile-position {
+    text-decoration: line-through;
+    opacity: 1;
+}
+
+#addressGrid .address-tile.masked .tile-id {
+    opacity: 1;
+}
