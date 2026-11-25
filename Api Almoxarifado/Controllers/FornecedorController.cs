@@ -26,7 +26,7 @@ namespace Api_Almoxarifado.Controllers
                 nomeFo = f.NomeFo,
                 Cnpj = f.Cnpj,
                 statusFo = f.StatusFo,
-                idEndereco = f.Idendereco,
+                
 
                 Endereco = f.Endereco.(e => new Endereco
                 {

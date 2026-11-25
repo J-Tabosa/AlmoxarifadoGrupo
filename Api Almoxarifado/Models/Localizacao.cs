@@ -15,5 +15,7 @@ public partial class Localizacao
 
     public string StatusL { get; set; } = null!;
 
+    public string DescricaoL { get; set; }
+
     public virtual ICollection<Estoque> Estoques { get; set; } = new List<Estoque>();
 }
