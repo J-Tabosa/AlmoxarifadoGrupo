@@ -153,21 +153,12 @@
                         <div class="estante-card rack-shelves">
                             <div class="rack-section-head"><h4>Prateleiras da estante</h4><span class="hint">{{ levels.length }} níveis</span></div>
                             <div class="shelf-list">
-                                <!-- As barras laterais formam a estrutura da estante; cada botão é uma prateleira. -->
-                                <div class="shelf-frame">
-                                    @for (n of levels; track n) {
-                                        <button type="button" class="shelf-btn"
-                                                [class.active]="!rackQuery.trim() && n === level"
-                                                [attr.aria-pressed]="!rackQuery.trim() && n === level"
-                                                (click)="selectLevel(n)">
-                                            <span>
-                                                <strong>Prateleira {{ pad(n) }}</strong>
-                                                <small>{{ levelCount(n) }} {{ levelCount(n) === 1 ? 'item' : 'itens' }}</small>
-                                            </span>
-                                            <span class="shelf-badge">P{{ n }}</span>
-                                        </button>
-                                    }
-                                </div>
+                                @for (n of levels; track n) {
+                                    <button type="button" class="shelf-btn" [class.active]="!rackQuery && n === level" (click)="selectLevel(n)">
+                                        <span><strong>Prateleira {{ pad(n) }}</strong><small>{{ levelCount(n) }} itens</small></span>
+                                        <span class="shelf-badge">{{ n }}</span>
+                                    </button>
+                                }
                             </div>
                         </div>
                     </aside>

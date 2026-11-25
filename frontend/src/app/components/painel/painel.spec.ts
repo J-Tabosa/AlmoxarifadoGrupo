@@ -35,7 +35,7 @@ describe('Painel', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect(component.rack).toBe(component.selected);
-    expect(fixture.nativeElement.querySelector('.shelf-frame')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.shelf-list .shelf-btn')).toBeTruthy();
 
     const close = fixture.nativeElement.querySelector('.dialog-actions > .btn') as HTMLButtonElement;
     close.click();
