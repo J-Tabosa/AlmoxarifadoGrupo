@@ -23,7 +23,7 @@ public partial class Entradum
 
     public DateOnly? DataValidade { get; set; }
 
-    public virtual Fornecedor IdfornecedorNavigation { get; set; } = null!;
+    public virtual Fornecedor Fornecedor { get; set; } = null!;
 
-    public virtual Item IditemNavigation { get; set; } = null!;
+    public virtual Item Item { get; set; } = null!;
 }

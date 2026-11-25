@@ -15,7 +15,7 @@ public partial class Estoque
 
     public int EMaximo { get; set; }
 
-    public virtual Item IditemNavigation { get; set; } = null!;
+    public virtual Item Item { get; set; } = null!;
 
-    public virtual Localizacao IdlocalizacaoNavigation { get; set; } = null!;
+    public virtual Localizacao Localizacao { get; set; } = null!;
 }

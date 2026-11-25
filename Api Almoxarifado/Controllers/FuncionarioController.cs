@@ -17,7 +17,7 @@ namespace Api_Almoxarifado.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<FuncionarioDTO>>> GetAll()
+        public async Task<ActionResult<IEnumerable<FuncionarioDTO>>> GetFuncionarios()
         {
             var funcionario = await _context.Funcionarios
                 .Select(f => new FuncionarioDTO
@@ -99,7 +99,7 @@ namespace Api_Almoxarifado.Controllers
             };
 
             return CreatedAtAction(
-                nameof(GetAll),
+                nameof(GetFuncionarios),
                 new {id = funcionario.Idfuncionario,
                 response});
         } // Fim do método PostFuncionario
@@ -139,7 +139,7 @@ namespace Api_Almoxarifado.Controllers
         } // Fim do método PutFuncionario
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult<FuncionarioPostDTO>> Delete(int id)
+        public async Task<ActionResult<FuncionarioPostDTO>> DeleteFuncionario(int id)
         {
             var funcionario = await _context.Funcionarios
                 .FirstOrDefaultAsync(f => f.Idfuncionario == id);

@@ -17,7 +17,7 @@ namespace Api_Almoxarifado.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<CategoriumDTO>> GetAll()
+        public async Task<ActionResult<CategoriumDTO>> GetCategorias()
         {
             var categoria = await _context.Categoria.FirstOrDefaultAsync();
 
@@ -63,7 +63,7 @@ namespace Api_Almoxarifado.Controllers
             };
 
             return CreatedAtAction(
-                nameof(GetAll),
+                nameof(GetCategorias),
                 new {id = categoria.Idcategoria,
                 response});
         } // Fim do método PostCategoria
@@ -93,7 +93,7 @@ namespace Api_Almoxarifado.Controllers
         } // Fim do método PostCategoria
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult<CategoriumDTO>> Delete(int id)
+        public async Task<ActionResult<CategoriumDTO>> DeleteCategoria(int id)
         {
             var categoria = await _context.Categoria
                 .FirstOrDefaultAsync(c => c.Idcategoria == id);

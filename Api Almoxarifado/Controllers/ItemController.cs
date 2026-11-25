@@ -53,9 +53,22 @@ namespace Api_Almoxarifado.Controllers
                     idCategoria = i.Idcategoria,
                     descricaoItem = i.DescricaoItem,
                     Unidade = i.Unidade,
-                    statusIt = i.StatusIt
+                    statusIt = i.StatusIt,
+                    Categoria = i.Categoria != null ? i.Categoria.Tipo : null,
+                    Estoque = i.Estoques.Select(e => new Estoque
+                    {
+                        Iditem = e.Iditem,
+                        Idlocalizacao = e.Idlocalizacao,
+                        Saldo = e.Saldo
+                    }).ToList()
+                })
+                .FirstOrDefaultAsync();
 
-                }).FirstOrDefaultAsync();
+                if (item == null)
+                {
+                    return NotFound("Item não encontrado.");
+                }
+                
 
             return Ok(item);
         }
@@ -100,7 +113,7 @@ namespace Api_Almoxarifado.Controllers
         } // Fim do método Post
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<ItemDTO>> PutItem(ItemDTO dto, int id)
+        public async Task<ActionResult<ItemDTO>> PutItem(int id, ItemDTO dto)
         {
             var item = await _context.Items
                 .FirstOrDefaultAsync(i => i.Iditem == id);

@@ -127,12 +127,12 @@ public partial class BdAlmoxarifadoContext : DbContext
                 .HasMaxLength(45)
                 .HasColumnName("tipo_e");
 
-            entity.HasOne(d => d.IdfornecedorNavigation).WithMany(p => p.Entrada)
+            entity.HasOne(d => d.Fornecedor).WithMany(p => p.Entrada)
                 .HasForeignKey(d => d.Idfornecedor)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_entrada_estoque_fornecedor1");
 
-            entity.HasOne(d => d.IditemNavigation).WithMany(p => p.Entrada)
+            entity.HasOne(d => d.Item).WithMany(p => p.Entrada)
                 .HasForeignKey(d => d.Iditem)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_entrada_estoque_item1");
@@ -156,12 +156,12 @@ public partial class BdAlmoxarifadoContext : DbContext
             entity.Property(e => e.EMinimo).HasColumnName("e_minimo");
             entity.Property(e => e.Saldo).HasColumnName("saldo");
 
-            entity.HasOne(d => d.IditemNavigation).WithMany(p => p.Estoques)
+            entity.HasOne(d => d.Item).WithMany(p => p.Estoques)
                 .HasForeignKey(d => d.Iditem)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_estoque_item");
 
-            entity.HasOne(d => d.IdlocalizacaoNavigation).WithMany(p => p.Estoques)
+            entity.HasOne(d => d.Localizacao).WithMany(p => p.Estoques)
                 .HasForeignKey(d => d.Idlocalizacao)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_estoque_localizacao1");
@@ -254,7 +254,7 @@ public partial class BdAlmoxarifadoContext : DbContext
                 .HasComment("UN, CX, PC, L e KG")
                 .HasColumnName("unidade");
 
-            entity.HasOne(d => d.IdcategoriaNavigation).WithMany(p => p.Items)
+            entity.HasOne(d => d.Categoria).WithMany(p => p.Items)
                 .HasForeignKey(d => d.Idcategoria)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_item_categoria1");
@@ -324,7 +324,7 @@ public partial class BdAlmoxarifadoContext : DbContext
             entity.Property(e => e.Idrequisicao).HasColumnName("idrequisicao");
             entity.Property(e => e.QuantidadeS).HasColumnName("quantidade_s");
 
-            entity.HasOne(d => d.IditemNavigation).WithMany(p => p.RequisicaoItems)
+            entity.HasOne(d => d.Item).WithMany(p => p.RequisicaoItems)
                 .HasForeignKey(d => d.Iditem)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_movimentacao_item_item1");

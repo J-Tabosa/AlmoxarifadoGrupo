@@ -11,5 +11,5 @@ public partial class RequisicaoItem
 
     public int QuantidadeS { get; set; }
 
-    public virtual Item IditemNavigation { get; set; } = null!;
+    public virtual Item Item { get; set; } = null!;
 }
