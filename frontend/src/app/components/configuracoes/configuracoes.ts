@@ -29,7 +29,9 @@ export class Configuracoes {
     cols = 8;
     defaultCount = this.planta.defaultShelfCount;
     disabled = new Set<string>();
-    brush: 'block' | 'restore' = 'block';
+    brush: 'select' | 'block' | 'restore' = 'select';
+    descriptions = new Map<string, string>();
+    selectedKey = '';
     painting = false;
     notice = '';
     globalNotice = '';
@@ -56,8 +58,23 @@ export class Configuracoes {
         return Array.from({ length: this.rows * this.cols }, (_, i) => {
             const r = Math.floor(i / this.cols) + 1, c = i % this.cols + 1;
             const key = this.planta.coord(r, c);
-            return { r, c, key, slot: old.get(key), blocked: this.disabled.has(key) };
+            return { r, c, key, slot: old.get(key), blocked: this.disabled.has(key), descricao: this.descriptions.get(key) ?? '' };
         });
+    }
+
+    get selectedCell() {
+        return this.cells.find(cell => cell.key === this.selectedKey && !cell.blocked);
+    }
+
+    selectCell(r: number, c: number): void {
+        const key = this.planta.coord(r, c);
+        if (!this.disabled.has(key)) this.selectedKey = key;
+    }
+
+    editDescription(key: string, value: string): void {
+        if (!this.cells.some(cell => cell.key === key && !cell.blocked)) return;
+        this.descriptions.set(key, value.slice(0, 60));
+        this.changed();
     }
 
     countActive(group: Grupo): number {
@@ -76,6 +93,9 @@ export class Configuracoes {
         this.rows = group.rows;
         this.cols = group.cols;
         this.disabled = new Set([...group.slots, ...group.archived].filter(s => s.blocked).map(s => this.planta.coord(s.r, s.c)));
+        this.descriptions = new Map([...group.slots, ...group.archived].map(s => [this.planta.coord(s.r, s.c), s.descricao ?? '']));
+        this.selectedKey = '';
+        this.brush = 'select';
         this.dirty = false;
         this.notice = '';
         this.noticeError = false;
@@ -118,6 +138,10 @@ export class Configuracoes {
 
     /** Pincel trabalha na prévia; somente Aplicar mapa grava no serviço. */
     paint(r: number, c: number): void {
+        if (this.brush === 'select') {
+            this.selectCell(r, c);
+            return;
+        }
         const key = this.planta.coord(r, c);
         const slot = [...this.group.slots, ...this.group.archived].find(s => s.r === r && s.c === c);
         if (this.brush === 'block' && slot?.contents.length) {
@@ -133,7 +157,7 @@ export class Configuracoes {
     }
 
     beginPaint(event: PointerEvent, r: number, c: number): void {
-        if (event.button !== 0) return;
+        if (event.button !== 0 || this.brush === 'select') return;
         this.painting = true;
         this.paint(r, c);
     }
@@ -164,7 +188,7 @@ export class Configuracoes {
     restoreAll(): void { this.disabled.clear(); this.changed(); }
 
     save(): boolean {
-        const error = this.planta.saveGroup(this.groupKey, this.name, this.rows, this.cols, this.disabled);
+        const error = this.planta.saveGroup(this.groupKey, this.name, this.rows, this.cols, this.disabled, this.descriptions);
         if (error) { this.notice = error; this.noticeError = true; return false; }
         this.loadGroup(this.group);
         this.notice = this.planta.avisoPersistencia || 'Mapa aplicado e salvo neste navegador.';

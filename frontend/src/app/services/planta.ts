@@ -26,6 +26,7 @@ export interface Posicao {
     blocked: boolean;
     review: boolean;
     shelfCount?: number;
+    descricao?: string;
     contents: Conteudo[];
 }
 
@@ -119,15 +120,13 @@ export class PlantaService {
     }
 
     private newSlot(r: number, c: number, id: number): Posicao {
-        return { idlocalizacao: id, r, c, blocked: false, review: false, contents: [] };
+        return { idlocalizacao: id, r, c, blocked: false, review: false, descricao: '', contents: [] };
     }
 
     private createInitial(): Estado {
         let nextId = 1;
         const groups = [
-            ['central', 'Depósito Central'],
-            ['anexo', 'Depósito Anexo'],
-            ['administrativo', 'Administrativo']
+            ['central', 'Depósito Principal']
         ].map(([key, name]): Grupo => ({
             key, name, rows: 8, cols: 8, archived: [],
             slots: Array.from({ length: 64 }, (_, i) =>
@@ -205,13 +204,16 @@ export class PlantaService {
     }
 
     /** Alterações são validadas antes de trocar a planta ou consumir novos IDs. */
-    saveGroup(key: string, name: string, rows: number, cols: number, disabled: Set<string>): string {
+    saveGroup(key: string, name: string, rows: number, cols: number, disabled: Set<string>, descriptions: ReadonlyMap<string, string> = new Map()): string {
         const group = this.groups.find(g => g.key === key);
         name = name.trim();
         if (!group || !name || name.length > 45 || !Number.isInteger(rows) || !Number.isInteger(cols) ||
             rows < 1 || rows > 15 || cols < 1 || cols > 16) return 'Informe nome, 1–15 linhas e 1–16 colunas.';
         if (this.groups.some(g => g.key !== key && this.normalize(g.name) === this.normalize(name))) {
             return 'Já existe um grupo com esse nome.';
+        }
+        if ([...descriptions.values()].some(value => value.trim().length > 60)) {
+            return 'A descrição da estante deve ter até 60 caracteres.';
         }
         const existing = [...group.slots, ...group.archived];
         if (existing.some(s => s.contents.length && (s.r > rows || s.c > cols || disabled.has(this.coord(s.r, s.c))))) {
@@ -222,9 +224,13 @@ export class PlantaService {
         const byCoord = new Map(existing.map(s => [this.coord(s.r, s.c), s]));
         group.slots = coordinates.map(({ r, c }) => {
             const old = byCoord.get(this.coord(r, c));
-            return { ...(old ?? this.newSlot(r, c, this.state.nextId++)), blocked: disabled.has(this.coord(r, c)) };
+            const slot = old ?? this.newSlot(r, c, this.state.nextId++);
+            const key = this.coord(r, c);
+            return { ...slot, blocked: disabled.has(key), descricao: (descriptions.get(key) ?? slot.descricao ?? '').trim() };
         });
-        group.archived = existing.filter(s => s.r > rows || s.c > cols);
+        group.archived = existing.filter(s => s.r > rows || s.c > cols).map(slot => ({
+            ...slot, descricao: (descriptions.get(this.coord(slot.r, slot.c)) ?? slot.descricao ?? '').trim()
+        }));
         group.name = name;
         group.rows = rows;
         group.cols = cols;

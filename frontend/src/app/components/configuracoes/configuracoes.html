@@ -85,11 +85,12 @@
 
                                 <div class="manager-preview">
                                     <div class="panel-head">
-                                        <div><div class="panel-title">Desenhar planta</div><p>Selecione uma ferramenta e clique ou arraste sobre as células.</p></div>
+                                        <div><div class="panel-title">Desenhar planta</div><p>Selecione uma estante para nomeá-la ou escolha uma ferramenta para desenhar.</p></div>
                                         @if (validSize) { <span class="hint">{{ rows }} × {{ cols }}</span> }
                                     </div>
                                     <div class="editor-tools">
                                         <div class="map-brushbar" aria-label="Ferramentas de desenho">
+                                            <button type="button" class="btn" [class.tool-active]="brush === 'select'" [attr.aria-pressed]="brush === 'select'" (click)="brush = 'select'">Selecionar / nomear</button>
                                             <button type="button" class="btn" [class.tool-active]="brush === 'block'" [attr.aria-pressed]="brush === 'block'" (click)="brush = 'block'">▨ Marcar espaço vazio</button>
                                             <button type="button" class="btn" [class.tool-active]="brush === 'restore'" [attr.aria-pressed]="brush === 'restore'" (click)="brush = 'restore'">▣ Reativar estante</button>
                                         </div>
@@ -107,13 +108,15 @@
                                                 @for (cell of cells; track cell.key) {
                                                     <button type="button" class="preview-slot"
                                                             [class.masked]="cell.blocked"
+                                                            [class.naming-selected]="selectedKey === cell.key && !cell.blocked"
+                                                            [title]="cell.descricao || pad(cell.r) + '-' + pad(cell.c)"
                                                             [class.occupied]="!cell.blocked && !!cell.slot?.contents?.length"
                                                             [class.review]="!cell.blocked && state(cell.slot) === 'review'"
                                                             [attr.data-paint-cell]="cell.key" [attr.data-r]="cell.r" [attr.data-c]="cell.c"
                                                             [attr.aria-label]="'Linha ' + cell.r + ', coluna ' + cell.c + (cell.blocked ? ', espaço vazio' : ', estante ativa')"
                                                             (pointerdown)="beginPaint($event, cell.r, cell.c)"
                                                             (click)="paint(cell.r, cell.c)">
-                                                        <b>{{ pad(cell.r) }}-{{ pad(cell.c) }}</b>
+                                                        <b>{{ !cell.blocked && cell.descricao.trim() ? cell.descricao : pad(cell.r) + '-' + pad(cell.c) }}</b>
                                                         <small>{{ cell.blocked ? 'Vazio' : cell.slot ? '#' + cell.slot.idlocalizacao : 'Novo' }}</small>
                                                     </button>
                                                 }
@@ -134,6 +137,25 @@
                                         <span><i class="map-legend-mask"></i> Corredor / espaço vazio</span>
                                     </div>
                                 </div>
+
+                                @if (selectedCell; as cell) {
+                                    <div class="shelf-name-editor">
+                                        <div>
+                                            <strong>Estante {{ pad(cell.r) }}-{{ pad(cell.c) }}</strong>
+                                            <p class="hint">{{ cell.slot ? 'ID #' + cell.slot.idlocalizacao : 'ID gerado ao salvar' }}</p>
+                                        </div>
+                                        <div class="field">
+                                            <label for="shelfDescription">Descrição da estante (opcional)</label>
+                                            <input id="shelfDescription" maxlength="60" [ngModel]="cell.descricao"
+                                                   (ngModelChange)="editDescription(cell.key, $event)"
+                                                   placeholder="Ex.: Papelaria">
+                                            <small class="hint">Deixe vazio para usar as coordenadas. Salve as alterações para aplicar ao Painel.</small>
+                                        </div>
+                                        <button type="button" class="btn" [disabled]="!cell.descricao" (click)="editDescription(cell.key, '')">Restaurar nome padrão</button>
+                                    </div>
+                                } @else {
+                                    <p class="hint">Use Selecionar / nomear e clique em uma estante ativa para editar sua descrição.</p>
+                                }
 
                                 <p class="hint editor-help">As células listradas não aparecem no Painel. Posições com materiais não podem ser removidas ou bloqueadas. Os IDs são preservados ao redimensionar a planta.</p>
                                 @if (notice) {

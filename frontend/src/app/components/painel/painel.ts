@@ -34,6 +34,11 @@ export class Painel implements OnDestroy {
     pad(n: number): string { return String(n).padStart(2, '0'); }
     rackName(s: Posicao): string { return 'L' + this.pad(s.r) + ' · C' + this.pad(s.c); }
 
+    // A descrição substitui apenas o nome visual; coordenadas e ID continuam estáveis.
+    displayName(s: Posicao): string {
+        return s.descricao?.trim() || this.pad(s.r) + '-' + this.pad(s.c);
+    }
+
     selectGroup(g: Grupo): void {
         this.group = g;
         this.planta.selectGroup(g.key);

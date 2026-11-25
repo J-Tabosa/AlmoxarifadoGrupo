@@ -9,10 +9,43 @@
     align-items: center;
 }
 
+/* Células uniformes de 90 × 60 (proporção 60:40), inclusive nos espaços vazios. */
+#addressGrid {
+    --tile-width: 90px;
+    --tile-height: 60px;
+    width: max-content;
+    margin: 0 auto;
+    padding: 4px;
+    gap: 6px;
+}
+
 #addressGrid .address-tile {
-    height: 54px;
-    width: 100%;
+    width: var(--tile-width);
+    height: var(--tile-height);
     min-width: 0;
+    aspect-ratio: 3 / 2;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    gap: 2px;
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+#addressGrid .tile-position {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    width: 100%;
+    text-align: center;
+    line-height: 1.1;
+}
+
+.console-location .rack-description {
+    font-weight: 700;
+    color: var(--ink);
+    overflow-wrap: anywhere;
 }
 
 .rack-message {

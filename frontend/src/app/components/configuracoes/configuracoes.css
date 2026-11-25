@@ -280,3 +280,37 @@
         padding: 10px;
     }
 }
+
+/* Seleção de estante para editar sua descrição, sem interferir nos pincéis. */
+.group-editor .preview-slot.naming-selected {
+    outline: 3px solid var(--blue);
+    outline-offset: 1px;
+    z-index: 2;
+}
+
+.group-editor .preview-slot b {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.shelf-name-editor {
+    display: grid;
+    grid-template-columns: minmax(100px, auto) minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid var(--line);
+    background: var(--paper2);
+}
+
+.shelf-name-editor p {
+    margin: 4px 0 0;
+}
+
+@media (max-width: 650px) {
+    .shelf-name-editor {
+        grid-template-columns: 1fr;
+    }
+}
