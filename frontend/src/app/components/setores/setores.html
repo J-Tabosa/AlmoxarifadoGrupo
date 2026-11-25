@@ -1,0 +1,56 @@
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2 class="panel-title">Setores</h2>
+      <p>Cadastro dos setores vinculados aos funcionários.</p>
+    </div>
+    <span class="tag neutral">{{ setores.length }} registro(s)</span>
+  </div>
+
+  <div class="panel-pad form-wrap">
+    @if (mensagem) { <p class="alert success" role="status">{{ mensagem }}</p> }
+    @if (erro) { <p class="alert error" role="alert">{{ erro }}</p> }
+
+    <form class="crud-form" (ngSubmit)="salvar()">
+      <div class="field">
+        <label for="nomeSetor">Nome do setor <span class="req">*</span></label>
+        <input id="nomeSetor" name="nomeSetor" required maxlength="45"
+          [(ngModel)]="nomeSetor" placeholder="Ex.: Manutenção" />
+      </div>
+      <div class="form-actions">
+        <span class="hint">{{ idEditando ? 'Editando registro #' + idEditando : 'ID gerado automaticamente no cadastro local.' }}</span>
+        <div class="actions">
+          <button class="btn primary" type="submit" [disabled]="salvando">
+            {{ salvando ? 'Salvando…' : idEditando ? 'Salvar alterações' : 'Cadastrar setor' }}
+          </button>
+          <button class="btn" type="button" (click)="limpar()">Limpar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="toolbar">
+    <strong>Setores cadastrados</strong>
+    <button type="button" class="btn small" (click)="carregar()">Atualizar lista</button>
+  </div>
+  @if (carregando) { <p class="empty-state">Consultando setores…</p> }
+  <div class="table-scroller">
+    <table class="table">
+      <thead><tr><th>ID</th><th>Nome do setor</th><th>Ações</th></tr></thead>
+      <tbody>
+        @for (setor of setores; track setor.idSetor) {
+          <tr>
+            <td class="code">{{ setor.idSetor }}</td>
+            <td><strong>{{ setor.nomeSetor }}</strong></td>
+            <td class="row-actions">
+              <button class="link-btn" type="button" (click)="editar(setor)">Editar</button>
+              <button class="link-btn danger-text" type="button" (click)="excluir(setor)">Excluir</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="3" class="empty-state">Nenhum setor cadastrado.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

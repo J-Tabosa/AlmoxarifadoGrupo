@@ -1,0 +1,74 @@
+<section class="panel">
+  <div class="panel-head">
+    <div><h2 class="panel-title">Usuários / Funcionários</h2><p>O usuário do sistema corresponde à tabela <code>funcionario</code>.</p></div>
+    <span class="tag neutral">{{ funcionarios.length }} registro(s)</span>
+  </div>
+
+  <div class="panel-pad">
+    @if (mensagem) { <p class="alert success" role="status">{{ mensagem }}</p> }
+    @if (erro) { <p class="alert error" role="alert">{{ erro }}</p> }
+
+    <form class="crud-form" (ngSubmit)="salvar()">
+      <div class="form-grid">
+        <div class="field">
+          <label for="nomeFu">Nome completo <span class="req">*</span></label>
+          <input id="nomeFu" name="nomeFu" required maxlength="50" [(ngModel)]="nomeFu" />
+        </div>
+        <div class="field">
+          <label for="cargo">Cargo <span class="req">*</span></label>
+          <input id="cargo" name="cargo" required maxlength="45" [(ngModel)]="cargo" />
+        </div>
+        <div class="field">
+          <label for="idSetor">Setor <span class="req">*</span></label>
+          <select id="idSetor" name="idSetor" required [(ngModel)]="idSetor">
+            <option [ngValue]="null">Selecione o setor</option>
+            @for (setor of setores; track setor.idSetor) {
+              <option [ngValue]="setor.idSetor">{{ setor.nomeSetor }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="statusFu">Situação</label>
+          <select id="statusFu" name="statusFu" [(ngModel)]="statusFu">
+            <option value="A">A · Ativo</option>
+            <option value="I">I · Inativo</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <span class="hint">{{ idEditando ? 'Editando usuário #' + idEditando : 'ID gerado automaticamente no cadastro local.' }}</span>
+        <div class="actions">
+          <button class="btn primary" type="submit" [disabled]="salvando">
+            {{ salvando ? 'Salvando…' : idEditando ? 'Salvar alterações' : 'Cadastrar usuário' }}
+          </button>
+          <button class="btn" type="button" (click)="limpar()">Limpar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="toolbar"><strong>Funcionários cadastrados</strong><button class="btn small" type="button" (click)="carregar()">Atualizar lista</button></div>
+  @if (carregando) { <p class="empty-state">Consultando funcionários…</p> }
+  <div class="table-scroller">
+    <table class="table">
+      <thead><tr><th>ID</th><th>Nome</th><th>Cargo</th><th>Setor</th><th>Situação</th><th>Ações</th></tr></thead>
+      <tbody>
+        @for (funcionario of funcionarios; track funcionario.idFuncionario + '-' + funcionario.idSetor) {
+          <tr>
+            <td class="code">{{ funcionario.idFuncionario }}</td>
+            <td><strong>{{ funcionario.nomeFu }}</strong></td>
+            <td>{{ funcionario.cargo }}</td>
+            <td>{{ funcionario.setor?.nomeSetor || ('Setor #' + funcionario.idSetor) }}</td>
+            <td><span class="tag" [class.ok]="funcionario.statusFu === 'A'" [class.bad]="funcionario.statusFu !== 'A'">{{ funcionario.statusFu === 'A' ? 'Ativo' : 'Inativo' }}</span></td>
+            <td class="row-actions">
+              <button class="link-btn" type="button" (click)="editar(funcionario)">Editar</button>
+              <button class="link-btn danger-text" type="button" (click)="excluir(funcionario)">Excluir</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6" class="empty-state">Nenhum funcionário cadastrado.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
