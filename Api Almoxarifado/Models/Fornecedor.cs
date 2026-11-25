@@ -19,5 +19,5 @@ public partial class Fornecedor
 
     public virtual ICollection<Entradum> Entrada { get; set; } = new List<Entradum>();
 
-    public virtual Endereco IdenderecoNavigation { get; set; } = null!;
+    public virtual Endereco Endereco { get; set; } = null!;
 }

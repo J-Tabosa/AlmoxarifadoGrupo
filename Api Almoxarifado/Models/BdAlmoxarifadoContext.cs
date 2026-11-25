@@ -191,7 +191,7 @@ public partial class BdAlmoxarifadoContext : DbContext
                 .IsFixedLength()
                 .HasColumnName("status_fo");
 
-            entity.HasOne(d => d.IdenderecoNavigation).WithMany(p => p.Fornecedors)
+            entity.HasOne(d => d.Endereco).WithMany(p => p.Fornecedors)
                 .HasForeignKey(d => d.Idendereco)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_fornecedor_endereco1");
