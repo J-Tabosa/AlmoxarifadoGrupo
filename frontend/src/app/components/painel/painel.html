@@ -64,7 +64,7 @@
 
             <div class="storage-board">
                 <div class="storage-tools">
-                    <span><svg class="ico sm"><use href="assets/icons.svg#i-pin"/></svg> Planta vista de cima · selecione as posições ativas</span>
+                    <span><svg class="ico sm"><use href="assets/icons.svg#i-pin"/></svg> Planta vista de cima · selecione uma estante para consultar seus dados</span>
                     <span>{{ group.rows }} × {{ group.cols }} · {{ activeCount }} posições · {{ group.slots.length - activeCount }} espaços excluídos</span>
                 </div>
 
@@ -84,7 +84,8 @@
                                     [class.search-match]="match(slot)"
                                     [style.grid-row]="slot.r" [style.grid-column]="slot.c"
                                     [attr.aria-label]="'Estante ' + rackName(slot) + ', ID ' + slot.idlocalizacao"
-                                    (click)="openRack(slot)">
+                                    [attr.aria-pressed]="slot.idlocalizacao === selected.idlocalizacao"
+                                    (click)="selectPosition(slot)">
                                 <span class="tile-position">{{ pad(slot.r) }}-{{ pad(slot.c) }}</span>
                                 <span class="tile-id">#{{ slot.idlocalizacao }}</span>
                                 <span class="rack-mini-count">{{ slot.contents.length }} itens · {{ planta.shelfCount(slot) }} P</span>
@@ -101,20 +102,20 @@
             </div>
         </div>
 
-        <!-- Ficha lateral permanece visível mesmo depois de fechar o modal. -->
+        <!-- A seleção no mapa atualiza a ficha lateral; somente o botão abaixo abre o modal. -->
         <aside class="detail-console">
             <div class="console-head teal-head">
                 <strong><svg class="ico sm"><use href="assets/icons.svg#i-pin"/></svg> POSIÇÃO SELECIONADA</strong>
                 <span>{{ status(selected) }}</span>
             </div>
-            <div class="console-body">
+            <div class="console-body" aria-live="polite">
                 <div class="console-location">
                     <span>GRUPO / LINHA / COLUNA</span><strong>{{ rackName(selected) }}</strong>
                     <small>Grupo: {{ group.name }}</small>
                     <small class="loc-id-label">idlocalizacao: {{ selected.idlocalizacao }}</small>
                     <small>Estante com múltiplas prateleiras e posições.</small>
                 </div>
-                <div class="console-field"><label>Itens da estante</label><strong>{{ selected.contents.length }} itens</strong></div>
+                <div class="console-field"><label>Itens da estante</label><strong>{{ selected.contents.length }} {{ selected.contents.length === 1 ? 'item' : 'itens' }}</strong></div>
                 <div class="console-field"><label>Prateleiras</label><strong>{{ planta.shelfCount(selected) }}</strong></div>
                 <div class="console-field"><label>Configuração de prateleiras</label><strong>{{ selected.shelfCount == null ? 'Padrão geral' : 'Individual' }}</strong></div>
                 <div class="console-field"><label>Situação</label><span class="tag" [ngClass]="tag(selected)">{{ status(selected) }}</span></div>
@@ -152,12 +153,21 @@
                         <div class="estante-card rack-shelves">
                             <div class="rack-section-head"><h4>Prateleiras da estante</h4><span class="hint">{{ levels.length }} níveis</span></div>
                             <div class="shelf-list">
-                                @for (n of levels; track n) {
-                                    <button type="button" class="shelf-btn" [class.active]="!rackQuery && n === level" (click)="selectLevel(n)">
-                                        <span><strong>Prateleira {{ pad(n) }}</strong><small>{{ levelCount(n) }} itens</small></span>
-                                        <span class="shelf-badge">{{ n }}</span>
-                                    </button>
-                                }
+                                <!-- As barras laterais formam a estrutura da estante; cada botão é uma prateleira. -->
+                                <div class="shelf-frame">
+                                    @for (n of levels; track n) {
+                                        <button type="button" class="shelf-btn"
+                                                [class.active]="!rackQuery.trim() && n === level"
+                                                [attr.aria-pressed]="!rackQuery.trim() && n === level"
+                                                (click)="selectLevel(n)">
+                                            <span>
+                                                <strong>Prateleira {{ pad(n) }}</strong>
+                                                <small>{{ levelCount(n) }} {{ levelCount(n) === 1 ? 'item' : 'itens' }}</small>
+                                            </span>
+                                            <span class="shelf-badge">P{{ n }}</span>
+                                        </button>
+                                    }
+                                </div>
                             </div>
                         </div>
                     </aside>

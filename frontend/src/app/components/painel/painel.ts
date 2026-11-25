@@ -70,9 +70,14 @@ export class Painel implements OnDestroy {
         return { good: 'ok', low: 'bad', empty: 'neutral', review: 'warn' }[this.planta.situacao(slot)];
     }
 
+    // Selecionar uma estante não abre a ficha: apenas atualiza os dados ao lado.
+    selectPosition(slot: Posicao): void {
+        if (!slot.blocked) this.selected = slot;
+    }
+
     openRack(slot: Posicao): void {
         if (slot.blocked) return;
-        this.selected = slot;
+        this.selectPosition(slot);
         this.rack = slot;
         this.level = 1;
         this.rackMode = this.match(slot) ? this.mode : 'name';
