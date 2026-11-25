@@ -66,7 +66,10 @@ public partial class BdAlmoxarifadoContext : DbContext
 
             entity.ToTable("endereco");
 
+            entity.HasIndex(e => e.Idfornecedor, "fk_endereco_fornecedor1_idx");
+
             entity.Property(e => e.Idendereco).HasColumnName("idendereco");
+            entity.Property(e => e.Idfornecedor).HasColumnName("idfornecedor");
             entity.Property(e => e.Bairro)
                 .HasMaxLength(45)
                 .HasColumnName("bairro");
@@ -93,6 +96,11 @@ public partial class BdAlmoxarifadoContext : DbContext
             entity.Property(e => e.Pais)
                 .HasMaxLength(45)
                 .HasColumnName("pais");
+
+            entity.HasOne(d => d.Fornecedor).WithMany(p => p.Endereco)
+                .HasForeignKey(d => d.Idfornecedor)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_endereco_fornecedor1");
         });
 
         modelBuilder.Entity<Entradum>(entity =>
@@ -173,8 +181,6 @@ public partial class BdAlmoxarifadoContext : DbContext
 
             entity.ToTable("fornecedor");
 
-            entity.HasIndex(e => e.Idendereco, "fk_fornecedor_endereco1_idx");
-
             entity.Property(e => e.Idfornecedor).HasColumnName("idfornecedor");
             entity.Property(e => e.Cnpj)
                 .HasMaxLength(14)
@@ -182,7 +188,6 @@ public partial class BdAlmoxarifadoContext : DbContext
             entity.Property(e => e.Contato)
                 .HasMaxLength(60)
                 .HasColumnName("contato");
-            entity.Property(e => e.Idendereco).HasColumnName("idendereco");
             entity.Property(e => e.NomeFo)
                 .HasMaxLength(45)
                 .HasColumnName("nome_fo");
@@ -190,11 +195,6 @@ public partial class BdAlmoxarifadoContext : DbContext
                 .HasMaxLength(1)
                 .IsFixedLength()
                 .HasColumnName("status_fo");
-
-            entity.HasOne(d => d.Endereco).WithMany(p => p.Fornecedors)
-                .HasForeignKey(d => d.Idendereco)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_fornecedor_endereco1");
         });
 
         modelBuilder.Entity<Funcionario>(entity =>

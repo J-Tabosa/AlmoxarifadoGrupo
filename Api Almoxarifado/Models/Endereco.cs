@@ -9,6 +9,8 @@ public partial class Endereco
 
     public string Cep { get; set; } = null!;
 
+    public int Idfornecedor { get; set; }
+
     public string Logradouro { get; set; } = null!;
 
     public string Numero { get; set; } = null!;
@@ -23,5 +25,5 @@ public partial class Endereco
 
     public string Pais { get; set; } = null!;
 
-    public virtual ICollection<Fornecedor> Fornecedors { get; set; } = new List<Fornecedor>();
+    public virtual Fornecedor Fornecedor { get; set; } = null!;
 }

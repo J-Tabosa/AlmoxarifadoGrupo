@@ -7,8 +7,6 @@ public partial class Fornecedor
 {
     public int Idfornecedor { get; set; }
 
-    public int Idendereco { get; set; }
-
     public string Contato { get; set; } = null!;
 
     public string NomeFo { get; set; } = null!;
@@ -19,5 +17,5 @@ public partial class Fornecedor
 
     public virtual ICollection<Entradum> Entrada { get; set; } = new List<Entradum>();
 
-    public virtual Endereco Endereco { get; set; } = null!;
+    public virtual ICollection<Endereco> Endereco { get; set; } = new List<Endereco>();
 }
