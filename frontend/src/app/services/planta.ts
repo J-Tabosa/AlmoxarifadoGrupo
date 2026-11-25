@@ -210,6 +210,9 @@ export class PlantaService {
         name = name.trim();
         if (!group || !name || name.length > 45 || !Number.isInteger(rows) || !Number.isInteger(cols) ||
             rows < 1 || rows > 15 || cols < 1 || cols > 16) return 'Informe nome, 1–15 linhas e 1–16 colunas.';
+        if (this.groups.some(g => g.key !== key && this.normalize(g.name) === this.normalize(name))) {
+            return 'Já existe um grupo com esse nome.';
+        }
         const existing = [...group.slots, ...group.archived];
         if (existing.some(s => s.contents.length && (s.r > rows || s.c > cols || disabled.has(this.coord(s.r, s.c))))) {
             return 'Não é possível remover ou bloquear posições com material vinculado.';
@@ -232,18 +235,43 @@ export class PlantaService {
 
     coord(r: number, c: number): string { return r + ':' + c; }
 
-    createGroup(): Grupo | null {
-        if (this.groups.length >= 12) return null;
-        let n = 1;
-        while (this.groups.some(g => g.key === 'grupo' + n)) n++;
+    createGroup(name: string): Grupo | null {
+        name = name.trim();
+        if (this.groups.length >= 12 || !name || name.length > 45 ||
+            this.groups.some(g => this.normalize(g.name) === this.normalize(name))) return null;
         const group: Grupo = {
-            key: 'grupo' + n, name: 'Novo Grupo ' + String(this.groups.length + 1).padStart(2, '0'),
+            key: 'grupo-' + this.state.nextId, name,
             rows: 8, cols: 8, archived: [],
             slots: Array.from({ length: 64 }, (_, i) => this.newSlot(Math.floor(i / 8) + 1, i % 8 + 1, this.state.nextId++))
         };
         this.groups.push(group);
         this.selectGroup(group.key);
         return group;
+    }
+
+    /** Um grupo ocupado ou o último grupo não pode ser removido.
+     * O contador de IDs permanece intacto para não reutilizar localizações excluídas.
+     */
+    groupRemovalError(key: string): string {
+        const group = this.groups.find(g => g.key === key);
+        if (!group) return 'Grupo não encontrado.';
+        if ([...group.slots, ...group.archived].some(s => s.contents.length > 0)) {
+            return 'Este grupo possui materiais vinculados. Realocação necessária antes de excluir.';
+        }
+        if (this.groups.length <= 1) return 'Mantenha pelo menos um grupo para o painel.';
+        return '';
+    }
+
+    deleteGroup(key: string): string {
+        const error = this.groupRemovalError(key);
+        if (error) return error;
+        const index = this.groups.findIndex(g => g.key === key);
+        this.groups.splice(index, 1);
+        if (this.state.activeKey === key) {
+            this.state.activeKey = this.groups[Math.min(index, this.groups.length - 1)].key;
+        }
+        this.persist();
+        return '';
     }
 
     setTheme(dark: boolean): void {

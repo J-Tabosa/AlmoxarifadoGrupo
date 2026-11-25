@@ -1,6 +1,6 @@
 import { Component, HostListener, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Grupo, PlantaService, Posicao } from '../../services/planta';
 
 type Aba = 'enderecamento' | 'aparencia' | 'usuarios' | 'seguranca' | 'backup';
@@ -13,6 +13,7 @@ type Aba = 'enderecamento' | 'aparencia' | 'usuarios' | 'seguranca' | 'backup';
 })
 export class Configuracoes {
     readonly planta = inject(PlantaService);
+    private readonly router = inject(Router);
     readonly tabs: { key: Aba; label: string }[] = [
         { key: 'enderecamento', label: 'Grupos e posições' },
         { key: 'aparencia', label: 'Aparência' },
@@ -33,6 +34,11 @@ export class Configuracoes {
     notice = '';
     globalNotice = '';
     dirty = false;
+    creating = false;
+    newName = '';
+    createError = '';
+    confirmDelete = false;
+    noticeError = false;
     dark = document.body.classList.contains('dark');
 
     constructor() { this.loadGroup(this.planta.activeGroup); }
@@ -54,6 +60,12 @@ export class Configuracoes {
         });
     }
 
+    countActive(group: Grupo): number {
+        return group.slots.filter(s => !s.blocked).length;
+    }
+
+    get removalError(): string { return this.planta.groupRemovalError(this.groupKey); }
+
     get blockedCount(): number { return this.cells.filter(c => c.blocked).length; }
     get enabledCount(): number { return this.cells.length - this.blockedCount; }
     pad(n: number): string { return String(n).padStart(2, '0'); }
@@ -66,14 +78,43 @@ export class Configuracoes {
         this.disabled = new Set([...group.slots, ...group.archived].filter(s => s.blocked).map(s => this.planta.coord(s.r, s.c)));
         this.dirty = false;
         this.notice = '';
+        this.noticeError = false;
+        this.confirmDelete = false;
+        this.creating = false;
+        this.createError = '';
+        this.painting = false;
+    }
+
+    /** Evita perder uma planta ainda não salva ao trocar de grupo ou sair da tela. */
+    canLeave(): boolean {
+        return (!this.dirty && !(this.creating && this.newName.trim())) ||
+            window.confirm('Há alterações não salvas. Deseja descartá-las?');
+    }
+
+    changeTab(tab: Aba): void {
+        if (tab === this.tab) return;
+        if (!this.canLeave()) return;
+        if (this.dirty || this.creating) this.loadGroup(this.group);
+        this.tab = tab;
     }
 
     changeGroup(key: string): void {
+        if (key === this.groupKey) return;
         const next = this.planta.groups.find(g => g.key === key);
-        if (next) this.loadGroup(next);
+        if (next && this.canLeave()) this.loadGroup(next);
     }
 
-    changed(): void { this.dirty = true; this.notice = ''; }
+    changed(): void {
+        this.dirty = true;
+        this.notice = '';
+        this.noticeError = false;
+        this.confirmDelete = false;
+    }
+
+    cancelEdit(): void {
+        this.loadGroup(this.group);
+        this.notice = 'Alterações descartadas. A planta salva foi restaurada.';
+    }
 
     /** Pincel trabalha na prévia; somente Aplicar mapa grava no serviço. */
     paint(r: number, c: number): void {
@@ -81,6 +122,7 @@ export class Configuracoes {
         const slot = [...this.group.slots, ...this.group.archived].find(s => s.r === r && s.c === c);
         if (this.brush === 'block' && slot?.contents.length) {
             this.notice = 'Não é permitido bloquear uma posição com materiais vinculados.';
+            this.noticeError = true;
             return;
         }
         const shouldBlock = this.brush === 'block';
@@ -123,21 +165,67 @@ export class Configuracoes {
 
     save(): boolean {
         const error = this.planta.saveGroup(this.groupKey, this.name, this.rows, this.cols, this.disabled);
-        if (error) { this.notice = error; return false; }
+        if (error) { this.notice = error; this.noticeError = true; return false; }
         this.loadGroup(this.group);
         this.notice = this.planta.avisoPersistencia || 'Mapa aplicado e salvo neste navegador.';
         return true;
     }
 
-    newGroup(): void {
-        const group = this.planta.createGroup();
-        if (!group) { this.notice = 'Limite de 12 grupos no protótipo.'; return; }
-        this.loadGroup(group);
-        this.notice = this.planta.avisoPersistencia || 'Novo grupo criado com planta padrão 8 × 8.';
+    startCreate(): void {
+        if (this.creating) return;
+        if (!this.canLeave()) return;
+        if (this.dirty) this.loadGroup(this.group);
+        this.creating = true;
+        this.confirmDelete = false;
+        this.newName = '';
+        this.createError = '';
     }
 
-    viewPlant(): void { this.planta.selectGroup(this.groupKey); }
+    cancelCreate(): void {
+        this.creating = false;
+        this.newName = '';
+        this.createError = '';
+    }
+
+    newGroup(): void {
+        const name = this.newName.trim();
+        if (!name || name.length > 45) { this.createError = 'Informe um nome de até 45 caracteres.'; return; }
+        if (this.planta.groups.some(g => this.planta.normalize(g.name) === this.planta.normalize(name))) {
+            this.createError = 'Já existe um grupo com esse nome.';
+            return;
+        }
+        const group = this.planta.createGroup(name);
+        if (!group) { this.createError = 'Limite de 12 grupos atingido.'; return; }
+        this.loadGroup(group);
+        this.notice = this.planta.avisoPersistencia || 'Grupo criado. Personalize a planta 8 × 8 e salve as alterações.';
+    }
+
+    requestDelete(): void {
+        if (this.removalError) return;
+        this.confirmDelete = true;
+        this.notice = '';
+    }
+
+    deleteGroup(): void {
+        if (!this.confirmDelete) return;
+        const error = this.planta.deleteGroup(this.groupKey);
+        if (error) {
+            this.confirmDelete = false;
+            this.noticeError = true;
+            this.notice = error;
+            return;
+        }
+        this.loadGroup(this.planta.activeGroup);
+        this.notice = this.planta.avisoPersistencia || 'Grupo excluído.';
+    }
+
+    viewPlant(): void {
+        if (this.dirty || this.creating) return;
+        this.planta.selectGroup(this.groupKey);
+        void this.router.navigate(['/painel']);
+    }
     saveDefault(all = false): void {
+        if (all && !window.confirm('Todas as estantes passarão a usar o padrão geral. Continuar?')) return;
         const error = this.planta.setDefault(this.defaultCount, all);
         this.globalNotice = error || this.planta.avisoPersistencia || 'Padrão salvo: ' + this.planta.defaultShelfCount + ' prateleiras.';
     }
