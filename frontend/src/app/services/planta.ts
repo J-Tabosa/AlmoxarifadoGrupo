@@ -52,19 +52,14 @@ interface Estado {
 @Injectable({ providedIn: 'root' })
 export class PlantaService {
     private readonly storageKey = 'pqn-angular-planta-v1';
-    readonly materials: Material[] = [
-        { code: 'MAT-001', name: 'Papel A4 75g', category: 'Papelaria', unit: 'pct.', stock: 240, min: 40 },
-        { code: 'MAT-015', name: 'Luva nitrílica', category: 'Segurança', unit: 'cx.', stock: 12, min: 20 },
-        { code: 'MAT-021', name: 'Cabo de rede CAT6', category: 'Insumos', unit: 'm', stock: 84, min: 25 },
-        { code: 'MAT-032', name: 'Fita isolante preta', category: 'Insumos', unit: 'un.', stock: 0, min: 12 },
-        { code: 'MAT-044', name: 'Detergente neutro', category: 'Limpeza', unit: 'L', stock: 46, min: 15 },
-        { code: 'MAT-053', name: 'Pasta organizadora', category: 'Escritório', unit: 'un.', stock: 18, min: 20 }
-    ];
+    // O catálogo começa vazio; será preenchido pela API.
+    readonly materials: Material[] = [];
     private state: Estado;
     avisoPersistencia = '';
 
     constructor() {
         this.state = this.load() ?? this.createInitial();
+        this.removeDemoData();
         try {
             document.body.classList.toggle('dark', localStorage.getItem('pqn-angular-tema') === 'dark');
         } catch { /* O tema padrão permanece disponível. */ }
@@ -87,6 +82,31 @@ export class PlantaService {
                     g.slots.length === g.rows * g.cols && g.slots.some(s => !s.blocked))) return null;
             return data;
         } catch { return null; }
+    }
+
+    /** Remove somente os registros fictícios da versão anterior, sem apagar a planta salva. */
+    private removeDemoData(): void {
+        const demoCodes = new Set(['MAT-001', 'MAT-015', 'MAT-021', 'MAT-032', 'MAT-044', 'MAT-053']);
+        let changed = false;
+
+        for (const group of this.groups) {
+            for (const slot of [...group.slots, ...group.archived]) {
+                const contents = slot.contents.filter(p => !demoCodes.has(p.itemCode));
+                if (contents.length !== slot.contents.length) {
+                    slot.contents = contents;
+                    changed = true;
+                }
+
+                // A única marca de conferência simulada era a posição 01-05 do grupo central.
+                if (group.key === 'central' && slot.idlocalizacao === 5 &&
+                    slot.r === 1 && slot.c === 5 && slot.review && !slot.contents.length) {
+                    slot.review = false;
+                    changed = true;
+                }
+            }
+        }
+
+        if (changed) this.persist();
     }
 
     private persist(): void {
@@ -114,20 +134,6 @@ export class PlantaService {
                 this.newSlot(Math.floor(i / 8) + 1, i % 8 + 1, nextId++))
         }));
 
-        // Distribuição demonstrativa do protótipo, sem duplicar o saldo total.
-        const demos: [number, number, number, number][] = [
-            [0, 1, 2, 1], [0, 2, 3, 0], [0, 2, 4, 5],
-            [0, 3, 1, 4], [1, 1, 1, 3], [1, 4, 1, 2]
-        ];
-        const shared = groups[0].slots.find(s => s.idlocalizacao === 12)!;
-        for (const [g, r, c, index] of demos) {
-            const material = this.materials[index];
-            const slot = groups[g].slots.find(s => s.r === r && s.c === c)!;
-            const split = [0, 1, 2].includes(index) ? Math.floor(material.stock / 3) : 0;
-            if (split) shared.contents.push({ level: 1, position: shared.contents.length + 1, itemCode: material.code, qty: split });
-            slot.contents.push({ level: 1, position: 1, itemCode: material.code, qty: material.stock - split });
-        }
-        groups[0].slots[4].review = true;
         return { groups, nextId, defaultShelfCount: 5, activeKey: 'central' };
     }
 
