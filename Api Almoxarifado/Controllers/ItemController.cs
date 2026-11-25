@@ -2,10 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Api_Almoxarifado.Models;
 using Api_Almoxarifado.DTO;
-using Pomelo.EntityFrameworkCore.MySql.Query.Internal;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.OpenApi.Writers;
 
 namespace Api_Almoxarifado.Controllers
 {
@@ -57,18 +53,9 @@ namespace Api_Almoxarifado.Controllers
                     idCategoria = i.Idcategoria,
                     descricaoItem = i.DescricaoItem,
                     Unidade = i.Unidade,
-                    statusIt = i.StatusIt,
+                    statusIt = i.StatusIt
 
-                    Categoria = i.Categoria != null ? i.Categoria.Tipo : null,
-
-                    Estoque = i.Estoques.Select(e => new Estoque
-                    {
-                        Iditem = e.Iditem,
-                        Idlocalizacao = e.Idlocalizacao,
-                        Saldo = e.Saldo,
-                    }).ToList()
-
-                }).ToListAsync();
+                }).FirstOrDefaultAsync();
 
             return Ok(item);
         }
