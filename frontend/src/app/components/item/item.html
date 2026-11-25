@@ -1,0 +1,271 @@
+<div class="consulta-stack item-page">
+  <section class="panel consulta-panel items-panel">
+    <div class="panel-head consulta-panel-head">
+      <div>
+        <h2 class="panel-title">Itens cadastrados</h2>
+        <p>Consulte os materiais, acompanhe o saldo e mantenha os cadastros atualizados.</p>
+      </div>
+      <div class="consultation-actions">
+        <button class="btn primary" type="button" (click)="abrirModalNovo()">
+          ＋ Cadastrar item
+        </button>
+        <button class="btn small" type="button" (click)="carregar()" [disabled]="carregando">
+          Atualizar lista
+        </button>
+      </div>
+    </div>
+
+    <div class="consultation-search-wrap">
+      <label class="consultation-search" for="pesquisa-itens">
+        <span aria-hidden="true">⌕</span>
+        <input
+          id="pesquisa-itens"
+          name="pesquisaItens"
+          type="search"
+          [(ngModel)]="pesquisaItens"
+          placeholder="Pesquisar por ID, descrição, categoria ou localização do item..."
+        />
+      </label>
+    </div>
+
+    @if (carregando) {
+      <p class="empty-state">Consultando itens…</p>
+    }
+
+    <div class="list-scroll-shell" [class.has-overflow]="itensFiltrados.length > 5">
+      <div class="table-scroller consultation-list-viewport">
+        <table class="table items-table consultation-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Descrição</th>
+              <th>Categoria</th>
+              <th>Unidade</th>
+              <th>Localização</th>
+              <th class="numeric">Saldo total</th>
+              <th>Situação</th>
+              <th class="actions-column">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of itensFiltrados; track item.idItem) {
+              <tr>
+                <td class="code">{{ item.idItem }}</td>
+                <td>
+                  <strong>{{ item.descricaoItem }}</strong>
+                </td>
+                <td>{{ item.categoria?.tipo || 'Categoria #' + item.idCategoria }}</td>
+                <td>{{ item.unidade }}</td>
+                <td>{{ localizacaoItem(item) }}</td>
+                <td class="numeric">{{ saldoItem(item) }}</td>
+                <td>
+                  <span
+                    class="tag"
+                    [class.ok]="item.statusIt === 'A'"
+                    [class.bad]="item.statusIt !== 'A'"
+                  >
+                    {{ item.statusIt === 'A' ? 'Ativo' : 'Inativo' }}
+                  </span>
+                </td>
+                <td class="row-actions item-row-actions">
+                  <button
+                    class="item-action-btn edit"
+                    type="button"
+                    (click)="abrirModalEdicao(item)"
+                    [attr.aria-label]="'Editar ' + item.descricaoItem"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    class="item-action-btn delete"
+                    type="button"
+                    (click)="excluir(item)"
+                    [attr.aria-label]="'Excluir ' + item.descricaoItem"
+                  >
+                    Excluir
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="8" class="empty-state">
+                  {{
+                    pesquisaItens
+                      ? 'Nenhum item corresponde à pesquisa.'
+                      : 'Nenhum item cadastrado.'
+                  }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="table-foot consultation-table-foot">
+      <span>{{ itensFiltrados.length }} de {{ itens.length }} item(ns)</span>
+      <span>O saldo é atualizado pelas movimentações de estoque.</span>
+    </div>
+  </section>
+</div>
+
+<!-- Modal de cadastro/edição de item -->
+@if (modalAberto) {
+  <div class="drawer-overlay open item-modal-overlay" role="presentation" (click)="fecharModal()">
+    <section
+      class="dialog item-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="item-modal-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="dialog-head">
+        <span id="item-modal-title">{{
+          idEditando === null ? 'Cadastrar item' : 'Editar item #' + idEditando
+        }}</span>
+        <button
+          type="button"
+          (click)="fecharModal()"
+          [disabled]="salvando"
+          aria-label="Fechar janela"
+        >
+          ✕
+        </button>
+      </header>
+
+      <form class="item-modal-form" (ngSubmit)="salvar()">
+        <div class="dialog-body item-dialog-body">
+          <div class="form-grid">
+            <div class="field">
+              <label for="idCategoria">Categoria <span class="req">*</span></label>
+              <select id="idCategoria" name="idCategoria" required [(ngModel)]="idCategoria">
+                <option [ngValue]="null">Selecione uma categoria</option>
+                @for (categoria of categorias; track categoria.idCategoria) {
+                  <option [ngValue]="categoria.idCategoria">{{ categoria.tipo }}</option>
+                }
+              </select>
+            </div>
+            <div class="field">
+              <label for="unidade">Unidade <span class="req">*</span></label>
+              <select id="unidade" name="unidade" required [(ngModel)]="unidade">
+                @for (u of unidades; track u) {
+                  <option [value]="u">{{ u }}</option>
+                }
+              </select>
+            </div>
+            <div class="field wide">
+              <label for="descricaoItem">Descrição do item <span class="req">*</span></label>
+              <input
+                id="descricaoItem"
+                name="descricaoItem"
+                required
+                maxlength="100"
+                [(ngModel)]="descricaoItem"
+                placeholder="Ex.: Papel A4, pacote com 500 folhas"
+              />
+            </div>
+            <div class="field">
+              <label for="statusIt">Situação</label>
+              <select id="statusIt" name="statusIt" [(ngModel)]="statusIt">
+                <option value="A">A · Ativo</option>
+                <option value="I">I · Inativo</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="record-divider">Estoque · localização e limites</div>
+          <p class="hint item-stock-hint">
+            Adicione as posições onde o item será controlado. O saldo não pode ser alterado aqui: é
+            mantido pelas movimentações e triggers do banco.
+          </p>
+
+          @for (linha of estoques; track $index; let i = $index) {
+            <div class="stock-config-row">
+              <div class="field">
+                <label [for]="'local-' + i">Localização</label>
+                <select [id]="'local-' + i" [name]="'local-' + i" [(ngModel)]="linha.idLocalizacao">
+                  <option [ngValue]="null">Selecione</option>
+                  @for (local of localizacoes; track local.idLocalizacao) {
+                    <option [ngValue]="local.idLocalizacao">{{ localizacaoLabel(local) }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label [for]="'min-' + i">Estoque mínimo</label>
+                <input
+                  [id]="'min-' + i"
+                  [name]="'min-' + i"
+                  type="number"
+                  min="0"
+                  step="1"
+                  [(ngModel)]="linha.eMinimo"
+                />
+              </div>
+              <div class="field">
+                <label [for]="'max-' + i">Estoque máximo</label>
+                <input
+                  [id]="'max-' + i"
+                  [name]="'max-' + i"
+                  type="number"
+                  min="0"
+                  step="1"
+                  [(ngModel)]="linha.eMaximo"
+                />
+              </div>
+              <div class="field">
+                <label [for]="'saldo-' + i">Saldo atual</label>
+                <input [id]="'saldo-' + i" [value]="linha.saldo ?? 0" readonly />
+              </div>
+              <button
+                class="btn danger small remove-stock"
+                type="button"
+                (click)="removerLocalizacao(i)"
+              >
+                Remover
+              </button>
+            </div>
+          } @empty {
+            <p class="empty-state inset">Nenhuma localização configurada para este item.</p>
+          }
+
+          <div class="actions section-gap item-location-actions">
+            <button
+              class="btn"
+              type="button"
+              (click)="adicionarLocalizacao()"
+              [disabled]="localizacoes.length === 0"
+            >
+              ＋ Adicionar localização
+            </button>
+            @if (localizacoes.length === 0) {
+              <span class="hint"
+                >Não há localizações ativas disponíveis para vincular ao estoque.</span
+              >
+            }
+          </div>
+        </div>
+
+        <footer class="dialog-actions item-dialog-actions">
+          <span class="hint">{{
+            idEditando === null
+              ? 'ID gerado automaticamente no cadastro local.'
+              : 'Alterando o cadastro do item #' + idEditando + '.'
+          }}</span>
+          <div class="actions">
+            <button class="btn primary" type="submit" [disabled]="salvando">
+              {{
+                salvando
+                  ? 'Salvando…'
+                  : idEditando === null
+                    ? 'Cadastrar item'
+                    : 'Salvar alterações'
+              }}
+            </button>
+            <button class="btn" type="button" (click)="fecharModal()" [disabled]="salvando">
+              Cancelar
+            </button>
+          </div>
+        </footer>
+      </form>
+    </section>
+  </div>
+}

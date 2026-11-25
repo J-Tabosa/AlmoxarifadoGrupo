@@ -8,9 +8,6 @@
   </div>
 
   <div class="panel-pad form-wrap">
-    @if (mensagem) { <p class="alert success" role="status">{{ mensagem }}</p> }
-    @if (erro) { <p class="alert error" role="alert">{{ erro }}</p> }
-
     <form class="crud-form" (ngSubmit)="salvar()">
       <div class="field">
         <label for="nomeSetor">Nome do setor <span class="req">*</span></label>

@@ -5,9 +5,6 @@
   </div>
 
   <div class="panel-pad">
-    @if (mensagem) { <p class="alert success" role="status">{{ mensagem }}</p> }
-    @if (erro) { <p class="alert error" role="alert">{{ erro }}</p> }
-
     <form class="crud-form" (ngSubmit)="salvar()">
       <div class="form-grid">
         <div class="field">

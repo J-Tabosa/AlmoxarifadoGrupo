@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { mensagemErro } from '../../core/app-error';
+import { DialogoService } from '../../core/dialogo.service';
 import { SetorModel } from '../../models/setor.model';
 import { SetoresService } from '../../services/setores.service';
 
@@ -17,10 +18,11 @@ export class Setores implements OnInit {
   idEditando: number | null = null;
   carregando = false;
   salvando = false;
-  mensagem = '';
-  erro = '';
 
-  constructor(private readonly api: SetoresService) {}
+  constructor(
+    private readonly api: SetoresService,
+    private readonly dialogo: DialogoService,
+  ) {}
 
   ngOnInit(): void {
     this.carregar();
@@ -28,14 +30,13 @@ export class Setores implements OnInit {
 
   carregar(): void {
     this.carregando = true;
-    this.erro = '';
     this.api.listar().subscribe({
       next: (dados) => {
         this.setores = dados;
         this.carregando = false;
       },
       error: (e) => {
-        this.erro = mensagemErro(e);
+        this.dialogo.erro(mensagemErro(e), 'Erro ao carregar setores');
         this.carregando = false;
       },
     });
@@ -46,8 +47,6 @@ export class Setores implements OnInit {
     if (!nome || this.salvando) return;
 
     this.salvando = true;
-    this.mensagem = '';
-    this.erro = '';
     const payload = { nomeSetor: nome };
     const chamada = this.idEditando === null
       ? this.api.criar(payload)
@@ -55,13 +54,17 @@ export class Setores implements OnInit {
 
     chamada.subscribe({
       next: () => {
-        this.mensagem = this.idEditando === null ? 'Setor cadastrado.' : 'Setor atualizado.';
+        const estavaEditando = this.idEditando !== null;
+        this.dialogo.sucesso(
+          estavaEditando ? 'Setor atualizado.' : 'Setor cadastrado.',
+          estavaEditando ? 'Setor atualizado' : 'Setor cadastrado',
+        );
         this.salvando = false;
-        this.limpar(false);
+        this.limpar();
         this.carregar();
       },
       error: (e) => {
-        this.erro = mensagemErro(e);
+        this.dialogo.erro(mensagemErro(e), 'Erro ao salvar setor');
         this.salvando = false;
       },
     });
@@ -70,28 +73,27 @@ export class Setores implements OnInit {
   editar(setor: SetorModel): void {
     this.idEditando = setor.idSetor;
     this.nomeSetor = setor.nomeSetor;
-    this.mensagem = '';
-    this.erro = '';
   }
 
-  excluir(setor: SetorModel): void {
-    if (!window.confirm(`Excluir o setor "${setor.nomeSetor}"?`)) return;
+  async excluir(setor: SetorModel): Promise<void> {
+    const confirmado = await this.dialogo.confirmar(
+      `Deseja realmente excluir o setor "${setor.nomeSetor}"?`,
+      'Excluir setor',
+    );
+    if (!confirmado) return;
+
     this.api.excluir(setor.idSetor).subscribe({
       next: () => {
-        this.mensagem = 'Setor excluído.';
-        if (this.idEditando === setor.idSetor) this.limpar(false);
+        this.dialogo.sucesso('Setor excluído.', 'Setor excluído');
+        if (this.idEditando === setor.idSetor) this.limpar();
         this.carregar();
       },
-      error: (e) => this.erro = mensagemErro(e),
+      error: (e) => this.dialogo.erro(mensagemErro(e), 'Erro ao excluir setor'),
     });
   }
 
-  limpar(limparMensagens = true): void {
+  limpar(): void {
     this.idEditando = null;
     this.nomeSetor = '';
-    if (limparMensagens) {
-      this.mensagem = '';
-      this.erro = '';
-    }
   }
 }

@@ -3,7 +3,7 @@
   <div>
     <div class="heading-meta"><span class="badge-ico">↗</span><span>REGISTRO DE SAÍDA</span><span class="section-chip">Gestão de materiais</span></div>
     <h1>Requisições de itens</h1>
-    <p>Registre e acompanhe solicitações. Cada requisição identifica o solicitante e o almoxarife responsável pelo lançamento.</p>
+    <p>Registre e acompanhe solicitações. Cada requisição identifica o almoxarife responsável pelo lançamento e o funcionário solicitante.</p>
   </div>
 </section>
 
@@ -11,15 +11,11 @@
   <div class="panel-head">
     <div>
       <h2 class="panel-title">Cadastro de requisição</h2>
-      <p>O cabeçalho reúne os responsáveis e os dados da solicitação; as linhas registram os itens e quantidades.</p>
+      <p>Informe o almoxarife responsável, o funcionário solicitante e os itens e quantidades da solicitação. O histórico fica na página Histórico.</p>
     </div>
-    <span class="tag neutral">{{ requisicoesFiltradas.length }} registro(s)</span>
   </div>
 
   <div class="panel-pad">
-    @if (mensagem) { <p class="alert success" role="status">{{ mensagem }}</p> }
-    @if (erro) { <p class="alert error" role="alert">{{ erro }}</p> }
-
     <div class="section-heading">
       <div>
         <h3>{{ idEditando ? 'Editar requisição #' + idEditando : 'Nova requisição' }}</h3>
@@ -31,6 +27,17 @@
     <form (ngSubmit)="salvar()">
       <div class="form-grid">
         <div class="field">
+          <label for="idAlmoxarifeForm">Almoxarife responsável pelo registro <span class="req">*</span></label>
+          <select id="idAlmoxarifeForm" name="idAlmoxarifeForm" required [(ngModel)]="idAlmoxarifeForm">
+            <option [ngValue]="null">Selecione o almoxarife responsável</option>
+            @for (funcionario of funcionarios; track funcionario.idFuncionario) {
+              <option [ngValue]="funcionario.idFuncionario">{{ funcionario.nomeFu }} · {{ funcionario.cargo }}</option>
+            }
+          </select>
+          <small>Setor: {{ nomeSetorFuncionario(idAlmoxarifeForm) }}</small>
+        </div>
+
+        <div class="field">
           <label for="idSolicitanteForm">Funcionário solicitante <span class="req">*</span></label>
           <select id="idSolicitanteForm" name="idSolicitanteForm" required [(ngModel)]="idSolicitanteForm" [disabled]="idEditando !== null">
             <option [ngValue]="null">Selecione o solicitante</option>
@@ -39,17 +46,6 @@
             }
           </select>
           <small>Setor: {{ nomeSetorFuncionario(idSolicitanteForm) }}</small>
-        </div>
-
-        <div class="field">
-          <label for="idAlmoxarifeForm">Almoxarife responsável pelo registro <span class="req">*</span></label>
-          <select id="idAlmoxarifeForm" name="idAlmoxarifeForm" required [(ngModel)]="idAlmoxarifeForm">
-            <option [ngValue]="null">Selecione o almoxarife</option>
-            @for (funcionario of funcionarios; track funcionario.idFuncionario) {
-              <option [ngValue]="funcionario.idFuncionario">{{ funcionario.nomeFu }} · {{ funcionario.cargo }}</option>
-            }
-          </select>
-          <small>Setor: {{ nomeSetorFuncionario(idAlmoxarifeForm) }}</small>
         </div>
 
         <div class="field">
@@ -114,56 +110,4 @@
     </form>
   </div>
 
-  <div class="toolbar">
-    <strong>Requisições registradas</strong>
-    <div class="toolbar-left">
-      <div class="field filter-field">
-        <label for="filtroSolicitante">Filtrar solicitante</label>
-        <select id="filtroSolicitante" name="filtroSolicitante" [(ngModel)]="filtroSolicitanteId">
-          <option [ngValue]="null">Todos</option>
-          @for (funcionario of funcionarios; track funcionario.idFuncionario) {
-            <option [ngValue]="funcionario.idFuncionario">{{ funcionario.nomeFu }}</option>
-          }
-        </select>
-      </div>
-      <div class="field filter-field">
-        <label for="filtroAlmoxarife">Filtrar almoxarife</label>
-        <select id="filtroAlmoxarife" name="filtroAlmoxarife" [(ngModel)]="filtroAlmoxarifeId">
-          <option [ngValue]="null">Todos</option>
-          @for (funcionario of funcionarios; track funcionario.idFuncionario) {
-            <option [ngValue]="funcionario.idFuncionario">{{ funcionario.nomeFu }}</option>
-          }
-        </select>
-      </div>
-      <button class="btn small" type="button" (click)="carregar()">Atualizar lista</button>
-    </div>
-  </div>
-  @if (carregando) { <p class="empty-state">Consultando requisições…</p> }
-  <div class="table-scroller">
-    <table class="table">
-      <thead><tr><th>ID</th><th>Solicitante</th><th>Almoxarife responsável</th><th>Data / hora</th><th>Tipo</th><th>Itens</th><th>Ações</th></tr></thead>
-      <tbody>
-        @for (requisicao of requisicoesFiltradas; track requisicao.idRequisicao + '-' + requisicao.idFuncionario) {
-          <tr>
-            <td class="code">#{{ requisicao.idRequisicao }}</td>
-            <td><strong>{{ requisicao.funcionario?.nomeFu || nomeFuncionario(requisicao.idFuncionario) }}</strong><small class="table-subline">{{ requisicao.funcionario?.setor?.nomeSetor || '' }}</small></td>
-            <td><strong>{{ requisicao.almoxarife?.nomeFu || nomeFuncionario(requisicao.idAlmoxarife) }}</strong><small class="table-subline">{{ requisicao.almoxarife?.setor?.nomeSetor || '' }}</small></td>
-            <td>{{ requisicao.dataHoraS | date:'dd/MM/yyyy HH:mm' }}</td>
-            <td><span class="tag neutral">{{ requisicao.tipoS }}</span></td>
-            <td>
-              @for (item of requisicao.itens; track item.idItem) {
-                <div class="request-item-summary">{{ item.quantidadeS }} × {{ item.descricaoItem || ('Item #' + item.idItem) }}</div>
-              }
-            </td>
-            <td class="row-actions">
-              <button class="link-btn" type="button" (click)="editar(requisicao)">Editar</button>
-              <button class="link-btn danger-text" type="button" (click)="excluir(requisicao)">Excluir</button>
-            </td>
-          </tr>
-        } @empty {
-          <tr><td colspan="7" class="empty-state">Nenhuma requisição encontrada.</td></tr>
-        }
-      </tbody>
-    </table>
-  </div>
 </section>

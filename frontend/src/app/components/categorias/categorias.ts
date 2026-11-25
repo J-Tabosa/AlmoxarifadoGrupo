@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { mensagemErro } from '../../core/app-error';
+import { DialogoService } from '../../core/dialogo.service';
 import { CategoriaModel } from '../../models/categoria.model';
 import { CategoriasService } from '../../services/categorias.service';
 
@@ -17,10 +18,11 @@ export class Categorias implements OnInit {
   idEditando: number | null = null;
   carregando = false;
   salvando = false;
-  mensagem = '';
-  erro = '';
 
-  constructor(private readonly api: CategoriasService) {}
+  constructor(
+    private readonly api: CategoriasService,
+    private readonly dialogo: DialogoService,
+  ) {}
 
   ngOnInit(): void { this.carregar(); }
 
@@ -28,7 +30,7 @@ export class Categorias implements OnInit {
     this.carregando = true;
     this.api.listar().subscribe({
       next: (dados) => { this.categorias = dados; this.carregando = false; },
-      error: (e) => { this.erro = mensagemErro(e); this.carregando = false; },
+      error: (e) => { this.dialogo.erro(mensagemErro(e), 'Erro ao carregar categorias'); this.carregando = false; },
     });
   }
 
@@ -42,12 +44,16 @@ export class Categorias implements OnInit {
 
     chamada.subscribe({
       next: () => {
-        this.mensagem = this.idEditando === null ? 'Categoria cadastrada.' : 'Categoria atualizada.';
+        const estavaEditando = this.idEditando !== null;
+        this.dialogo.sucesso(
+          estavaEditando ? 'Categoria atualizada.' : 'Categoria cadastrada.',
+          estavaEditando ? 'Categoria atualizada' : 'Categoria cadastrada',
+        );
         this.salvando = false;
-        this.limpar(false);
+        this.limpar();
         this.carregar();
       },
-      error: (e) => { this.erro = mensagemErro(e); this.salvando = false; },
+      error: (e) => { this.dialogo.erro(mensagemErro(e), 'Erro ao salvar categoria'); this.salvando = false; },
     });
   }
 
@@ -56,17 +62,21 @@ export class Categorias implements OnInit {
     this.tipo = categoria.tipo;
   }
 
-  excluir(categoria: CategoriaModel): void {
-    if (!window.confirm(`Excluir a categoria "${categoria.tipo}"?`)) return;
+  async excluir(categoria: CategoriaModel): Promise<void> {
+    const confirmado = await this.dialogo.confirmar(
+      `Deseja realmente excluir a categoria "${categoria.tipo}"?`,
+      'Excluir categoria',
+    );
+    if (!confirmado) return;
+
     this.api.excluir(categoria.idCategoria).subscribe({
-      next: () => { this.mensagem = 'Categoria excluída.'; this.carregar(); },
-      error: (e) => this.erro = mensagemErro(e),
+      next: () => { this.dialogo.sucesso('Categoria excluída.', 'Categoria excluída'); this.carregar(); },
+      error: (e) => this.dialogo.erro(mensagemErro(e), 'Erro ao excluir categoria'),
     });
   }
 
-  limpar(limparMensagens = true): void {
+  limpar(): void {
     this.idEditando = null;
     this.tipo = '';
-    if (limparMensagens) { this.mensagem = ''; this.erro = ''; }
   }
 }

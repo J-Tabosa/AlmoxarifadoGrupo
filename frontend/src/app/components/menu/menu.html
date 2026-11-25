@@ -1,0 +1,182 @@
+<!-- Barra de título: nome e versão do sistema. -->
+  <div class="chrome">
+    <div class="chrome-left">
+      <span class="chrome-square"> </span>
+      <span
+        >Gestão de Materiais <span style="opacity: 0.45">/</span> Sistema Local - Demonstração</span
+      >
+    </div>
+    <div class="chrome-right">
+      <span>PQN - Labs 0.9</span>
+      <span class="chrome-line"> </span>
+    </div>
+  </div>
+
+  <!-- Menu principal: routerLink navega; routerLinkActive destaca a rota. -->
+  <div class="ribbon" role="toolbar" aria-label="Navegação principal">
+    <!-- Logo em public/assets; retorna ao painel. -->
+    <div class="ribbon-brand">
+      <button
+        class="logo"
+        title="Voltar ao painel"
+        aria-label="Ir para o painel"
+        routerLink="/painel"
+        routerLinkActive="active"
+      >
+        <img src="assets/logo-pqn.png" alt="PQN - Labs" class="pqn-brand-image" />
+      </button>
+    </div>
+
+    <!-- Grupo: arquivos. -->
+    <div class="ribbon-group">
+      <span class="ribbon-group-label">ARQUIVOS</span>
+      <div class="ribbon-tools">
+        <button
+          data-view="painel"
+          routerLink="/painel"
+          routerLinkActive="active"
+          title="Mapa do almoxarifado"
+        >
+          <span class="ribbon-symbol blue">
+            <svg class="ico lg">
+              <use href="assets/icons.svg#i-archive" />
+            </svg>
+          </span>
+          <span>Painel</span>
+        </button>
+
+        <button
+          data-view="item"
+          routerLink="/item"
+          routerLinkActive="active"
+          title="Consultar e cadastrar itens"
+        >
+          <span class="ribbon-symbol blue">
+            <svg class="ico lg" aria-hidden="true">
+              <use href="assets/icons.svg#i-box" />
+            </svg>
+          </span>
+          <span>Item</span>
+        </button>
+
+        <button
+          data-view="fornecedor"
+          routerLink="/fornecedor"
+          routerLinkActive="active"
+          title="Consultar e cadastrar fornecedores"
+        >
+          <span class="ribbon-symbol teal">
+            <svg class="ico lg" aria-hidden="true">
+              <use href="assets/icons.svg#i-truck" />
+            </svg>
+          </span>
+          <span>Fornecedor</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Grupo: movimentação. -->
+    <div class="ribbon-group">
+      <span class="ribbon-group-label">MOVIMENTAÇÃO</span>
+      <div class="ribbon-tools">
+        <button
+          data-view="entradas"
+          routerLink="/entradas"
+          routerLinkActive="active"
+          title="Registrar entrada"
+        >
+          <span class="ribbon-symbol teal">
+            <svg class="ico lg">
+              <use href="assets/icons.svg#i-entry" />
+            </svg>
+          </span>
+          <span>Entrada</span>
+        </button>
+
+        <button
+          data-view="saidas"
+          routerLink="/saidas"
+          routerLinkActive="active"
+          title="Registrar saída"
+        >
+          <span class="ribbon-symbol ruby">
+            <svg class="ico lg">
+              <use href="assets/icons.svg#i-exit" />
+            </svg>
+          </span>
+          <span>Saída</span>
+        </button>
+
+        <button
+          data-view="historico"
+          routerLink="/historico"
+          routerLinkActive="active"
+          title="Ver histórico"
+        >
+          <span class="ribbon-symbol slate">
+            <svg class="ico lg">
+              <use href="assets/icons.svg#i-clock" />
+            </svg>
+          </span>
+          <span>Histórico</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Grupo: controle. -->
+    <div class="ribbon-group">
+      <span class="ribbon-group-label">CONTROLE</span>
+      <div class="ribbon-tools">
+        <button data-view="conferencia" routerLink="/conferencia" routerLinkActive="active">
+          <span class="ribbon-symbol blue">
+            <svg class="ico lg">
+              <use href="assets/icons.svg#i-clipboard" />
+            </svg>
+          </span>
+          <span>Inventário</span>
+        </button>
+
+        <button data-view="divergencias" routerLink="/divergencias" routerLinkActive="active">
+          <span class="ribbon-symbol ruby">
+            <svg class="ico lg">
+              <use href="assets/icons.svg#i-alert" />
+            </svg>
+          </span>
+          <span>Alertas</span>
+        </button>
+
+        <button data-view="relatorios" routerLink="/relatorios" routerLinkActive="active">
+          <span class="ribbon-symbol teal">
+            <svg class="ico lg">
+              <use href="assets/icons.svg#i-chart" />
+            </svg>
+          </span>
+          <span>Relatórios</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Configurações e perfil demonstrativo. -->
+    <div class="topright">
+      <button
+        class="top-btn"
+        title="Configurações"
+        aria-label="Configurações"
+        routerLink="/configuracoes"
+        routerLinkActive="active"
+      >
+        <svg class="ico">
+          <use href="assets/icons.svg#i-settings" />
+        </svg>
+        <span>Configurações</span>
+      </button>
+      <button
+        class="avatar"
+        title="Perfil administrador (ilustrativo)"
+        routerLink="/configuracoes"
+        routerLinkActive="active"
+      >
+        AD
+      </button>
+    </div>
+  </div>

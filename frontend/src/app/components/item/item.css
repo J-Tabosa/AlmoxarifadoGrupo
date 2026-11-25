@@ -1,0 +1,475 @@
+@import '../crud-shared.css';
+
+.items-panel-head {
+  align-items: center;
+}
+
+.items-head-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.items-alert {
+  margin: 12px 14px 0;
+}
+
+.items-table {
+  min-width: 760px;
+}
+
+.items-table .actions-column {
+  text-align: center;
+}
+
+.item-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.item-action-btn {
+  min-width: 66px;
+  height: 29px;
+  padding: 0 9px;
+  border: 1px solid;
+  border-radius: 2px;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1px;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.item-action-btn.edit {
+  color: var(--wine);
+  border-color: var(--wine);
+  background: var(--paper);
+}
+
+.item-action-btn.edit:hover {
+  color: #fff;
+  background: var(--wine);
+}
+
+.item-action-btn.delete {
+  color: var(--red);
+  border-color: var(--red);
+  background: var(--paper);
+}
+
+.item-action-btn.delete:hover {
+  color: #fff;
+  background: var(--red);
+}
+
+.items-table-foot {
+  flex-wrap: wrap;
+}
+
+.item-modal-overlay {
+  z-index: 120;
+}
+
+.item-dialog {
+  width: min(880px, calc(100vw - 36px));
+  max-height: 92vh;
+  border: 0;
+  outline: 0;
+  box-shadow: 0 24px 68px rgba(26, 10, 15, 0.38);
+}
+
+/* Remove a moldura cinza decorativa herdada do modal genérico. */
+.item-dialog::before {
+  display: none;
+  content: none;
+}
+
+.item-dialog .dialog-head {
+  min-height: 48px;
+  font-size: 15px;
+}
+
+.item-dialog .dialog-head button {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.item-modal-form {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.item-dialog-body {
+  padding: 20px 22px;
+  overflow: auto;
+}
+
+.item-dialog-body .form-grid {
+  gap: 15px 20px;
+}
+
+.item-dialog-body .record-divider {
+  margin-top: 17px;
+}
+
+.item-stock-hint {
+  display: block;
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+
+.item-dialog .stock-config-row {
+  display: grid;
+  grid-template-columns: minmax(190px, 2fr) repeat(3, minmax(90px, 1fr)) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 11px;
+  margin-top: 9px;
+  background: var(--paper2);
+  border: 1px solid var(--line);
+}
+
+.item-dialog .remove-stock {
+  align-self: end;
+}
+
+.item-dialog .item-location-actions {
+  margin-top: 12px;
+}
+
+.item-dialog-actions {
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.item-dialog-actions > .hint {
+  flex: 1;
+}
+
+.item-dialog-actions .actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 850px) {
+  .item-dialog .stock-config-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .item-dialog .remove-stock {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 620px) {
+  .items-panel-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .items-head-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .item-dialog {
+    width: calc(100vw - 20px);
+    max-height: 96vh;
+  }
+
+  .item-dialog-body {
+    padding: 15px;
+  }
+
+  .item-dialog .stock-config-row {
+    grid-template-columns: 1fr;
+  }
+
+  .item-dialog .remove-stock {
+    grid-column: auto;
+  }
+
+  .item-dialog-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .item-dialog-actions .actions {
+    justify-content: flex-end;
+  }
+}
+
+/* Consulta unificada: itens e fornecedores em painéis verticais independentes. */
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.consulta-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.consulta-panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.consulta-panel-head {
+  min-height: 56px;
+  padding: 10px 14px;
+  color: #fff8f2;
+  background: linear-gradient(180deg, var(--wine), var(--wine2));
+  border-bottom: 1px solid var(--wine2);
+}
+
+.consulta-panel-head .panel-title,
+.consulta-panel-head p {
+  color: inherit;
+}
+
+.consulta-panel-head .panel-title {
+  font-size: 13px;
+}
+
+.consulta-panel-head p {
+  margin-top: 3px;
+  opacity: 0.82;
+}
+
+.consultation-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.consulta-panel-head .btn:not(.primary) {
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.consultation-search-wrap {
+  padding: 10px 13px 9px;
+  background: var(--paper);
+}
+
+.consultation-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--muted);
+}
+
+.consultation-search:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px var(--focus);
+}
+
+.consultation-search > span {
+  flex: 0 0 auto;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.consultation-search input {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+  box-shadow: none;
+}
+
+.consultation-search input:focus {
+  outline: 0;
+  box-shadow: none;
+}
+
+.list-scroll-shell {
+  position: relative;
+  min-width: 0;
+  background: var(--paper);
+}
+
+.consultation-list-viewport {
+  height: 264px;
+  max-height: 264px;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  resize: none;
+}
+
+.consultation-table {
+  min-width: 900px;
+  margin: 0;
+}
+
+.consultation-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  white-space: nowrap;
+}
+
+.consultation-table td {
+  vertical-align: middle;
+}
+
+.consultation-table .tag {
+  min-width: 68px;
+}
+
+.consultation-table .actions-column {
+  text-align: center;
+}
+
+.suppliers-table {
+  min-width: 760px;
+}
+
+.list-scroll-shell.has-overflow::after {
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 28px;
+  content: '';
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(250, 246, 239, 0), var(--paper));
+}
+
+body.dark .list-scroll-shell.has-overflow::after {
+  background: linear-gradient(to bottom, rgba(37, 52, 67, 0), var(--paper));
+}
+
+.consultation-table-foot {
+  min-height: 38px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--paper2);
+}
+
+/* Modal de fornecedor segue o mesmo desenho do modal de item. */
+.supplier-modal-overlay {
+  z-index: 120;
+}
+
+.supplier-dialog {
+  display: flex;
+  width: min(900px, calc(100vw - 36px));
+  max-height: 92vh;
+  flex-direction: column;
+  border: 0;
+  outline: 0;
+  box-shadow: 0 24px 68px rgba(26, 10, 15, 0.38);
+}
+
+.supplier-dialog::before {
+  display: none;
+  content: none;
+}
+
+.supplier-dialog .dialog-head {
+  flex: 0 0 auto;
+  min-height: 48px;
+  font-size: 15px;
+}
+
+.supplier-dialog .dialog-head button {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.supplier-modal-form {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.supplier-dialog-body {
+  min-height: 0;
+  padding: 20px 22px;
+  overflow: auto;
+}
+
+.supplier-dialog-body .form-grid {
+  gap: 14px 18px;
+}
+
+.supplier-dialog-body .record-divider {
+  margin-top: 17px;
+}
+
+.supplier-dialog-actions {
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.supplier-dialog-actions > .hint {
+  flex: 1;
+}
+
+.supplier-dialog-actions .actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .consulta-panel-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .consultation-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .consultation-list-viewport {
+    height: 250px;
+    max-height: 250px;
+  }
+
+  .supplier-dialog {
+    width: calc(100vw - 20px);
+    max-height: 96vh;
+  }
+
+  .supplier-dialog-body {
+    padding: 15px;
+  }
+
+  .supplier-dialog-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .supplier-dialog-actions .actions {
+    justify-content: flex-end;
+  }
+}

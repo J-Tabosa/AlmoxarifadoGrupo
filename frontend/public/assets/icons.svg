@@ -20,4 +20,11 @@
         <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
         <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 1v3m0 16v3M1 12h3m16 0h3M4 4l2 2m12 12 2 2M4 20l2-2M18 6l2-2"/></symbol>
     </defs>
+
+  <symbol id="i-truck" viewBox="0 0 24 24">
+    <path d="M2.5 6h12v11h-12z" />
+    <path d="M14.5 10h4l3 3.5V17h-7z" />
+    <circle cx="7" cy="18" r="1.7" />
+    <circle cx="17.5" cy="18" r="1.7" />
+  </symbol>
 </svg>

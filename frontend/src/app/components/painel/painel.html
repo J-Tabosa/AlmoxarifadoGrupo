@@ -64,14 +64,14 @@
 
             <div class="storage-board">
                 <div class="storage-tools">
-                    <span><svg class="ico sm"><use href="assets/icons.svg#i-pin"/></svg> Planta vista de cima · selecione uma estante para consultar seus dados</span>
+                    <span><svg class="ico sm"><use href="assets/icons.svg#i-pin"/></svg> Planta vista de cima · selecione as posições ativas</span>
                     <span>{{ group.rows }} × {{ group.cols }} · {{ activeCount }} posições · {{ group.slots.length - activeCount }} espaços excluídos</span>
                 </div>
 
                 <!-- A posição bloqueada é omitida visualmente, mas a geometria da sala é preservada. -->
                 <div id="addressGrid" class="address-grid" [class.search-active]="!!query && countMatches(group) > 0"
-                     [style.grid-template-columns]="'repeat(' + group.cols + ', var(--tile-width))'"
-                     [style.grid-template-rows]="'repeat(' + group.rows + ', var(--tile-height))'"
+                     [style.grid-template-columns]="'repeat(' + group.cols + ', minmax(43px, 1fr))'"
+                     [style.grid-template-rows]="'repeat(' + group.rows + ', 54px)'"
                      aria-label="Mapa de endereços">
                     @for (slot of group.slots; track slot.idlocalizacao) {
                         @if (!slot.blocked) {
@@ -83,13 +83,11 @@
                                     [class.chosen]="slot.idlocalizacao === selected.idlocalizacao"
                                     [class.search-match]="match(slot)"
                                     [style.grid-row]="slot.r" [style.grid-column]="slot.c"
-                                    [attr.aria-label]="'Estante ' + displayName(slot) + ', ' + rackName(slot) + ', ID ' + slot.idlocalizacao"
-                                    [title]="displayName(slot) + ' · ' + rackName(slot) + ' · #' + slot.idlocalizacao"
-                                    [attr.aria-pressed]="slot.idlocalizacao === selected.idlocalizacao"
-                                    (click)="selectPosition(slot)">
-                                <span class="tile-position">{{ displayName(slot) }}</span>
+                                    [attr.aria-label]="'Estante ' + rackName(slot) + ', ID ' + slot.idlocalizacao"
+                                    (click)="openRack(slot)">
+                                <span class="tile-position">{{ pad(slot.r) }}-{{ pad(slot.c) }}</span>
                                 <span class="tile-id">#{{ slot.idlocalizacao }}</span>
-                                <span class="rack-mini-count">{{ slot.contents.length }} {{ slot.contents.length === 1 ? 'item' : 'itens' }}</span>
+                                <span class="rack-mini-count">{{ slot.contents.length }} itens · {{ planta.shelfCount(slot) }} P</span>
                                 <span class="mini-corner">{{ planta.situacao(slot) === 'low' ? '!' : planta.situacao(slot) === 'review' ? '~' : '' }}</span>
                             </button>
                         }
@@ -103,21 +101,20 @@
             </div>
         </div>
 
-        <!-- A seleção no mapa atualiza a ficha lateral; somente o botão abaixo abre o modal. -->
+        <!-- Ficha lateral permanece visível mesmo depois de fechar o modal. -->
         <aside class="detail-console">
             <div class="console-head teal-head">
                 <strong><svg class="ico sm"><use href="assets/icons.svg#i-pin"/></svg> POSIÇÃO SELECIONADA</strong>
                 <span>{{ status(selected) }}</span>
             </div>
-            <div class="console-body" aria-live="polite">
+            <div class="console-body">
                 <div class="console-location">
                     <span>GRUPO / LINHA / COLUNA</span><strong>{{ rackName(selected) }}</strong>
-                    @if (selected.descricao?.trim()) { <small class="rack-description">{{ selected.descricao }}</small> }
                     <small>Grupo: {{ group.name }}</small>
                     <small class="loc-id-label">idlocalizacao: {{ selected.idlocalizacao }}</small>
                     <small>Estante com múltiplas prateleiras e posições.</small>
                 </div>
-                <div class="console-field"><label>Itens da estante</label><strong>{{ selected.contents.length }} {{ selected.contents.length === 1 ? 'item' : 'itens' }}</strong></div>
+                <div class="console-field"><label>Itens da estante</label><strong>{{ selected.contents.length }} itens</strong></div>
                 <div class="console-field"><label>Prateleiras</label><strong>{{ planta.shelfCount(selected) }}</strong></div>
                 <div class="console-field"><label>Configuração de prateleiras</label><strong>{{ selected.shelfCount == null ? 'Padrão geral' : 'Individual' }}</strong></div>
                 <div class="console-field"><label>Situação</label><span class="tag" [ngClass]="tag(selected)">{{ status(selected) }}</span></div>
@@ -132,7 +129,7 @@
     <div class="drawer-overlay open" (click)="$event.target === $event.currentTarget && closeRack()">
         <div class="dialog estante-modal" role="dialog" aria-modal="true" aria-labelledby="rackTitle">
             <div class="dialog-head">
-                <span id="rackTitle">Conteúdo da estante · {{ displayName(sl) }}</span>
+                <span id="rackTitle">Conteúdo da estante · {{ rackName(sl) }}</span>
                 <button type="button" title="Fechar" aria-label="Fechar" (click)="closeRack()"><svg class="ico"><use href="assets/icons.svg#i-close"/></svg></button>
             </div>
             <div class="dialog-body">

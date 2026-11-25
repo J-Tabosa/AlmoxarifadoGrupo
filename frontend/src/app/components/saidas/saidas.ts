@@ -1,7 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { mensagemErro } from '../../core/app-error';
+import { DialogoService } from '../../core/dialogo.service';
 import { FuncionarioModel } from '../../models/funcionario.model';
 import { ItemModel } from '../../models/item.model';
 import { RequisicaoModel, RequisicaoPayload } from '../../models/requisicao.model';
@@ -26,8 +28,6 @@ export class Saidas implements OnInit {
   itensCatalogo: ItemModel[] = [];
   requisicoes: RequisicaoModel[] = [];
 
-  filtroSolicitanteId: number | null = null;
-  filtroAlmoxarifeId: number | null = null;
   idSolicitanteForm: number | null = null;
   idAlmoxarifeForm: number | null = null;
   idEditando: number | null = null;
@@ -40,26 +40,31 @@ export class Saidas implements OnInit {
 
   carregando = false;
   salvando = false;
-  mensagem = '';
-  erro = '';
 
   constructor(
     private readonly api: RequisicoesService,
     private readonly funcionariosApi: FuncionariosService,
     private readonly itensApi: ItensService,
+    private readonly dialogo: DialogoService,
+    private readonly route: ActivatedRoute,
+    private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
     this.carregarFuncionarios();
     this.carregarItens();
-    this.carregar();
-  }
-
-  get requisicoesFiltradas(): RequisicaoModel[] {
-    return this.requisicoes.filter(requisicao =>
-      (this.filtroSolicitanteId === null || requisicao.idFuncionario === this.filtroSolicitanteId) &&
-      (this.filtroAlmoxarifeId === null || requisicao.idAlmoxarife === this.filtroAlmoxarifeId),
-    );
+    this.route.queryParamMap.subscribe(params => {
+      const idEdicao = Number(params.get('editar'));
+      if (!idEdicao) return;
+      this.api.listar().subscribe({
+        next: dados => {
+          const requisicao = dados.find(item => item.idRequisicao === idEdicao);
+          if (requisicao) this.editar(requisicao);
+          else this.dialogo.erro(`A requisição #${idEdicao} não foi encontrada.`, 'Requisição não encontrada');
+        },
+        error: e => this.dialogo.erro(mensagemErro(e), 'Erro ao carregar requisição'),
+      });
+    });
   }
 
   private dataHoraLocalAtual(): string {
@@ -78,30 +83,17 @@ export class Saidas implements OnInit {
         this.idSolicitanteForm ??= funcionarioPadrao;
         this.idAlmoxarifeForm ??= funcionarioPadrao;
       },
-      error: e => this.erro = mensagemErro(e),
+      error: e => this.dialogo.erro(mensagemErro(e), 'Erro ao carregar funcionários'),
     });
   }
 
   private carregarItens(): void {
     this.itensApi.listar().subscribe({
       next: dados => this.itensCatalogo = dados.filter(x => x.statusIt === 'A'),
-      error: e => this.erro = mensagemErro(e),
+      error: e => this.dialogo.erro(mensagemErro(e), 'Erro ao carregar itens'),
     });
   }
 
-  carregar(): void {
-    this.carregando = true;
-    this.api.listar().subscribe({
-      next: dados => {
-        this.requisicoes = dados;
-        this.carregando = false;
-      },
-      error: e => {
-        this.erro = mensagemErro(e);
-        this.carregando = false;
-      },
-    });
-  }
 
   iniciarNova(): void {
     this.limparFormulario();
@@ -155,8 +147,6 @@ export class Saidas implements OnInit {
       quantidadeS: item.quantidadeS,
     }));
     if (this.linhas.length === 0) this.linhas = [{ idItem: null, quantidadeS: 1 }];
-    this.mensagem = '';
-    this.erro = '';
   }
 
   private paraDateTimeLocal(valor: string): string {
@@ -169,35 +159,35 @@ export class Saidas implements OnInit {
 
   salvar(): void {
     if (this.salvando) return;
-    if (this.idSolicitanteForm === null) {
-      this.erro = 'Selecione o funcionário solicitante.';
+    if (this.idAlmoxarifeForm === null) {
+      this.dialogo.erro('Selecione o almoxarife responsável pelo registro da requisição.', 'Almoxarife obrigatório');
       return;
     }
-    if (this.idAlmoxarifeForm === null) {
-      this.erro = 'Selecione o almoxarife responsável pelo registro da requisição.';
+    if (this.idSolicitanteForm === null) {
+      this.dialogo.erro('Selecione o funcionário solicitante.', 'Solicitante obrigatório');
       return;
     }
     const validas = this.linhas.filter(x => x.idItem !== null && Number(x.quantidadeS) > 0);
     if (validas.length === 0) {
-      this.erro = 'Adicione pelo menos um item com quantidade maior que zero.';
+      this.dialogo.erro('Adicione pelo menos um item com quantidade maior que zero.', 'Itens da requisição');
       return;
     }
     if (validas.length !== this.linhas.length) {
-      this.erro = 'Preencha o item e a quantidade de todas as linhas ou remova as linhas vazias.';
+      this.dialogo.erro('Preencha o item e a quantidade de todas as linhas ou remova as linhas vazias.', 'Linhas incompletas');
       return;
     }
     if (new Set(validas.map(x => x.idItem)).size !== validas.length) {
-      this.erro = 'O mesmo item não pode aparecer duas vezes na requisição. Ajuste a quantidade em uma única linha.';
+      this.dialogo.erro('O mesmo item não pode aparecer duas vezes na requisição. Ajuste a quantidade em uma única linha.', 'Item duplicado');
       return;
     }
     if (this.tipoS !== 'consumo' && !this.justificativa.trim()) {
-      this.erro = 'Informe a justificativa para perda ou avaria.';
+      this.dialogo.erro('Informe a justificativa para perda ou avaria.', 'Justificativa obrigatória');
       return;
     }
 
     const payload: RequisicaoPayload = {
-      idFuncionario: Number(this.idSolicitanteForm),
       idAlmoxarife: Number(this.idAlmoxarifeForm),
+      idFuncionario: Number(this.idSolicitanteForm),
       dataHoraS: this.dataHoraS,
       justificativa: this.justificativa.trim() || 'Consumo interno',
       tipoS: this.tipoS,
@@ -205,47 +195,35 @@ export class Saidas implements OnInit {
     };
 
     this.salvando = true;
-    this.erro = '';
     const chamada = this.idEditando === null
       ? this.api.criar(payload)
       : this.api.atualizar(this.idEditando, this.idSolicitanteEditando ?? Number(this.idSolicitanteForm), payload);
 
     chamada.subscribe({
       next: () => {
-        this.mensagem = this.idEditando === null ? 'Requisição cadastrada.' : 'Requisição atualizada.';
+        const estavaEditando = this.idEditando !== null;
+        this.dialogo.sucesso(
+          estavaEditando ? 'Requisição atualizada.' : 'Requisição cadastrada.',
+          estavaEditando ? 'Requisição atualizada' : 'Requisição cadastrada',
+        );
         this.salvando = false;
-        this.limparFormulario(false);
-        this.carregar();
+        this.limparFormulario();
+        this.router.navigate([], { relativeTo: this.route, queryParams: { editar: null }, queryParamsHandling: 'merge' });
       },
       error: e => {
-        this.erro = mensagemErro(e);
+        this.dialogo.erro(mensagemErro(e), 'Erro ao salvar requisição');
         this.salvando = false;
       },
     });
   }
 
-  excluir(requisicao: RequisicaoModel): void {
-    if (!window.confirm(`Excluir a requisição #${requisicao.idRequisicao}?`)) return;
-    this.api.excluir(requisicao.idRequisicao, requisicao.idFuncionario).subscribe({
-      next: () => {
-        this.mensagem = 'Requisição excluída.';
-        if (this.idEditando === requisicao.idRequisicao) this.limparFormulario(false);
-        this.carregar();
-      },
-      error: e => this.erro = mensagemErro(e),
-    });
-  }
 
-  limparFormulario(limparMensagens = true): void {
+  limparFormulario(): void {
     this.idEditando = null;
     this.idSolicitanteEditando = null;
     this.dataHoraS = this.dataHoraLocalAtual();
     this.justificativa = 'Consumo interno';
     this.tipoS = 'consumo';
     this.linhas = [{ idItem: null, quantidadeS: 1 }];
-    if (limparMensagens) {
-      this.mensagem = '';
-      this.erro = '';
-    }
   }
 }

@@ -4,8 +4,6 @@
     <span class="tag neutral">{{ categorias.length }} registro(s)</span>
   </div>
   <div class="panel-pad form-wrap">
-    @if (mensagem) { <p class="alert success" role="status">{{ mensagem }}</p> }
-    @if (erro) { <p class="alert error" role="alert">{{ erro }}</p> }
     <form class="crud-form" (ngSubmit)="salvar()">
       <div class="field">
         <label for="tipoCategoria">Descrição da categoria <span class="req">*</span></label>

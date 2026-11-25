@@ -1,0 +1,9 @@
+@import "../crud-shared.css";
+.history-head { align-items: center; }
+.history-head p { margin: 4px 0 0; color: var(--muted, #68758a); font-size: 12px; }
+.history-search { padding-bottom: 16px; }
+.history-search .field { max-width: 760px; }
+.history-search input { width: 100%; }
+.request-item-summary { padding: 2px 0; }
+.request-item-summary small { color: var(--muted, #68758a); }
+@media (max-width: 700px) { .history-head { align-items: stretch; flex-direction: column; } }

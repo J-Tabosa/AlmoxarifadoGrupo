@@ -1,0 +1,311 @@
+<div class="consulta-stack supplier-page">
+  <section class="panel consulta-panel suppliers-panel">
+    <div class="panel-head consulta-panel-head">
+      <div>
+        <h2 class="panel-title">Fornecedores</h2>
+        <p>Consulte e mantenha os dados cadastrais dos fornecedores atualizados.</p>
+      </div>
+      <div class="consultation-actions">
+        <button class="btn primary" type="button" (click)="abrirModalNovoFornecedor()">
+          ＋ Cadastrar fornecedor
+        </button>
+        <button
+          class="btn small"
+          type="button"
+          (click)="carregarFornecedores()"
+          [disabled]="carregandoFornecedores"
+        >
+          Atualizar lista
+        </button>
+      </div>
+    </div>
+
+    <div class="consultation-search-wrap">
+      <label class="consultation-search" for="pesquisa-fornecedores">
+        <span aria-hidden="true">⌕</span>
+        <input
+          id="pesquisa-fornecedores"
+          name="pesquisaFornecedores"
+          type="search"
+          [(ngModel)]="pesquisaFornecedores"
+          placeholder="Pesquisar por nome fantasia, razão social ou CNPJ..."
+        />
+      </label>
+    </div>
+
+    @if (carregandoFornecedores) {
+      <p class="empty-state">Consultando fornecedores…</p>
+    }
+
+    <div class="list-scroll-shell" [class.has-overflow]="fornecedoresFiltrados.length > 5">
+      <div class="table-scroller consultation-list-viewport">
+        <table class="table suppliers-table consultation-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nome fantasia</th>
+              <th>Razão social</th>
+              <th>CNPJ</th>
+              <th>Situação</th>
+              <th class="actions-column">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (fornecedor of fornecedoresFiltrados; track fornecedor.idFornecedor) {
+              <tr>
+                <td class="code">{{ fornecedor.idFornecedor }}</td>
+                <td>
+                  <strong>{{ fornecedor.nomeFo }}</strong>
+                </td>
+                <td>{{ fornecedor.razaoSocial || 'Não informada' }}</td>
+                <td class="code">{{ formatarCnpj(fornecedor.cnpj) }}</td>
+                <td>
+                  <span
+                    class="tag"
+                    [class.ok]="fornecedor.statusFo === 'A'"
+                    [class.bad]="fornecedor.statusFo !== 'A'"
+                  >
+                    {{ fornecedor.statusFo === 'A' ? 'Ativo' : 'Inativo' }}
+                  </span>
+                </td>
+                <td class="row-actions item-row-actions">
+                  <button
+                    class="item-action-btn edit"
+                    type="button"
+                    (click)="abrirModalEdicaoFornecedor(fornecedor)"
+                    [attr.aria-label]="'Editar fornecedor ' + fornecedor.nomeFo"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    class="item-action-btn delete"
+                    type="button"
+                    (click)="excluirFornecedor(fornecedor)"
+                    [attr.aria-label]="'Excluir fornecedor ' + fornecedor.nomeFo"
+                  >
+                    Excluir
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="empty-state">
+                  {{
+                    pesquisaFornecedores
+                      ? 'Nenhum fornecedor corresponde à pesquisa.'
+                      : 'Nenhum fornecedor cadastrado.'
+                  }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="table-foot consultation-table-foot">
+      <span>{{ fornecedoresFiltrados.length }} de {{ fornecedores.length }} fornecedor(es)</span>
+      <span>Pesquisa por nome fantasia, razão social ou CNPJ.</span>
+    </div>
+  </section>
+</div>
+
+<!-- Modal de cadastro/edição de fornecedor -->
+@if (modalFornecedorAberto) {
+  <div
+    class="drawer-overlay open supplier-modal-overlay"
+    role="presentation"
+    (click)="fecharModalFornecedor()"
+  >
+    <section
+      class="dialog supplier-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="supplier-modal-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="dialog-head">
+        <span id="supplier-modal-title">{{
+          idFornecedorEditando === null
+            ? 'Cadastrar fornecedor'
+            : 'Editar fornecedor #' + idFornecedorEditando
+        }}</span>
+        <button
+          type="button"
+          (click)="fecharModalFornecedor()"
+          [disabled]="salvandoFornecedor"
+          aria-label="Fechar janela"
+        >
+          ✕
+        </button>
+      </header>
+
+      <form class="supplier-modal-form" (ngSubmit)="salvarFornecedor()">
+        <div class="dialog-body supplier-dialog-body">
+          <p class="eyebrow">Fornecedor · dados cadastrais</p>
+          <div class="form-grid">
+            <div class="field">
+              <label for="fornecedorNomeFantasia">Nome fantasia <span class="req">*</span></label>
+              <input
+                id="fornecedorNomeFantasia"
+                name="nomeFo"
+                required
+                maxlength="45"
+                [(ngModel)]="nomeFo"
+              />
+            </div>
+            <div class="field">
+              <label for="fornecedorRazaoSocial">Razão social <span class="req">*</span></label>
+              <input
+                id="fornecedorRazaoSocial"
+                name="razaoSocial"
+                required
+                maxlength="100"
+                [(ngModel)]="razaoSocial"
+              />
+            </div>
+            <div class="field">
+              <label for="fornecedorCnpj">CNPJ <span class="req">*</span></label>
+              <input
+                id="fornecedorCnpj"
+                name="cnpj"
+                required
+                maxlength="18"
+                [(ngModel)]="cnpj"
+                placeholder="00.000.000/0000-00"
+              />
+            </div>
+            <div class="field">
+              <label for="fornecedorContato">Contato <span class="req">*</span></label>
+              <input
+                id="fornecedorContato"
+                name="contato"
+                required
+                maxlength="60"
+                [(ngModel)]="contato"
+                placeholder="Telefone, e-mail ou responsável"
+              />
+            </div>
+            <div class="field">
+              <label for="fornecedorStatus">Situação</label>
+              <select id="fornecedorStatus" name="statusFo" [(ngModel)]="statusFo">
+                <option value="A">A · Ativo</option>
+                <option value="I">I · Inativo</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="record-divider">Endereço · dados obrigatórios</div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="fornecedorCep">CEP <span class="req">*</span></label
+              ><input
+                id="fornecedorCep"
+                name="cep"
+                required
+                maxlength="8"
+                pattern="[0-9]{8}"
+                [(ngModel)]="endereco.cep"
+              />
+            </div>
+            <div class="field">
+              <label for="fornecedorLogradouro">Logradouro <span class="req">*</span></label
+              ><input
+                id="fornecedorLogradouro"
+                name="logradouro"
+                required
+                maxlength="45"
+                [(ngModel)]="endereco.logradouro"
+              />
+            </div>
+            <div class="field">
+              <label for="fornecedorNumero">Número <span class="req">*</span></label
+              ><input
+                id="fornecedorNumero"
+                name="numero"
+                required
+                maxlength="5"
+                [(ngModel)]="endereco.numero"
+              />
+            </div>
+            <div class="field">
+              <label for="fornecedorComplemento">Complemento</label
+              ><input
+                id="fornecedorComplemento"
+                name="complemento"
+                maxlength="60"
+                [(ngModel)]="endereco.complemento"
+              />
+            </div>
+            <div class="field">
+              <label for="fornecedorBairro">Bairro <span class="req">*</span></label
+              ><input
+                id="fornecedorBairro"
+                name="bairro"
+                required
+                maxlength="45"
+                [(ngModel)]="endereco.bairro"
+              />
+            </div>
+            <div class="field">
+              <label for="fornecedorCidade">Cidade <span class="req">*</span></label
+              ><input
+                id="fornecedorCidade"
+                name="cidade"
+                required
+                maxlength="45"
+                [(ngModel)]="endereco.cidade"
+              />
+            </div>
+            <div class="field">
+              <label for="fornecedorEstado">Estado <span class="req">*</span></label
+              ><input
+                id="fornecedorEstado"
+                name="estado"
+                required
+                maxlength="45"
+                [(ngModel)]="endereco.estado"
+              />
+            </div>
+            <div class="field">
+              <label for="fornecedorPais">País <span class="req">*</span></label
+              ><input
+                id="fornecedorPais"
+                name="pais"
+                required
+                maxlength="45"
+                [(ngModel)]="endereco.pais"
+              />
+            </div>
+          </div>
+        </div>
+
+        <footer class="dialog-actions supplier-dialog-actions">
+          <span class="hint">{{
+            idFornecedorEditando === null
+              ? 'ID gerado automaticamente no cadastro local.'
+              : 'Alterando o cadastro do fornecedor #' + idFornecedorEditando + '.'
+          }}</span>
+          <div class="actions">
+            <button class="btn primary" type="submit" [disabled]="salvandoFornecedor">
+              {{
+                salvandoFornecedor
+                  ? 'Salvando…'
+                  : idFornecedorEditando === null
+                    ? 'Cadastrar fornecedor'
+                    : 'Salvar alterações'
+              }}
+            </button>
+            <button
+              class="btn"
+              type="button"
+              (click)="fecharModalFornecedor()"
+              [disabled]="salvandoFornecedor"
+            >
+              Cancelar
+            </button>
+          </div>
+        </footer>
+      </form>
+    </section>
+  </div>
+}

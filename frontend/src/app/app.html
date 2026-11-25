@@ -1,165 +1,83 @@
 <!-- Estrutura permanente da aplicação. -->
 <div class="app" id="app">
+  <app-menu></app-menu>
 
-    <!-- Barra de título: nome e versão do sistema. -->
-    <div class="chrome">
-        <div class="chrome-left">
-            <span class="chrome-square">
-            </span>
-            <span>Gestão de Materiais <span style="opacity:.45">/</span> Sistema Local - Demonstração</span>
-        </div>
-        <div class="chrome-right">
-            <span>PQN - Labs 0.9</span>
-            <span class="chrome-line">
-            </span>
-        </div>
-    </div>
+  <!-- Área dinâmica: router-outlet renderiza a página selecionada. -->
+  <main class="work">
+    <router-outlet> </router-outlet>
+  </main>
 
-    <!-- Menu principal: routerLink navega; routerLinkActive destaca a rota. -->
-    <div class="ribbon" role="toolbar" aria-label="Navegação principal">
-
-        <!-- Logo em public/assets; retorna ao painel. -->
-        <div class="ribbon-brand">
-            <button class="logo" title="Voltar ao painel" aria-label="Ir para o painel" routerLink="/painel" routerLinkActive="active">
-                <img src="assets/logo-pqn.png" alt="PQN - Labs" class="pqn-brand-image">
-            </button>
-        </div>
-
-        <!-- Grupo: arquivos. -->
-        <div class="ribbon-group">
-            <span class="ribbon-group-label">ARQUIVOS</span>
-            <div class="ribbon-tools">
-
-                <button data-view="painel" routerLink="/painel" routerLinkActive="active" title="Mapa do almoxarifado">
-                    <span class="ribbon-symbol blue">
-                        <svg class="ico lg">
-                            <use href="assets/icons.svg#i-archive"/>
-                        </svg>
-                    </span>
-                    <span>Painel</span>
-                </button>
-
-                <button data-view="cadastro" routerLink="/cadastro" routerLinkActive="active" title="Cadastrar novo material">
-                    <span class="ribbon-symbol blue">
-                        <svg class="ico lg">
-                            <use href="assets/icons.svg#i-box"/>
-                        </svg>
-                    </span>
-                    <span>Novo material</span>
-                </button>
-
-                <button data-view="fornecedores" routerLink="/fornecedores" routerLinkActive="active" title="Consultar fornecedores">
-                    <span class="ribbon-symbol blue">
-                        <svg class="ico lg">
-                            <use href="assets/icons.svg#i-user"/>
-                        </svg>
-                    </span>
-                    <span>Fornecedores</span>
-                </button>
-
-                <button data-view="consulta" routerLink="/consulta" routerLinkActive="active" title="Pesquisar materiais">
-                    <span class="ribbon-symbol blue">
-                        <svg class="ico lg">
-                            <use href="assets/icons.svg#i-search"/>
-                        </svg>
-                    </span>
-                    <span>Consulta</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Grupo: movimentação. -->
-        <div class="ribbon-group">
-            <span class="ribbon-group-label">MOVIMENTAÇÃO</span>
-            <div class="ribbon-tools">
-
-                <button data-view="entradas" routerLink="/entradas" routerLinkActive="active" title="Registrar entrada">
-                    <span class="ribbon-symbol teal">
-                        <svg class="ico lg">
-                            <use href="assets/icons.svg#i-entry"/>
-                        </svg>
-                    </span>
-                    <span>Entrada</span>
-                </button>
-
-                <button data-view="saidas" routerLink="/saidas" routerLinkActive="active" title="Registrar saída">
-                    <span class="ribbon-symbol ruby">
-                        <svg class="ico lg">
-                            <use href="assets/icons.svg#i-exit"/>
-                        </svg>
-                    </span>
-                    <span>Saída</span>
-                </button>
-
-                <button data-view="historico" routerLink="/historico" routerLinkActive="active" title="Ver histórico">
-                    <span class="ribbon-symbol slate">
-                        <svg class="ico lg">
-                            <use href="assets/icons.svg#i-clock"/>
-                        </svg>
-                    </span>
-                    <span>Histórico</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Grupo: controle. -->
-        <div class="ribbon-group">
-            <span class="ribbon-group-label">CONTROLE</span>
-            <div class="ribbon-tools">
-
-                <button data-view="conferencia" routerLink="/conferencia" routerLinkActive="active">
-                    <span class="ribbon-symbol blue">
-                        <svg class="ico lg">
-                            <use href="assets/icons.svg#i-clipboard"/>
-                        </svg>
-                    </span>
-                    <span>Inventário</span>
-                </button>
-
-                <button data-view="divergencias" routerLink="/divergencias" routerLinkActive="active">
-                    <span class="ribbon-symbol ruby">
-                        <svg class="ico lg">
-                            <use href="assets/icons.svg#i-alert"/>
-                        </svg>
-                    </span>
-                    <span>Alertas</span>
-                </button>
-
-                <button data-view="relatorios" routerLink="/relatorios" routerLinkActive="active">
-                    <span class="ribbon-symbol teal">
-                        <svg class="ico lg">
-                            <use href="assets/icons.svg#i-chart"/>
-                        </svg>
-                    </span>
-                    <span>Relatórios</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Configurações e perfil demonstrativo. -->
-        <div class="topright">
-            <button class="top-btn" title="Configurações" aria-label="Configurações" routerLink="/configuracoes" routerLinkActive="active">
-                <svg class="ico">
-                    <use href="assets/icons.svg#i-settings"/>
-                </svg>
-                <span>Configurações</span>
-            </button>
-            <button class="avatar" title="Perfil administrador (ilustrativo)" routerLink="/configuracoes" routerLinkActive="active">AD</button>
-        </div>
-    </div>
-
-    <!-- Área dinâmica: router-outlet renderiza a página selecionada. -->
-    <main class="work">
-        <router-outlet>
-        </router-outlet>
-    </main>
-
-    <!-- Rodapé com informações do ambiente. -->
-    <footer class="foot">
-        <span>
-            <svg class="ico sm">
-                <use href="assets/icons.svg#i-shield"/>
-            </svg> Ambiente de desenvolvimento · Sem conexão com banco de dados</span>
-        <span>Administrador demonstrativo | Ambiente local</span>
-    </footer>
+  <!-- Rodapé com informações do ambiente. -->
+  <footer class="foot">
+    <span>
+      <svg class="ico sm">
+        <use href="assets/icons.svg#i-shield" />
+      </svg>
+      Ambiente de desenvolvimento · Sem conexão com banco de dados</span
+    >
+    <span>Administrador demonstrativo | Ambiente local</span>
+  </footer>
 </div>
+
+@if (dialogo.estado(); as aviso) {
+  <div class="system-dialog-overlay" role="presentation" (click)="dialogo.fechar(false)">
+    <section
+      class="system-dialog-card"
+      [class.system-dialog-success]="aviso.tipo === 'sucesso'"
+      [class.system-dialog-error]="aviso.tipo === 'erro'"
+      [class.system-dialog-confirm]="aviso.tipo === 'confirmacao'"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="system-dialog-title"
+      aria-describedby="system-dialog-message"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="system-dialog-header">
+        <span class="system-dialog-brand">ALMOXARIFADO · SISTEMA LOCAL</span>
+        <button
+          class="system-dialog-close"
+          type="button"
+          aria-label="Fechar aviso"
+          (click)="dialogo.fechar(false)"
+        >
+          ×
+        </button>
+      </header>
+
+      <div class="system-dialog-content">
+        <span class="system-dialog-icon" aria-hidden="true">
+          @if (aviso.tipo === 'sucesso') {
+            ✓
+          } @else if (aviso.tipo === 'erro') {
+            !
+          } @else {
+            ?
+          }
+        </span>
+        <div class="system-dialog-copy">
+          <h2 id="system-dialog-title">{{ aviso.titulo }}</h2>
+          <p id="system-dialog-message">{{ aviso.mensagem }}</p>
+        </div>
+      </div>
+
+      <footer class="system-dialog-actions">
+        @if (aviso.tipo === 'confirmacao') {
+          <button
+            class="system-dialog-button secondary"
+            type="button"
+            (click)="dialogo.fechar(false)"
+          >
+            {{ aviso.textoCancelar }}
+          </button>
+          <button class="system-dialog-button danger" type="button" (click)="dialogo.fechar(true)">
+            {{ aviso.textoConfirmar }}
+          </button>
+        } @else {
+          <button class="system-dialog-button primary" type="button" (click)="dialogo.fechar()">
+            {{ aviso.textoConfirmar }}
+          </button>
+        }
+      </footer>
+    </section>
+  </div>
+}

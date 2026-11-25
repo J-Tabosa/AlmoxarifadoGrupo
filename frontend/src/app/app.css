@@ -1,0 +1,165 @@
+/* Modal global de mensagens e confirmações. Utiliza as variáveis de src/styles.css. */
+.system-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(22, 27, 34, .48);
+  backdrop-filter: blur(2px);
+  animation: system-dialog-fade-in .16s ease-out;
+}
+
+.system-dialog-card {
+  width: min(100%, 470px);
+  overflow: hidden;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-top: 5px solid var(--wine);
+  border-radius: 3px;
+  box-shadow: 0 22px 65px rgba(20, 25, 32, .32);
+  animation: system-dialog-enter .2s ease-out;
+}
+
+.system-dialog-success { border-top-color: var(--ok); }
+.system-dialog-error { border-top-color: var(--red); }
+.system-dialog-confirm { border-top-color: var(--wine); }
+
+.system-dialog-header {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 8px 16px;
+  color: #fff7f3;
+  background: linear-gradient(110deg, var(--wine2), var(--wine));
+}
+
+.system-dialog-brand {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.05px;
+}
+
+.system-dialog-close {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #fff;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, .42);
+  font-size: 21px;
+  line-height: 1;
+}
+
+.system-dialog-close:hover { background: rgba(255, 255, 255, .14); }
+
+.system-dialog-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 25px 24px 22px;
+}
+
+.system-dialog-icon {
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: var(--wine);
+  background: var(--paper2);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.system-dialog-success .system-dialog-icon {
+  color: var(--ok);
+  background: var(--ok-soft);
+  border-color: var(--ok);
+}
+
+.system-dialog-error .system-dialog-icon {
+  color: var(--red);
+  background: var(--red-soft);
+  border-color: var(--red);
+}
+
+.system-dialog-copy { min-width: 0; }
+.system-dialog-copy h2 {
+  margin: 1px 0 7px;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 800;
+}
+.system-dialog-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.system-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 13px 18px;
+  background: var(--paper2);
+  border-top: 1px solid var(--line);
+}
+
+.system-dialog-button {
+  min-width: 94px;
+  min-height: 35px;
+  padding: 7px 15px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+.system-dialog-button:hover { transform: translateY(-1px); }
+.system-dialog-button.primary {
+  color: #fff;
+  background: var(--wine);
+  border-color: var(--wine2);
+}
+.system-dialog-button.primary:hover { background: var(--wine2); }
+.system-dialog-button.secondary {
+  color: var(--ink);
+  background: var(--paper);
+}
+.system-dialog-button.secondary:hover { background: var(--toolbar); }
+.system-dialog-button.danger {
+  color: #fff;
+  background: var(--red);
+  border-color: var(--red);
+}
+.system-dialog-button.danger:hover { filter: brightness(.92); }
+
+@keyframes system-dialog-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes system-dialog-enter {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 520px) {
+  .system-dialog-overlay { padding: 13px; }
+  .system-dialog-content { padding: 21px 17px; }
+  .system-dialog-actions { padding: 11px 13px; }
+  .system-dialog-button { flex: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .system-dialog-overlay,
+  .system-dialog-card { animation: none; }
+}

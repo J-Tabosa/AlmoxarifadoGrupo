@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { mensagemErro } from '../../core/app-error';
+import { DialogoService } from '../../core/dialogo.service';
 import { FuncionarioModel, FuncionarioPayload } from '../../models/funcionario.model';
 import { SetorModel } from '../../models/setor.model';
 import { FuncionariosService } from '../../services/funcionarios.service';
@@ -24,12 +25,11 @@ export class Funcionarios implements OnInit {
   statusFu = 'A';
   carregando = false;
   salvando = false;
-  mensagem = '';
-  erro = '';
 
   constructor(
     private readonly api: FuncionariosService,
     private readonly setoresApi: SetoresService,
+    private readonly dialogo: DialogoService,
   ) {}
 
   ngOnInit(): void {
@@ -40,7 +40,7 @@ export class Funcionarios implements OnInit {
   carregarSetores(): void {
     this.setoresApi.listar().subscribe({
       next: (dados) => this.setores = dados,
-      error: (e) => this.erro = mensagemErro(e),
+      error: (e) => this.dialogo.erro(mensagemErro(e), 'Erro ao carregar setores'),
     });
   }
 
@@ -48,7 +48,7 @@ export class Funcionarios implements OnInit {
     this.carregando = true;
     this.api.listar().subscribe({
       next: (dados) => { this.funcionarios = dados; this.carregando = false; },
-      error: (e) => { this.erro = mensagemErro(e); this.carregando = false; },
+      error: (e) => { this.dialogo.erro(mensagemErro(e), 'Erro ao carregar funcionários'); this.carregando = false; },
     });
   }
 
@@ -63,19 +63,22 @@ export class Funcionarios implements OnInit {
     };
 
     this.salvando = true;
-    this.erro = '';
     const chamada = this.idEditando === null
       ? this.api.criar(payload)
       : this.api.atualizarChave(this.idEditando, this.idSetorOriginal ?? this.idSetor, payload);
 
     chamada.subscribe({
       next: () => {
-        this.mensagem = this.idEditando === null ? 'Funcionário cadastrado.' : 'Funcionário atualizado.';
+        const estavaEditando = this.idEditando !== null;
+        this.dialogo.sucesso(
+          estavaEditando ? 'Funcionário atualizado.' : 'Funcionário cadastrado.',
+          estavaEditando ? 'Funcionário atualizado' : 'Funcionário cadastrado',
+        );
         this.salvando = false;
-        this.limpar(false);
+        this.limpar();
         this.carregar();
       },
-      error: (e) => { this.erro = mensagemErro(e); this.salvando = false; },
+      error: (e) => { this.dialogo.erro(mensagemErro(e), 'Erro ao salvar funcionário'); this.salvando = false; },
     });
   }
 
@@ -86,29 +89,31 @@ export class Funcionarios implements OnInit {
     this.nomeFu = funcionario.nomeFu;
     this.cargo = funcionario.cargo;
     this.statusFu = funcionario.statusFu;
-    this.mensagem = '';
-    this.erro = '';
   }
 
-  excluir(funcionario: FuncionarioModel): void {
-    if (!window.confirm(`Excluir o funcionário "${funcionario.nomeFu}"?`)) return;
+  async excluir(funcionario: FuncionarioModel): Promise<void> {
+    const confirmado = await this.dialogo.confirmar(
+      `Deseja realmente excluir o funcionário "${funcionario.nomeFu}"?`,
+      'Excluir funcionário',
+    );
+    if (!confirmado) return;
+
     this.api.excluirChave(funcionario.idFuncionario, funcionario.idSetor).subscribe({
       next: () => {
-        this.mensagem = 'Funcionário excluído.';
-        if (this.idEditando === funcionario.idFuncionario) this.limpar(false);
+        this.dialogo.sucesso('Funcionário excluído.', 'Funcionário excluído');
+        if (this.idEditando === funcionario.idFuncionario) this.limpar();
         this.carregar();
       },
-      error: (e) => this.erro = mensagemErro(e),
+      error: (e) => this.dialogo.erro(mensagemErro(e), 'Erro ao excluir funcionário'),
     });
   }
 
-  limpar(limparMensagens = true): void {
+  limpar(): void {
     this.idEditando = null;
     this.idSetorOriginal = null;
     this.idSetor = null;
     this.nomeFu = '';
     this.cargo = '';
     this.statusFu = 'A';
-    if (limparMensagens) { this.mensagem = ''; this.erro = ''; }
   }
 }

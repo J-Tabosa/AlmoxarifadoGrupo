@@ -4,6 +4,7 @@ export interface FornecedorModel {
   idFornecedor: number;
   idEndereco: number;
   nomeFo: string;
+  razaoSocial?: string;
   cnpj: string;
   contato: string;
   statusFo: string;
@@ -12,6 +13,7 @@ export interface FornecedorModel {
 
 export interface FornecedorPayload {
   nomeFo: string;
+  razaoSocial?: string;
   cnpj: string;
   contato: string;
   statusFo: string;

@@ -13,7 +13,7 @@ export class FornecedoresService {
       const enderecoId = this.proximoId(d.fornecedores.map(f => f.endereco?.idEndereco ?? f.idEndereco));
       const idFornecedor = this.proximoId(d.fornecedores.map(f => f.idFornecedor));
       const registro: FornecedorModel = {
-        idFornecedor, idEndereco: enderecoId, nomeFo: payload.nomeFo.trim(), cnpj: payload.cnpj,
+        idFornecedor, idEndereco: enderecoId, nomeFo: payload.nomeFo.trim(), razaoSocial: payload.razaoSocial?.trim() || '', cnpj: payload.cnpj,
         contato: payload.contato.trim(), statusFo: payload.statusFo,
         endereco: { ...payload.endereco, idEndereco: enderecoId },
       };
@@ -28,6 +28,7 @@ export class FornecedoresService {
       if (!registro) throw new Error('Fornecedor não encontrado.');
       if (d.fornecedores.some(f => f.idFornecedor !== id && f.cnpj === payload.cnpj)) throw new Error('Já existe fornecedor com este CNPJ.');
       registro.nomeFo = payload.nomeFo.trim();
+      registro.razaoSocial = payload.razaoSocial?.trim() || '';
       registro.cnpj = payload.cnpj;
       registro.contato = payload.contato.trim();
       registro.statusFo = payload.statusFo;

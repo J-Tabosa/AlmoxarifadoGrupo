@@ -34,11 +34,6 @@ export class Painel implements OnDestroy {
     pad(n: number): string { return String(n).padStart(2, '0'); }
     rackName(s: Posicao): string { return 'L' + this.pad(s.r) + ' · C' + this.pad(s.c); }
 
-    // A descrição substitui apenas o nome visual; coordenadas e ID continuam estáveis.
-    displayName(s: Posicao): string {
-        return s.descricao?.trim() || this.pad(s.r) + '-' + this.pad(s.c);
-    }
-
     selectGroup(g: Grupo): void {
         this.group = g;
         this.planta.selectGroup(g.key);
@@ -75,14 +70,9 @@ export class Painel implements OnDestroy {
         return { good: 'ok', low: 'bad', empty: 'neutral', review: 'warn' }[this.planta.situacao(slot)];
     }
 
-    // Selecionar uma estante não abre a ficha: apenas atualiza os dados ao lado.
-    selectPosition(slot: Posicao): void {
-        if (!slot.blocked) this.selected = slot;
-    }
-
     openRack(slot: Posicao): void {
         if (slot.blocked) return;
-        this.selectPosition(slot);
+        this.selected = slot;
         this.rack = slot;
         this.level = 1;
         this.rackMode = this.match(slot) ? this.mode : 'name';

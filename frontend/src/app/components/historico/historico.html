@@ -1,1 +1,54 @@
-<p>historico works!</p>
+<div class="path">Movimentação / <em>Histórico</em></div>
+<section class="heading section-move">
+  <div>
+    <div class="heading-meta"><span class="badge-ico">▤</span><span>CONSULTA DE MOVIMENTAÇÕES</span><span class="section-chip">Registro de requisições</span></div>
+    <h1>Histórico de requisições</h1>
+    <p>Consulte as requisições registradas e pesquise por descrição ou código do item, almoxarife responsável ou funcionário solicitante.</p>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head history-head">
+    <div>
+      <h2 class="panel-title">Requisições registradas</h2>
+      <p>{{ requisicoesFiltradas.length }} de {{ requisicoes.length }} registro(s)</p>
+    </div>
+    <button class="btn small" type="button" (click)="carregar()">Atualizar histórico</button>
+  </div>
+
+  <div class="panel-pad history-search">
+    <div class="field">
+      <label for="pesquisaHistorico">Pesquisar requisições</label>
+      <input id="pesquisaHistorico" name="pesquisaHistorico" type="search" [(ngModel)]="pesquisa"
+        placeholder="Descrição do item, código do item, almoxarife ou solicitante..." />
+      <small>A pesquisa considera o nome e o ID dos itens, além do nome e ID dos funcionários.</small>
+    </div>
+  </div>
+
+  @if (carregando) { <p class="empty-state">Consultando histórico…</p> }
+  <div class="table-scroller">
+    <table class="table">
+      <thead><tr><th>ID</th><th>Almoxarife responsável</th><th>Solicitante</th><th>Data / hora</th><th>Tipo</th><th>Itens</th><th>Ações</th></tr></thead>
+      <tbody>
+        @for (requisicao of requisicoesFiltradas; track requisicao.idRequisicao + '-' + requisicao.idFuncionario) {
+          <tr>
+            <td class="code">#{{ requisicao.idRequisicao }}</td>
+            <td><strong>{{ requisicao.almoxarife?.nomeFu || ('Funcionário #' + requisicao.idAlmoxarife) }}</strong><small class="table-subline">{{ requisicao.almoxarife?.setor?.nomeSetor || '' }}</small></td>
+            <td><strong>{{ requisicao.funcionario?.nomeFu || ('Funcionário #' + requisicao.idFuncionario) }}</strong><small class="table-subline">{{ requisicao.funcionario?.setor?.nomeSetor || '' }}</small></td>
+            <td>{{ requisicao.dataHoraS | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td><span class="tag neutral">{{ requisicao.tipoS }}</span></td>
+            <td>@for (item of requisicao.itens; track item.idItem) {
+              <div class="request-item-summary">{{ item.quantidadeS }} × {{ item.descricaoItem || ('Item #' + item.idItem) }} <small>(#{{ item.idItem }})</small></div>
+            }</td>
+            <td class="row-actions">
+              <button class="link-btn" type="button" (click)="editar(requisicao)">Editar</button>
+              <button class="link-btn danger-text" type="button" (click)="excluir(requisicao)">Excluir</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="7" class="empty-state">{{ pesquisa ? 'Nenhuma requisição corresponde à pesquisa.' : 'Nenhuma requisição registrada.' }}</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
