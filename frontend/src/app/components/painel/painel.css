@@ -42,10 +42,9 @@
     line-height: 1.1;
 }
 
-.console-location .rack-description {
-    font-weight: 700;
-    color: var(--ink);
+.console-location .rack-main-name {
     overflow-wrap: anywhere;
+    font-size: clamp(20px, 1.65vw, 27px);
 }
 
 .rack-message {
@@ -92,4 +91,142 @@
 
 #addressGrid .address-tile.masked .tile-id {
     opacity: 1;
+}
+
+/* Barra única: pesquisa à esquerda e ações operacionais à direita. */
+.section-stock .map-searchbar {
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.section-stock .map-search-field {
+    flex: 1 1 180px;
+}
+
+.section-stock .map-search-status {
+    flex: 0 1 180px;
+    text-align: left;
+}
+
+.panel-quick-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+
+.panel-quick-actions .btn {
+    white-space: nowrap;
+}
+
+/* A grade mantém a proporção 3:2 e todas as coordenadas, mesmo ao reduzir. */
+.map-viewport {
+    min-width: 0;
+    overflow: auto;
+    padding: 3px;
+}
+
+@media (min-width: 1101px) and (min-height: 600px) {
+    :host {
+        display: flex;
+        flex: 1 1 0;
+        min-height: 0;
+        min-width: 0;
+        flex-direction: column;
+    }
+
+    .section-stock {
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        min-height: 0;
+        min-width: 0;
+    }
+
+    .section-stock > .path,
+    .section-stock > .map-searchbar,
+    .section-stock > .painel-notice {
+        flex-shrink: 0;
+    }
+
+    .section-stock .workstation {
+        flex: 1 1 0;
+        min-height: 0;
+    }
+
+    .location-console {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .location-console > .console-head,
+    .location-console > .console-tabs {
+        flex-shrink: 0;
+    }
+
+    .location-console > .console-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+
+    .storage-board {
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        min-height: 0;
+        padding: 8px 12px;
+        overflow: hidden;
+    }
+
+    .storage-tools,
+    .storage-legend {
+        flex-shrink: 0;
+    }
+
+    .storage-tools {
+        margin-bottom: 5px;
+    }
+
+    .storage-legend {
+        margin-top: 5px;
+        padding-top: 6px;
+        gap: 5px 12px;
+    }
+
+    .map-viewport {
+        flex: 1 1 0;
+        min-height: 0;
+        container-type: size;
+    }
+
+    #addressGrid {
+        --tile-height: max(36px, min(60px,
+            calc((100cqh - 8px - (var(--map-rows) - 1) * 6px) / var(--map-rows)),
+            calc((100cqw - 8px - (var(--map-cols) - 1) * 6px) / var(--map-cols) / 1.5)));
+        --tile-width: calc(var(--tile-height) * 1.5);
+        margin: 0 auto;
+    }
+
+    #addressGrid .address-tile {
+        gap: 0;
+        padding: 2px;
+    }
+
+    #addressGrid .tile-position {
+        font-size: 10px;
+    }
+
+    .detail-console {
+        min-height: 0;
+        overflow: auto;
+    }
+}
+
+/* Em janelas estreitas, preserve a leitura e permita rolar em vez de cortar. */
+@media (max-width: 760px) {
+    .panel-quick-actions {
+        margin-left: 0;
+        width: 100%;
+    }
 }

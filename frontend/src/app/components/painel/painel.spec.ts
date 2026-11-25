@@ -40,6 +40,29 @@ describe('Painel', () => {
     }
   });
 
+  it('mostra o nome personalizado como título da ficha lateral', () => {
+    const original = component.selected.descricao;
+    try {
+      component.selected.descricao = 'Papelaria';
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.rack-main-name').textContent.trim()).toBe('Papelaria');
+      component.selected.descricao = '';
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.rack-main-name').textContent.trim()).toBe(component.displayName(component.selected));
+    } finally {
+      component.selected.descricao = original;
+    }
+  });
+
+  it('mantém as ações operacionais na barra de pesquisa', () => {
+    fixture.detectChanges();
+    const buttons = fixture.nativeElement.querySelectorAll('.map-searchbar .panel-quick-actions button');
+    expect(buttons.length).toBe(2);
+    expect(buttons[0].type).toBe('button');
+    expect(buttons[1].type).toBe('button');
+    expect(fixture.nativeElement.querySelector('.desktop-heading')).toBeNull();
+  });
+
   it('deve selecionar a estante sem abrir o modal', async () => {
     const tile = fixture.nativeElement.querySelector('.address-tile') as HTMLButtonElement;
     tile.click();

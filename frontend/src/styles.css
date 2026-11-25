@@ -4506,3 +4506,24 @@ body {
         width: 100%;
     }
 }
+
+/* Somente a rota Painel usa a área útil inteira do navegador no desktop.
+   As demais páginas mantêm o fluxo e a rolagem normais. */
+@media (min-width: 1101px) and (min-height: 600px) {
+    .app:has(app-painel) {
+        height: 100dvh;
+        min-height: 0;
+    }
+
+    .app:has(app-painel) > .ribbon,
+    .app:has(app-painel) > .foot {
+        flex-shrink: 0;
+    }
+
+    .app:has(app-painel) > .work {
+        display: flex;
+        flex: 1 1 0;
+        min-height: 0;
+        padding: 10px 22px 12px;
+    }
+}
