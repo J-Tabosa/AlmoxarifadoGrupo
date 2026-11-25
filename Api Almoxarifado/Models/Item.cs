@@ -22,7 +22,7 @@ public partial class Item
 
     public virtual ICollection<Estoque> Estoques { get; set; } = new List<Estoque>();
 
-    public virtual Categorium IdcategoriaNavigation { get; set; } = null!;
+    public virtual Categorium Categoria { get; set; } = null!;
 
     public virtual ICollection<RequisicaoItem> RequisicaoItems { get; set; } = new List<RequisicaoItem>();
 }
