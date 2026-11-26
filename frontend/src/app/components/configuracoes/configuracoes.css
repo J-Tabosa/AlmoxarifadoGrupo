@@ -1,10 +1,9 @@
-/* A prévia permite pintura contínua com mouse ou toque. */
+/* A prévia alterna o estado das células com clique. */
 :host {
     display: block;
 }
 
-.preview-location-grid.paintable {
-    touch-action: none;
+.preview-location-grid {
     user-select: none;
 }
 
@@ -365,4 +364,63 @@
 .map-mini-grid .masked-cell {
     border: 1px dashed #aeb6bd;
     background: repeating-linear-gradient(135deg, #eeeae2 0, #eeeae2 5px, #cbd2d5 5px, #cbd2d5 7px);
+}
+
+.editor-click-help {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.editor-click-help strong {
+    color: var(--ink);
+}
+
+.backup-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.backup-option {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0;
+    padding: 16px;
+}
+
+.backup-option h3,
+.backup-scope h3 {
+    margin: 0;
+    font-size: 15px;
+}
+
+.backup-option p {
+    margin: 0;
+    flex: 1;
+    color: var(--muted);
+}
+
+.backup-option input {
+    max-width: 100%;
+}
+
+.backup-option :disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.backup-scope li {
+    margin: 7px 0;
+}
+
+@media (max-width: 650px) {
+    .backup-actions {
+        grid-template-columns: 1fr;
+    }
 }

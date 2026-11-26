@@ -1,4 +1,4 @@
-import { Component, HostListener, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Grupo, PlantaService, Posicao } from '../../services/planta';
@@ -19,7 +19,7 @@ export class Configuracoes {
         { key: 'aparencia', label: 'Aparência' },
         { key: 'usuarios', label: 'Usuários e perfis' },
         { key: 'seguranca', label: 'Segurança' },
-        { key: 'backup', label: 'Cópia de segurança' }
+        { key: 'backup', label: 'Exportar/Importar Backup' }
     ];
 
     tab: Aba = 'enderecamento';
@@ -29,10 +29,8 @@ export class Configuracoes {
     cols = 8;
     defaultCount = this.planta.defaultShelfCount;
     disabled = new Set<string>();
-    brush: 'select' | 'block' | 'restore' = 'select';
     descriptions = new Map<string, string>();
     selectedKey = '';
-    painting = false;
     notice = '';
     globalNotice = '';
     dirty = false;
@@ -63,16 +61,21 @@ export class Configuracoes {
     }
 
     get selectedCell() {
-        return this.cells.find(cell => cell.key === this.selectedKey && !cell.blocked);
+        return this.cells.find(cell => cell.key === this.selectedKey);
     }
 
     selectCell(r: number, c: number): void {
         const key = this.planta.coord(r, c);
-        if (!this.disabled.has(key)) this.selectedKey = key;
+        if (this.cells.some(cell => cell.key === key)) this.selectedKey = key;
+    }
+
+    selectWithContextMenu(event: MouseEvent, r: number, c: number): void {
+        event.preventDefault();
+        this.selectCell(r, c);
     }
 
     editDescription(key: string, value: string): void {
-        if (!this.cells.some(cell => cell.key === key && !cell.blocked)) return;
+        if (!this.cells.some(cell => cell.key === key)) return;
         this.descriptions.set(key, value.slice(0, 60));
         this.changed();
     }
@@ -95,14 +98,12 @@ export class Configuracoes {
         this.disabled = new Set([...group.slots, ...group.archived].filter(s => s.blocked).map(s => this.planta.coord(s.r, s.c)));
         this.descriptions = new Map([...group.slots, ...group.archived].map(s => [this.planta.coord(s.r, s.c), s.descricao ?? '']));
         this.selectedKey = '';
-        this.brush = 'select';
         this.dirty = false;
         this.notice = '';
         this.noticeError = false;
         this.confirmDelete = false;
         this.creating = false;
         this.createError = '';
-        this.painting = false;
     }
 
     /** Evita perder uma planta ainda não salva ao trocar de grupo ou sair da tela. */
@@ -136,56 +137,47 @@ export class Configuracoes {
         this.notice = 'Alterações descartadas. A planta salva foi restaurada.';
     }
 
-    /** Pincel trabalha na prévia; somente Aplicar mapa grava no serviço. */
-    paint(r: number, c: number): void {
-        if (this.brush === 'select') {
-            this.selectCell(r, c);
-            return;
-        }
+    /** Clique esquerdo alterna o estado apenas na prévia; o ID não é alterado. */
+    toggleCell(r: number, c: number): void {
         const key = this.planta.coord(r, c);
-        const slot = [...this.group.slots, ...this.group.archived].find(s => s.r === r && s.c === c);
-        if (this.brush === 'block' && slot?.contents.length) {
-            this.notice = 'Não é permitido bloquear uma posição com materiais vinculados.';
-            this.noticeError = true;
-            return;
+        const cell = this.cells.find(p => p.key === key);
+        if (!cell) return;
+        if (cell.blocked) {
+            this.disabled.delete(key);
+        } else {
+            if (cell.slot?.contents.length) {
+                this.notice = 'Não é permitido desativar uma estante com materiais vinculados.';
+                this.noticeError = true;
+                return;
+            }
+            this.disabled.add(key);
         }
-        const shouldBlock = this.brush === 'block';
-        if (this.disabled.has(key) === shouldBlock) return;
-        if (shouldBlock) this.disabled.add(key);
-        else this.disabled.delete(key);
         this.changed();
     }
 
-    beginPaint(event: PointerEvent, r: number, c: number): void {
-        if (event.button !== 0 || this.brush === 'select') return;
-        this.painting = true;
-        this.paint(r, c);
-    }
-
-    movePaint(event: PointerEvent): void {
-        if (!this.painting) return;
-        const cell = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-paint-cell]');
-        if (!cell) return;
-        const r = Number(cell.dataset['r']), c = Number(cell.dataset['c']);
-        if (Number.isInteger(r) && Number.isInteger(c)) this.paint(r, c);
-    }
-
-    @HostListener('document:pointerup')
-    endPaint(): void { this.painting = false; }
-
-    @HostListener('document:pointercancel')
-    cancelPaint(): void { this.endPaint(); }
-
-    corridor(): void {
+    /** Se houver células desativadas, ativa todas. Caso contrário, desativa as vazias. */
+    toggleAll(): void {
         if (!this.validSize) return;
-        const previous = this.brush;
-        this.brush = 'block';
-        const column = Math.ceil(this.cols / 2);
-        for (let r = 1; r <= this.rows; r++) this.paint(r, column);
-        this.brush = previous;
+        const cells = this.cells;
+        const activate = cells.some(cell => cell.blocked);
+        let protectedCount = 0;
+        let modified = false;
+        for (const cell of cells) {
+            if (activate) {
+                if (this.disabled.delete(cell.key)) modified = true;
+            } else if (cell.slot?.contents.length) {
+                protectedCount++;
+            } else {
+                this.disabled.add(cell.key);
+                modified = true;
+            }
+        }
+        if (modified) this.changed();
+        if (protectedCount) {
+            this.notice = protectedCount + ' estante(s) com materiais permaneceram ativas.';
+            this.noticeError = true;
+        }
     }
-
-    restoreAll(): void { this.disabled.clear(); this.changed(); }
 
     save(): boolean {
         const error = this.planta.saveGroup(this.groupKey, this.name, this.rows, this.cols, this.disabled, this.descriptions);

@@ -19,7 +19,7 @@ export class Painel implements OnDestroy {
     group = this.planta.activeGroup;
 
     constructor() { this.planta.refreshStock(); }
-    selected = this.group.slots.find(s => !s.blocked)!;
+    selected: Posicao | null = this.group.slots.find(s => !s.blocked) ?? null;
 
     // A busca do mapa é aplicada somente quando o usuário confirma.
     searchText = '';
@@ -51,7 +51,7 @@ export class Painel implements OnDestroy {
     selectGroup(g: Grupo): void {
         this.group = g;
         this.planta.selectGroup(g.key);
-        this.selected = g.slots.find(s => !s.blocked)!;
+        this.selected = g.slots.find(s => !s.blocked) ?? null;
     }
 
     match(s: Posicao): boolean { return this.planta.matchingRack(s, this.query, this.mode); }
@@ -61,10 +61,11 @@ export class Painel implements OnDestroy {
 
     // Indicadores locais: não misturam quantidades de materiais com unidades diferentes.
     get distinctMaterials(): number {
-        return new Set(this.selected.contents.map(item => item.itemCode)).size;
+        return new Set((this.selected?.contents ?? []).map(item => item.itemCode)).size;
     }
 
     get occupiedLevels(): number {
+        if (!this.selected) return 0;
         const total = this.planta.shelfCount(this.selected);
         return new Set(this.selected.contents.filter(item => item.qty > 0 &&
             item.level >= 1 && item.level <= total).map(item => item.level)).size;
@@ -100,8 +101,8 @@ export class Painel implements OnDestroy {
         if (!slot.blocked) this.selected = slot;
     }
 
-    openRack(slot: Posicao): void {
-        if (slot.blocked) return;
+    openRack(slot: Posicao | null): void {
+        if (!slot || slot.blocked) return;
         this.selectPosition(slot);
         this.rack = slot;
         this.level = 1;

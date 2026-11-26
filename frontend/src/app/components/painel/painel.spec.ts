@@ -21,6 +21,24 @@ describe('Painel', () => {
     expect(component).toBeTruthy();
   });
 
+  it('renderiza um grupo sem estantes ativas e não abre ficha', () => {
+    const group = component.group;
+    const old = group.slots.map(s => s.blocked);
+    const selection = component.selected;
+    try {
+      group.slots.forEach(s => s.blocked = true);
+      component.selected = null;
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelectorAll('button.address-tile').length).toBe(0);
+      expect(fixture.nativeElement.querySelector('.detail-console').textContent).toContain('não possui estantes ativas');
+      component.openRack(null);
+      expect(component.rack).toBeNull();
+    } finally {
+      group.slots.forEach((s, i) => s.blocked = old[i]);
+      component.selected = selection;
+    }
+  });
+
   it('exibe ou oculta as posições desativadas sem mudar suas coordenadas', async () => {
     const slot = component.group.slots.find(s => !s.blocked && s !== component.selected)!;
     const original = slot.blocked;
@@ -43,16 +61,16 @@ describe('Painel', () => {
   });
 
   it('mostra o nome personalizado como título da ficha lateral', () => {
-    const original = component.selected.descricao;
+    const original = component.selected!.descricao;
     try {
-      component.selected.descricao = 'Papelaria';
+      component.selected!.descricao = 'Papelaria';
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('.rack-main-name').textContent.trim()).toBe('Papelaria');
-      component.selected.descricao = '';
+      component.selected!.descricao = '';
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.rack-main-name').textContent.trim()).toBe(component.displayName(component.selected));
+      expect(fixture.nativeElement.querySelector('.rack-main-name').textContent.trim()).toBe(component.displayName(component.selected!));
     } finally {
-      component.selected.descricao = original;
+      component.selected!.descricao = original;
     }
   });
 
@@ -67,9 +85,9 @@ describe('Painel', () => {
   });
 
   it('calcula materiais distintos e prateleiras com saldo sem duplicar níveis', () => {
-    const original = component.selected.contents;
+    const original = component.selected!.contents;
     try {
-      component.selected.contents = [
+      component.selected!.contents = [
         { level: 1, position: 1, itemCode: 'A', qty: 3 },
         { level: 1, position: 2, itemCode: 'B', qty: 2 },
         { level: 2, position: 1, itemCode: 'A', qty: 1 },
@@ -78,7 +96,7 @@ describe('Painel', () => {
       expect(component.distinctMaterials).toBe(3);
       expect(component.occupiedLevels).toBe(2);
     } finally {
-      component.selected.contents = original;
+      component.selected!.contents = original;
     }
   });
 

@@ -91,7 +91,7 @@ export class PlantaService {
             if (!Array.isArray(data.groups) || !data.groups.length ||
                 !Number.isInteger(data.nextId) || !this.validCount(data.defaultShelfCount) ||
                 !data.groups.every(g => Array.isArray(g.slots) && Array.isArray(g.archived) &&
-                    g.slots.length === g.rows * g.cols && g.slots.some(s => !s.blocked))) return null;
+                    g.slots.length === g.rows * g.cols)) return null;
             return data;
         } catch { return null; }
     }
@@ -275,7 +275,6 @@ export class PlantaService {
             return 'Não é possível remover ou bloquear posições com material vinculado.';
         }
         const coordinates = Array.from({ length: rows * cols }, (_, i) => ({ r: Math.floor(i / cols) + 1, c: i % cols + 1 }));
-        if (coordinates.every(p => disabled.has(this.coord(p.r, p.c)))) return 'Deixe pelo menos uma posição ativa.';
         const byCoord = new Map(existing.map(s => [this.coord(s.r, s.c), s]));
         group.slots = coordinates.map(({ r, c }) => {
             const old = byCoord.get(this.coord(r, c));

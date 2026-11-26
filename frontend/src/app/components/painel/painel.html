@@ -74,12 +74,12 @@
                                     [class.low]="planta.situacao(slot) === 'low'"
                                     [class.empty]="planta.situacao(slot) === 'empty'"
                                     [class.review]="planta.situacao(slot) === 'review'"
-                                    [class.chosen]="slot.idlocalizacao === selected.idlocalizacao"
+                                    [class.chosen]="slot.idlocalizacao === selected?.idlocalizacao"
                                     [class.search-match]="match(slot)"
                                     [style.grid-row]="slot.r" [style.grid-column]="slot.c"
                                     [attr.aria-label]="'Estante ' + displayName(slot) + ', ' + rackName(slot) + ', ID ' + slot.idlocalizacao"
                                     [title]="displayName(slot) + ' · ' + rackName(slot) + ' · #' + slot.idlocalizacao"
-                                    [attr.aria-pressed]="slot.idlocalizacao === selected.idlocalizacao"
+                                    [attr.aria-pressed]="slot.idlocalizacao === selected?.idlocalizacao"
                                     (click)="selectPosition(slot)">
                                 <span class="tile-position">{{ displayName(slot) }}</span>
                                 <span class="tile-id">#{{ slot.idlocalizacao }}</span>
@@ -108,27 +108,35 @@
 
         <!-- A seleção no mapa atualiza a ficha lateral; somente o botão abaixo abre o modal. -->
         <aside class="detail-console">
-            <div class="console-head teal-head">
-                <strong><svg class="ico sm"><use href="assets/icons.svg#i-pin"/></svg> POSIÇÃO SELECIONADA</strong>
-                <span>{{ status(selected) }}</span>
-            </div>
-            <div class="console-body" aria-live="polite">
-                <div class="console-location">
-                    <span>ESTANTE SELECIONADA</span>
-                    <strong class="rack-main-name">{{ displayName(selected) }}</strong>
-                    <small>Localização: {{ rackName(selected) }}</small>
-                    <small>Grupo: {{ group.name }}</small>
-                    <small class="loc-id-label">idlocalizacao: {{ selected.idlocalizacao }}</small>
+            @if (selected; as current) {
+                <div class="console-head teal-head">
+                    <strong><svg class="ico sm"><use href="assets/icons.svg#i-pin"/></svg> POSIÇÃO SELECIONADA</strong>
+                    <span>{{ status(current) }}</span>
                 </div>
-                <div class="console-field"><label>Itens da estante</label><strong>{{ selected.contents.length }} {{ selected.contents.length === 1 ? 'item' : 'itens' }}</strong></div>
-                <div class="console-field"><label>Materiais distintos</label><strong>{{ distinctMaterials }}</strong></div>
-                <div class="console-field"><label>Prateleiras</label><strong>{{ planta.shelfCount(selected) }}</strong></div>
-                <div class="console-field"><label>Prateleiras com saldo</label><strong>{{ occupiedLevels }} de {{ planta.shelfCount(selected) }}</strong></div>
-                <div class="console-field"><label>Prateleiras sem saldo</label><strong>{{ planta.shelfCount(selected) - occupiedLevels }}</strong></div>
-                <div class="console-field"><label>Configuração de prateleiras</label><strong>{{ selected.shelfCount == null ? 'Padrão geral' : 'Individual' }}</strong></div>
-                <div class="console-field"><label>Situação</label><span class="tag" [ngClass]="tag(selected)">{{ status(selected) }}</span></div>
-            </div>
-            <div class="console-actions"><button class="btn primary" (click)="openRack(selected)">Ficha da estante</button></div>
+                <div class="console-body" aria-live="polite">
+                    <div class="console-location">
+                        <span>ESTANTE SELECIONADA</span>
+                        <strong class="rack-main-name">{{ displayName(current) }}</strong>
+                        <small>Localização: {{ rackName(current) }}</small>
+                        <small>Grupo: {{ group.name }}</small>
+                        <small class="loc-id-label">idlocalizacao: {{ current.idlocalizacao }}</small>
+                    </div>
+                    <div class="console-field"><label>Itens da estante</label><strong>{{ current.contents.length }} {{ current.contents.length === 1 ? 'item' : 'itens' }}</strong></div>
+                    <div class="console-field"><label>Materiais distintos</label><strong>{{ distinctMaterials }}</strong></div>
+                    <div class="console-field"><label>Prateleiras</label><strong>{{ planta.shelfCount(current) }}</strong></div>
+                    <div class="console-field"><label>Prateleiras com saldo</label><strong>{{ occupiedLevels }} de {{ planta.shelfCount(current) }}</strong></div>
+                    <div class="console-field"><label>Prateleiras sem saldo</label><strong>{{ planta.shelfCount(current) - occupiedLevels }}</strong></div>
+                    <div class="console-field"><label>Configuração de prateleiras</label><strong>{{ current.shelfCount == null ? 'Padrão geral' : 'Individual' }}</strong></div>
+                    <div class="console-field"><label>Situação</label><span class="tag" [ngClass]="tag(current)">{{ status(current) }}</span></div>
+                </div>
+                <div class="console-actions"><button class="btn primary" (click)="openRack(current)">Ficha da estante</button></div>
+            } @else {
+                <div class="console-head teal-head"><strong>POSIÇÃO SELECIONADA</strong></div>
+                <div class="console-body">
+                    <p class="hint">Este grupo não possui estantes ativas. Ative uma posição em Configurações para armazenar materiais.</p>
+                    <a class="btn" routerLink="/configuracoes">Configurar planta</a>
+                </div>
+            }
         </aside>
     </div>
 </section>

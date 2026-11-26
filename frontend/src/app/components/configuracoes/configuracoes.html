@@ -85,37 +85,35 @@
 
                                 <div class="manager-preview">
                                     <div class="panel-head">
-                                        <div><div class="panel-title">Desenhar planta</div><p>Selecione uma estante para nomeá-la ou escolha uma ferramenta para desenhar.</p></div>
+                                        <div><div class="panel-title">Desenhar planta</div><p>Clique com o botão esquerdo para ativar/desativar. Use o botão direito para selecionar e nomear.</p></div>
                                         @if (validSize) { <span class="hint">{{ rows }} × {{ cols }}</span> }
                                     </div>
                                     <div class="editor-tools">
-                                        <div class="map-brushbar" aria-label="Ferramentas de desenho">
-                                            <button type="button" class="btn" [class.tool-active]="brush === 'select'" [attr.aria-pressed]="brush === 'select'" (click)="brush = 'select'">Selecionar / nomear</button>
-                                            <button type="button" class="btn" [class.tool-active]="brush === 'block'" [attr.aria-pressed]="brush === 'block'" (click)="brush = 'block'">▨ Marcar espaço vazio</button>
-                                            <button type="button" class="btn" [class.tool-active]="brush === 'restore'" [attr.aria-pressed]="brush === 'restore'" (click)="brush = 'restore'">▣ Reativar estante</button>
+                                        <div class="editor-click-help">
+                                            <span><strong>Clique esquerdo:</strong> alternar estado</span>
+                                            <span><strong>Clique direito:</strong> selecionar / nomear (F2 pelo teclado)</span>
                                         </div>
-                                        <div class="manager-actions">
-                                            <button type="button" class="btn" [disabled]="!validSize" (click)="corridor()">Criar corredor</button>
-                                            <button type="button" class="btn" [disabled]="!validSize" (click)="restoreAll()">Reativar todas</button>
-                                        </div>
+                                        <button type="button" class="btn" [disabled]="!validSize" (click)="toggleAll()">
+                                            {{ blockedCount > 0 ? 'Ativar todas' : 'Desativar todas' }}
+                                        </button>
                                     </div>
                                     @if (validSize) {
                                         <div class="manager-preview-viewport">
-                                            <div class="preview-location-grid paintable" role="group" aria-label="Editor da planta"
+                                            <div class="preview-location-grid" role="group" aria-label="Editor da planta"
                                                  [style.grid-template-columns]="'repeat(' + cols + ', minmax(44px, 1fr))'"
-                                                 [style.min-width.px]="cols * 44 + (cols - 1) * 5"
-                                                 (pointermove)="movePaint($event)" (pointercancel)="endPaint()">
+                                                 [style.min-width.px]="cols * 44 + (cols - 1) * 5">
                                                 @for (cell of cells; track cell.key) {
                                                     <button type="button" class="preview-slot"
                                                             [class.masked]="cell.blocked"
-                                                            [class.naming-selected]="selectedKey === cell.key && !cell.blocked"
+                                                            [class.naming-selected]="selectedKey === cell.key"
+                                                            [attr.aria-pressed]="!cell.blocked"
                                                             [title]="cell.descricao || pad(cell.r) + '-' + pad(cell.c)"
                                                             [class.occupied]="!cell.blocked && !!cell.slot?.contents?.length"
                                                             [class.review]="!cell.blocked && state(cell.slot) === 'review'"
-                                                            [attr.data-paint-cell]="cell.key" [attr.data-r]="cell.r" [attr.data-c]="cell.c"
                                                             [attr.aria-label]="'Linha ' + cell.r + ', coluna ' + cell.c + (cell.blocked ? ', espaço vazio' : ', estante ativa')"
-                                                            (pointerdown)="beginPaint($event, cell.r, cell.c)"
-                                                            (click)="paint(cell.r, cell.c)">
+                                                            (click)="toggleCell(cell.r, cell.c)"
+                                                            (contextmenu)="selectWithContextMenu($event, cell.r, cell.c)"
+                                                            (keydown.f2)="$event.preventDefault(); selectCell(cell.r, cell.c)">
                                                         <b>{{ !cell.blocked && cell.descricao.trim() ? cell.descricao : pad(cell.r) + '-' + pad(cell.c) }}</b>
                                                         <small>{{ cell.blocked ? 'Vazio' : cell.slot ? '#' + cell.slot.idlocalizacao : 'Novo' }}</small>
                                                     </button>
@@ -154,10 +152,10 @@
                                         <button type="button" class="btn" [disabled]="!cell.descricao" (click)="editDescription(cell.key, '')">Restaurar nome padrão</button>
                                     </div>
                                 } @else {
-                                    <p class="hint">Use Selecionar / nomear e clique em uma estante ativa para editar sua descrição.</p>
+                                    <p class="hint">Clique com o botão direito em qualquer quadrado para editar sua descrição.</p>
                                 }
 
-                                <p class="hint editor-help">As células listradas não aparecem no Painel. Posições com materiais não podem ser removidas ou bloqueadas. Os IDs são preservados ao redimensionar a planta.</p>
+                                <p class="hint editor-help">As células listradas representam espaços desativados e seguem a preferência de visualização do Painel. Posições com materiais não podem ser removidas ou bloqueadas. Os IDs são preservados ao redimensionar a planta.</p>
                                 @if (notice) {
                                     <div class="note editor-notice" [class.group-error]="noticeError" role="status">{{ notice }}</div>
                                 }
@@ -172,7 +170,7 @@
                                 <div class="manager-actions">
                                     <button class="btn" type="button" [disabled]="dirty || creating" (click)="viewPlant()">Ver no Painel</button>
                                     <button class="btn" type="button" [disabled]="!dirty" (click)="cancelEdit()">Descartar</button>
-                                    <button class="btn primary" type="button" [disabled]="!dirty || !validSize || !name.trim() || enabledCount === 0" (click)="save()">Salvar alterações</button>
+                                    <button class="btn primary" type="button" [disabled]="!dirty || !validSize || !name.trim()" (click)="save()">Salvar alterações</button>
                                 </div>
                             </div>
                             @if (confirmDelete) {
@@ -232,7 +230,6 @@
                 </div>
                 <div class="settings-block"><div class="setting-line"><div><strong>Tema de visualização</strong><p>Escolha entre o tema claro original e o tema escuro.</p></div><div class="segmented"><button [class.active]="!dark" (click)="setTheme(false)">Claro</button><button [class.active]="dark" (click)="setTheme(true)">Escuro</button></div></div></div>
                 <div class="settings-block"><div class="setting-line"><div><strong>Layout da aplicação</strong><p>Janela centralizada, botões retos e menu horizontal.</p></div><span class="tag ok">Ativo</span></div></div>
-                <div class="settings-block"><div class="setting-line"><div><strong>Fonte de interface</strong><p>Roboto, com Arial como alternativa local.</p></div><span class="tag neutral">Roboto / Arial</span></div></div>
             }
             @case ('usuarios') {
                 <div class="note">Usuários e perfis — em construção. A gestão real dependerá dos controllers e das permissões do back-end.</div>
@@ -243,8 +240,39 @@
                 <div class="settings-block"><div class="setting-line"><div><strong>Confirmação de ajustes restrita</strong><p>Somente gestores autorizados.</p></div><span class="tag neutral">Em construção</span></div></div>
             }
             @case ('backup') {
-                <div class="note">Cópias automáticas, retenção e restauração — em construção. Este ambiente não realiza backups do banco.</div>
-                <div class="settings-block"><div class="setting-line"><div><strong>Última execução</strong><p>Indisponível neste ambiente.</p></div><span class="tag bad">Não configurado</span></div></div>
+                <!-- Interface preparada para os endpoints de backup; nenhuma operação no banco nesta fase. -->
+                <div class="manager-head">
+                    <div>
+                        <h3>Exportar/Importar Backup</h3>
+                        <p>Gerencie cópias dos dados do almoxarifado quando a integração com o banco estiver disponível.</p>
+                    </div>
+                    <span class="tag neutral">EM CONSTRUÇÃO</span>
+                </div>
+                <div class="backup-actions">
+                    <div class="settings-block backup-option">
+                        <h3>Exportar backup</h3>
+                        <p>Gerar um arquivo com os registros do almoxarifado e o desenho completo dos grupos.</p>
+                        <button type="button" class="btn primary" disabled>Exportar backup</button>
+                    </div>
+                    <div class="settings-block backup-option">
+                        <h3>Importar backup</h3>
+                        <p>Selecionar uma cópia existente para recuperar os registros e as localizações originais.</p>
+                        <label for="backupFile">Arquivo de backup</label>
+                        <input type="file" id="backupFile" disabled>
+                        <button type="button" class="btn" disabled>Importar backup</button>
+                    </div>
+                </div>
+                <div class="settings-block backup-scope">
+                    <h3>Dados previstos na cópia</h3>
+                    <ul>
+                        <li>Grupos, dimensões da planta, coordenadas e IDs das estantes.</li>
+                        <li>Quantidade de estantes ativas, espaços desativados, nomes e prateleiras.</li>
+                        <li>Itens cadastrados, saldos e localizações físicas.</li>
+                        <li>Histórico de entradas e saídas, fornecedores e demais cadastros relacionados.</li>
+                    </ul>
+                    <p class="hint">A importação futura deverá validar o arquivo e solicitar confirmação antes de substituir os dados atuais.</p>
+                </div>
+                <div class="note" role="status">Importação e exportação ainda indisponíveis. Esta tela não lê, altera ou gera cópias do banco nem do LocalStorage.</div>
             }
         }
     </div></div>

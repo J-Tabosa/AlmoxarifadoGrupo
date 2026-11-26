@@ -87,6 +87,52 @@ describe('Configuracoes', () => {
         expect(component.group.slots[0].descricao).toBe('');
     });
 
+    it('alterna células por clique e nomeia com o botão direito sem mudar o estado', () => {
+        const cell = fixture.nativeElement.querySelector('.preview-slot') as HTMLButtonElement;
+        cell.click();
+        fixture.detectChanges();
+        expect(component.disabled.has('1:1')).toBe(true);
+        const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+        cell.dispatchEvent(event);
+        expect(event.defaultPrevented).toBe(true);
+        expect(component.selectedKey).toBe('1:1');
+        expect(component.disabled.has('1:1')).toBe(true);
+        component.editDescription('1:1', 'Ferramentas');
+        cell.click();
+        expect(component.disabled.has('1:1')).toBe(false);
+        expect(component.save()).toBe(true);
+        expect(component.group.slots[0].descricao).toBe('Ferramentas');
+    });
+
+    it('desativa e reativa todas, permitindo salvar o grupo vazio sem trocar IDs', () => {
+        const ids = component.group.slots.map(s => s.idlocalizacao);
+        component.toggleAll();
+        expect(component.enabledCount).toBe(0);
+        expect(component.save()).toBe(true);
+        expect(component.group.slots.every(s => s.blocked)).toBe(true);
+        component.toggleAll();
+        expect(component.enabledCount).toBe(64);
+        expect(component.save()).toBe(true);
+        expect(component.group.slots.map(s => s.idlocalizacao)).toEqual(ids);
+    });
+
+    it('preserva as estantes com saldo ao desativar todas', () => {
+        component.group.slots[0].contents.push({ level: 1, position: 1, itemCode: 'REAL', qty: 1 });
+        component.toggleCell(1, 1);
+        expect(component.disabled.has('1:1')).toBe(false);
+        component.toggleAll();
+        expect(component.enabledCount).toBe(1);
+        expect(component.disabled.has('1:1')).toBe(false);
+    });
+
+    it('prepara a aba de backup sem habilitar operações', () => {
+        component.changeTab('backup');
+        fixture.detectChanges();
+        const buttons = Array.from(fixture.nativeElement.querySelectorAll('.backup-option button') as NodeListOf<HTMLButtonElement>);
+        expect(buttons.length).toBe(2);
+        expect(buttons.every(b => b.disabled)).toBe(true);
+    });
+
     it('protege grupos com materiais e o último grupo', () => {
         const group = component.group;
         group.slots[0].contents.push({ level: 1, position: 1, itemCode: 'REAL', qty: 1 });
