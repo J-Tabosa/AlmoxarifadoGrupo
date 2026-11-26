@@ -1,5 +1,5 @@
 <!-- Painel operacional: consulta de localizações, sem movimentações reais. -->
-<section class="view section-stock" [attr.inert]="rackLookup ? '' : null">
+<section class="view section-stock" [attr.inert]="rackLookup || rack ? '' : null">
     <div class="path">Início / <em>Painel do depósito</em></div>
 
     @if (notice) {
@@ -61,11 +61,15 @@
                             Clique para selecionar · arraste para navegar · rodinha para zoom
                         }
                     </span>
-                    <span>{{ group.rows }} × {{ group.cols }} · {{ activeCount }} posições · {{ group.slots.length - activeCount }} espaços excluídos</span>
-                    <button type="button" class="btn small rack-lookup-button" (click)="openRackLookup()"
-                            title="Localizar pelo ID da estante (Caps Lock)" aria-keyshortcuts="CapsLock">Ir à estante</button>
-                    <button type="button" class="btn small panel-map-zoom" (click)="resetMapZoom(mapViewport)"
-                            title="Use a rodinha sobre o mapa. Clique para restaurar 100%." aria-label="Restaurar zoom do mapa">{{ mapZoom }}%</button>
+                    <div class="storage-tools-right">
+                        <span>{{ group.rows }} × {{ group.cols }} · {{ activeCount }} posições · {{ group.slots.length - activeCount }} espaços excluídos</span>
+                        <div class="storage-map-actions">
+                            <button type="button" class="btn small rack-lookup-button" (click)="openRackLookup()"
+                                    title="Localizar pelo ID da estante (Caps Lock)" aria-keyshortcuts="CapsLock">Ir à estante</button>
+                            <button type="button" class="btn small panel-map-zoom" (click)="resetMapZoom(mapViewport)"
+                                    title="Use a rodinha sobre o mapa. Clique para restaurar 100%." aria-label="Restaurar zoom do mapa">{{ mapZoom }}%</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Espaços desativados podem ser exibidos ou ocultados, sem mudar a geometria da planta. -->
@@ -164,6 +168,7 @@
                         <label for="rackLookupId">ID da estante</label>
                         <input id="rackLookupId" name="rackLookupId" type="text" inputmode="numeric"
                                autocomplete="off" [(ngModel)]="rackId" (ngModelChange)="rackLookupError = ''"
+                               (keydown.enter)="submitRackLookup($event)"
                                placeholder="Ex.: 131">
                         <small class="hint">Digite o número mostrado no quadrado e pressione Enter.</small>
                     </div>
@@ -204,10 +209,11 @@
                             <p class="hint">Pesquisa em todas as prateleiras desta estante.</p>
                         </div>
                         <div class="estante-card rack-shelves">
-                            <div class="rack-section-head"><h4>Prateleiras da estante</h4><span class="hint">{{ levels.length }} níveis</span></div>
+                            <div class="rack-section-head"><h4>Prateleiras da estante</h4><span class="hint">{{ levels.length }} níveis · ↑ ↓ / Enter</span></div>
                             <div class="shelf-list">
                                 @for (n of levels; track n) {
-                                    <button type="button" class="shelf-btn" [class.active]="!rackQuery && n === level" (click)="selectLevel(n)">
+                                    <button type="button" class="shelf-btn" [class.active]="!rackQuery && n === level" [attr.data-rack-level]="n"
+                                            (click)="selectLevel(n)">
                                         <span><strong>Prateleira {{ pad(n) }}</strong><small>{{ levelCount(n) }} itens</small></span>
                                         <span class="shelf-badge">{{ n }}</span>
                                     </button>
@@ -219,22 +225,22 @@
                         <div class="rack-results-head">
                             <div><h3>{{ rackQuery.trim() ? 'Resultados em toda a estante' : 'Prateleira ' + pad(level) }}</h3><span class="hint">{{ entries.length }} item(ns)</span></div>
                             <div class="segmented rack-toggle">
-                                <button [class.active]="rackView === 'grid'" (click)="rackView = 'grid'">▦ Grade</button>
-                                <button [class.active]="rackView === 'list'" (click)="rackView = 'list'">☰ Lista</button>
+                                <button type="button" [class.active]="rackView === 'grid'" (click)="setRackView('grid')">▦ Grade</button>
+                                <button type="button" [class.active]="rackView === 'list'" (click)="setRackView('list')">☰ Lista</button>
                             </div>
                         </div>
                         <div class="rack-results">
                             @if (!entries.length) {
-                                <div class="rack-empty">{{ rackQuery.trim() ? 'Nenhum material encontrado nesta estante.' : 'Nenhum material nesta prateleira.' }}</div>
+                                <div class="rack-empty" tabindex="-1">{{ rackQuery.trim() ? 'Nenhum material encontrado nesta estante.' : 'Nenhum material nesta prateleira.' }}</div>
                             } @else if (rackView === 'grid') {
                                 <div class="position-grid">
-                                    @for (p of entries; track p.level + ':' + p.position) {
-                                        <div class="position-box">
+                                    @for (p of entries; track entryKey(p)) {
+                                        <div class="position-box" [class.rack-keyboard-selected]="isFocusedEntry(p)">
                                             <div class="position-head"><strong>Posição {{ pad(p.position) }}</strong><span class="tag" [ngClass]="entryTag(p.qty, p.item.stock, p.item.min)">{{ entryLabel(p.qty, p.item.stock, p.item.min) }}</span></div>
                                             <div class="mini">Prateleira {{ p.level }} · {{ rackName(sl) }}</div>
                                             <div class="material-name">{{ p.item.name }}</div><div class="qty">{{ p.qty }} {{ p.item.unit }}</div>
                                             <div class="rack-card-footer"><span class="statusline">{{ p.item.code }} · {{ p.item.category }}</span>
-                                                <button class="btn small rack-info" type="button" (click)="abrirFichaItem(p)"><svg class="ico sm"><use href="assets/icons.svg#i-info"/></svg> Ficha</button>
+                                                <button class="btn small rack-info" type="button" [attr.data-rack-entry]="entryKey(p)" (click)="abrirFichaItem(p)"><svg class="ico sm"><use href="assets/icons.svg#i-info"/></svg> Ficha</button>
                                             </div>
                                         </div>
                                     }
@@ -243,8 +249,8 @@
                                 <div class="rack-table-scroll"><table class="table rack-table">
                                     <thead><tr><th>Prat.</th><th>Pos.</th><th>ID</th><th>Material</th><th>Tipo</th><th>Saldo local</th><th>Situação</th><th>Ficha</th></tr></thead>
                                     <tbody>
-                                        @for (p of entries; track p.level + ':' + p.position) {
-                                            <tr><td>{{ p.level }}</td><td>{{ p.position }}</td><td class="code">{{ p.item.code }}</td><td><strong>{{ p.item.name }}</strong></td><td>{{ p.item.category }}</td><td>{{ p.qty }} {{ p.item.unit }}</td><td><span class="tag" [ngClass]="entryTag(p.qty, p.item.stock, p.item.min)">{{ entryLabel(p.qty, p.item.stock, p.item.min) }}</span></td><td><button class="btn small" type="button" (click)="abrirFichaItem(p)">Ficha</button></td></tr>
+                                        @for (p of entries; track entryKey(p)) {
+                                            <tr [class.rack-keyboard-selected]="isFocusedEntry(p)"><td>{{ p.level }}</td><td>{{ p.position }}</td><td class="code">{{ p.item.code }}</td><td><strong>{{ p.item.name }}</strong></td><td>{{ p.item.category }}</td><td>{{ p.qty }} {{ p.item.unit }}</td><td><span class="tag" [ngClass]="entryTag(p.qty, p.item.stock, p.item.min)">{{ entryLabel(p.qty, p.item.stock, p.item.min) }}</span></td><td><button class="btn small" type="button" [attr.data-rack-entry]="entryKey(p)" (click)="abrirFichaItem(p)">Ficha</button></td></tr>
                                         }
                                     </tbody>
                                 </table></div>

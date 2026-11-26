@@ -44,7 +44,20 @@ export class Painel implements OnDestroy {
     level = 1;
     rackQuery = '';
     rackMode: Busca = 'name';
-    rackView: 'grid' | 'list' = 'grid';
+    private readonly rackViewKey = 'pqn-angular-rack-view';
+    rackView: 'grid' | 'list' = this.loadRackView();
+    rackFocus: 'shelves' | 'items' | null = null;
+    private focusedItemKey = '';
+
+    private loadRackView(): 'grid' | 'list' {
+        try { return localStorage.getItem(this.rackViewKey) === 'list' ? 'list' : 'grid'; }
+        catch { return 'grid'; }
+    }
+
+    setRackView(view: 'grid' | 'list'): void {
+        this.rackView = view;
+        try { localStorage.setItem(this.rackViewKey, view); } catch { /* Preferência da sessão. */ }
+    }
     rackCount = 5;
     rackNotice = '';
     fichaItem: ItemModel | null = null;
@@ -180,6 +193,15 @@ export class Painel implements OnDestroy {
         this.lookupPrevious = null;
     }
 
+    submitRackLookup(event: KeyboardEvent): void {
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.repeat || event.isComposing) return;
+        // Lê o valor do campo diretamente, sem depender da ordem de eventos do ngModel.
+        this.rackId = (event.currentTarget as HTMLInputElement).value;
+        this.goToRack();
+    }
+
     goToRack(): void {
         const raw = this.rackId.trim().replace(/^#/, '');
         if (!/^\d+$/.test(raw) || !Number.isSafeInteger(Number(raw)) || Number(raw) < 1) {
@@ -203,12 +225,17 @@ export class Painel implements OnDestroy {
         this.keyboardRack = true;
         this.openRack(slot);
         this.cdr.detectChanges();
-        this.host.querySelector<HTMLElement>('.estante-modal .dialog-head button')?.focus({ preventScroll: true });
+        this.rackQuery = '';
+        this.focusShelf(1);
     }
 
     @HostListener('document:keydown', ['$event'])
     handlePanelShortcut(event: KeyboardEvent): void {
-        if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey || this.dialogo.estado() || this.rack || this.rackLookup) return;
+        if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey || this.dialogo.estado() || this.rackLookup || this.fichaItem) return;
+        if (this.rack) {
+            this.handleRackShortcut(event);
+            return;
+        }
         const target = event.target instanceof HTMLElement ? event.target : document.activeElement;
         const editing = !!target?.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
         // Não captura Caps Lock enquanto o usuário digita, nem impede Tab nos outros campos.
@@ -257,6 +284,8 @@ export class Painel implements OnDestroy {
         if (!slot || slot.blocked) return;
         this.selectPosition(slot);
         this.rack = slot;
+        this.rackFocus = null;
+        this.focusedItemKey = '';
         this.level = 1;
         this.rackMode = this.match(slot) ? this.mode : 'name';
         this.rackQuery = this.match(slot) ? this.searchText : '';
@@ -268,6 +297,8 @@ export class Painel implements OnDestroy {
 
     closeRack(): void {
         if (!this.rack) return;
+        this.rackFocus = null;
+        this.focusedItemKey = '';
         this.fecharFichaItem();
         this.rack = null;
         document.body.style.overflow = this.previousOverflow;
@@ -283,6 +314,7 @@ export class Painel implements OnDestroy {
         if (this.dialogo.estado()) return;
         if (this.rackLookup) this.closeRackLookup();
         else if (this.fichaItem) this.fecharFichaItem();
+        else if (this.rack && this.rackFocus === 'items') this.focusShelf(this.level);
         else this.closeRack();
     }
     ngOnDestroy(): void {
@@ -304,7 +336,76 @@ export class Painel implements OnDestroy {
     }
 
     levelCount(n: number): number { return this.rack?.contents.filter(p => p.level === n).length ?? 0; }
-    selectLevel(n: number): void { this.level = n; this.rackQuery = ''; }
+    selectLevel(n: number): void {
+        this.level = n;
+        this.rackQuery = '';
+        this.rackFocus = 'shelves';
+        this.focusedItemKey = '';
+    }
+
+    private focusShelf(n: number): void {
+        this.selectLevel(n);
+        this.cdr.detectChanges();
+        const shelf = this.host.querySelector<HTMLElement>('[data-rack-level="' + n + '"]');
+        shelf?.focus({ preventScroll: true });
+        shelf?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+
+    entryKey(p: Conteudo): string { return p.level + ':' + p.position + ':' + p.itemCode; }
+
+    private focusEntry(index: number): void {
+        const entry = this.entries[index];
+        if (!entry) {
+            this.rackFocus = 'items';
+            this.focusedItemKey = '';
+            this.cdr.detectChanges();
+            this.host.querySelector<HTMLElement>('.rack-empty')?.focus({ preventScroll: true });
+            return;
+        }
+        this.rackFocus = 'items';
+        this.focusedItemKey = this.entryKey(entry);
+        this.cdr.detectChanges();
+        const button = Array.from(this.host.querySelectorAll<HTMLButtonElement>('[data-rack-entry]'))
+            .find(b => b.dataset['rackEntry'] === this.focusedItemKey);
+        button?.focus({ preventScroll: true });
+        button?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+
+    isFocusedEntry(p: Conteudo): boolean {
+        return this.rackFocus === 'items' && this.focusedItemKey === this.entryKey(p);
+    }
+
+    private handleRackShortcut(event: KeyboardEvent): void {
+        const target = event.target instanceof HTMLElement ? event.target : null;
+        if (!target || !target.closest('.estante-modal') ||
+            target.closest('input, select, textarea, [contenteditable="true"]')) return;
+        const shelf = target.closest<HTMLElement>('[data-rack-level]');
+        const item = target.closest<HTMLElement>('[data-rack-entry]');
+        const empty = target.closest('.rack-empty');
+        if (shelf) {
+            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                event.preventDefault();
+                const next = Number(shelf.dataset['rackLevel']) + (event.key === 'ArrowDown' ? 1 : -1);
+                this.focusShelf(Math.max(1, Math.min(this.levels.length, next)));
+            } else if (event.key === 'Enter' && !event.repeat) {
+                event.preventDefault();
+                this.focusEntry(0);
+            }
+        } else if (item || empty) {
+            const entries = this.entries;
+            const index = entries.findIndex(p => this.entryKey(p) === item?.dataset['rackEntry']);
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+                event.preventDefault();
+                const step = event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : -1;
+                if (entries.length) this.focusEntry(Math.max(0, Math.min(entries.length - 1, index + step)));
+            } else if (event.key === 'Enter' && index >= 0 && !event.repeat) {
+                event.preventDefault();
+                this.rackFocus = 'items';
+                this.focusedItemKey = this.entryKey(entries[index]);
+                this.abrirFichaItem(entries[index]);
+            }
+        }
+    }
     entryLabel(qty: number, stock: number, min: number): string {
         return qty === 0 ? 'Zerado' : stock < min ? 'Abaixo do mínimo' : 'Regular';
     }
@@ -340,8 +441,13 @@ export class Painel implements OnDestroy {
     }
 
     fecharFichaItem(): void {
+        const restore = !!this.fichaItem && this.rackFocus === 'items';
         this.fichaItem = null;
         this.fichaOrigem = null;
+        if (restore) {
+            const index = this.entries.findIndex(p => this.entryKey(p) === this.focusedItemKey);
+            this.focusEntry(Math.max(0, index));
+        }
     }
 
     construction(feature: string): void {

@@ -95,8 +95,9 @@ describe('Painel', () => {
     component.rackId = '999999999';
     component.goToRack();
     expect(component.rackLookupError).toContain('não encontrada');
-    component.rackId = String(slot.idlocalizacao);
-    component.goToRack();
+    const input = fixture.nativeElement.querySelector('#rackLookupId') as HTMLInputElement;
+    input.value = String(slot.idlocalizacao);
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     expect(component.rackLookup).toBe(false);
     expect(component.rack).toBe(slot);
     component.escape();
@@ -133,6 +134,45 @@ describe('Painel', () => {
       if (index >= 0) component.planta.materials.splice(index, 1);
       component.closeRack();
       component.clearSearch();
+    }
+  });
+
+  it('navega pelas prateleiras e posições e mantém a preferência de visualização', () => {
+    const storageKey = 'pqn-angular-rack-view';
+    const previous = localStorage.getItem(storageKey);
+    const slot = component.selected!;
+    const old = slot.contents;
+    const code = 'ITEM-999999';
+    component.planta.materials.push({ code, name: 'Teste teclado', category: 'Teste', unit: 'UN', stock: 3, min: 0 });
+    try {
+      slot.contents = [{ level: 2, position: 1, itemCode: code, qty: 1 }, { level: 2, position: 3, itemCode: code, qty: 2 }];
+      component.openRackLookup();
+      component.rackId = String(slot.idlocalizacao);
+      component.goToRack();
+      expect(component.level).toBe(1);
+      const key = (target: HTMLElement, value: string) => target.dispatchEvent(new KeyboardEvent('keydown', { key: value, bubbles: true, cancelable: true }));
+      key(fixture.nativeElement.querySelector('[data-rack-level="1"]'), 'ArrowDown');
+      expect(component.level).toBe(2);
+      key(fixture.nativeElement.querySelector('[data-rack-level="2"]'), 'Enter');
+      expect(component.rackFocus).toBe('items');
+      expect(component.isFocusedEntry(slot.contents[0])).toBe(true);
+      const buttons = fixture.nativeElement.querySelectorAll('[data-rack-entry]') as NodeListOf<HTMLElement>;
+      key(buttons[0], 'ArrowDown');
+      expect(component.isFocusedEntry(slot.contents[1])).toBe(true);
+      component.escape();
+      expect(component.rackFocus).toBe('shelves');
+      component.setRackView('list');
+      expect(localStorage.getItem(storageKey)).toBe('list');
+      component.closeRack();
+      component.openRack(slot);
+      expect(component.rackView).toBe('list');
+    } finally {
+      component.closeRack();
+      slot.contents = old;
+      const index = component.planta.materials.findIndex(m => m.code === code);
+      if (index >= 0) component.planta.materials.splice(index, 1);
+      if (previous === null) localStorage.removeItem(storageKey);
+      else localStorage.setItem(storageKey, previous);
     }
   });
 
