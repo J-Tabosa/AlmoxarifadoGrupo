@@ -1,5 +1,6 @@
-import { Component, HostListener, OnInit } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { Component, DestroyRef, HostListener, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { combineLatest } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { mensagemErro } from '../../core/app-error';
@@ -19,11 +20,12 @@ interface LinhaRequisicaoForm {
 @Component({
   selector: 'app-saidas',
   standalone: true,
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule],
   templateUrl: './saidas.html',
   styleUrl: './saidas.css',
 })
 export class Saidas implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   funcionarios: FuncionarioModel[] = [];
   itensCatalogo: ItemModel[] = [];
   requisicoes: RequisicaoModel[] = [];
@@ -57,25 +59,38 @@ export class Saidas implements OnInit {
 
   ngOnInit(): void {
     this.carregarFuncionarios();
-    this.carregarItens();
-    this.route.queryParamMap.subscribe(params => {
-      const idEdicao = Number(params.get('editar'));
-      if (!idEdicao) {
-        const idItem = Number(params.get('item'));
-        if (this.idEditando === null && this.itensCatalogo.some(i => i.idItem === idItem)) {
-          this.linhas = [{ idItem, quantidadeS: 1 }];
-        }
-        return;
-      }
-      this.api.listar().subscribe({
-        next: dados => {
-          const requisicao = dados.find(item => item.idRequisicao === idEdicao);
-          if (requisicao) this.editar(requisicao);
-          else this.dialogo.erro('A requisição #' + idEdicao + ' não foi encontrada.', 'Requisição não encontrada');
+    // O atalho da ficha e o seletor em modal usam o mesmo catálogo.
+    // Aguarda ambos os dados para não perder a seleção caso a API seja assíncrona.
+    combineLatest([this.route.queryParamMap, this.itensApi.listar()])
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ([params, dados]) => {
+          this.itensCatalogo = dados;
+          const idEdicao = Number(params.get('editar'));
+          if (idEdicao) {
+            this.api.listar().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+              next: requisicoes => {
+                if (Number(this.route.snapshot.queryParamMap.get('editar')) !== idEdicao) return;
+                const requisicao = requisicoes.find(r => r.idRequisicao === idEdicao);
+                if (requisicao) this.editar(requisicao);
+                else this.dialogo.erro('A requisição #' + idEdicao + ' não foi encontrada.', 'Requisição não encontrada');
+              },
+              error: e => this.dialogo.erro(mensagemErro(e), 'Erro ao carregar requisição'),
+            });
+            return;
+          }
+          const idItem = Number(params.get('item'));
+          if (!Number.isSafeInteger(idItem) || idItem < 1) return;
+          const item = dados.find(i => i.idItem === idItem && i.statusIt === 'A');
+          if (!item) {
+            this.dialogo.erro('O item informado não existe ou está inativo.', 'Item indisponível');
+            return;
+          }
+          this.iniciarNova();
+          this.atribuirItem(0, item);
         },
-        error: e => this.dialogo.erro(mensagemErro(e), 'Erro ao carregar requisição'),
+        error: e => this.dialogo.erro(mensagemErro(e), 'Erro ao carregar itens'),
       });
-    });
   }
 
   private dataHoraLocalAtual(): string {
@@ -95,21 +110,6 @@ export class Saidas implements OnInit {
         this.idAlmoxarifeForm ??= funcionarioPadrao;
       },
       error: e => this.dialogo.erro(mensagemErro(e), 'Erro ao carregar funcionários'),
-    });
-  }
-
-  private carregarItens(): void {
-    this.itensApi.listar().subscribe({
-      next: dados => {
-        // Mantém o catálogo completo para exibir itens históricos já selecionados.
-        // O modal de inclusão oferece somente itens ativos.
-        this.itensCatalogo = dados;
-        const idItem = Number(this.route.snapshot.queryParamMap.get('item'));
-        if (this.idEditando === null && idItem && dados.some(i => i.idItem === idItem && i.statusIt === 'A')) {
-          this.linhas = [{ idItem, quantidadeS: 1 }];
-        }
-      },
-      error: e => this.dialogo.erro(mensagemErro(e), 'Erro ao carregar itens'),
     });
   }
 
@@ -196,16 +196,21 @@ export class Saidas implements OnInit {
 
   selecionarItem(item: ItemModel): void {
     if (this.indiceLinhaModal === null) return;
-    if (item.statusIt !== 'A') return;
-    if (this.itemJaAdicionado(item.idItem)) {
+    if (this.atribuirItem(this.indiceLinhaModal, item)) this.fecharModalSelecaoItem();
+  }
+
+  // Seleção única para o modal de busca e para o atalho vindo da ficha.
+  private atribuirItem(indice: number, item: ItemModel): boolean {
+    if (!this.linhas[indice] || item.statusIt !== 'A') return false;
+    if (this.linhas.some((linha, i) => i !== indice && linha.idItem === item.idItem)) {
       this.dialogo.erro(
         'Este item já foi incluído na requisição. Altere a quantidade na linha existente.',
         'Item já selecionado',
       );
-      return;
+      return false;
     }
-    this.linhas[this.indiceLinhaModal].idItem = item.idItem;
-    this.fecharModalSelecaoItem();
+    this.linhas[indice].idItem = item.idItem;
+    return true;
   }
 
   private normalizarPesquisa(valor: string): string {
