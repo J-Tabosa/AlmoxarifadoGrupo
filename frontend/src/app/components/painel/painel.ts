@@ -193,7 +193,8 @@ export class Painel implements OnDestroy {
         this.lookupPrevious = null;
     }
 
-    submitRackLookup(event: KeyboardEvent): void {
+    submitRackLookup(event: Event): void {
+        if (!(event instanceof KeyboardEvent) || event.key !== 'Enter') return;
         event.preventDefault();
         event.stopPropagation();
         if (event.repeat || event.isComposing) return;
