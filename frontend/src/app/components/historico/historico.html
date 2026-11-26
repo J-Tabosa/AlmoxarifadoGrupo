@@ -38,8 +38,12 @@
             <td>{{ requisicao.dataHoraS | date:'dd/MM/yyyy HH:mm' }}</td>
             <td><span class="tag neutral">{{ requisicao.tipoS }}</span></td>
             <td>@for (item of requisicao.itens; track item.idItem) {
-              <div class="request-item-summary">{{ item.quantidadeS }} × {{ item.descricaoItem || ('Item #' + item.idItem) }} <small>(#{{ item.idItem }})</small></div>
-            }</td>
+              <div class="request-item-summary">{{ item.quantidadeS }} × {{ item.descricaoItem || ('Item #' + item.idItem) }} <small>(#{{ item.idItem }})</small>
+                @if (item.endereco) { <small class="table-subline">{{ item.endereco }}</small> }
+              </div>
+            }
+              @if (!requisicao.baixaAplicada) { <small class="table-subline">Registro antigo · sem baixa de estoque</small> }
+            </td>
             <td class="row-actions">
               <button class="link-btn" type="button" (click)="editar(requisicao)">Editar</button>
               <button class="link-btn danger-text" type="button" (click)="excluir(requisicao)">Excluir</button>

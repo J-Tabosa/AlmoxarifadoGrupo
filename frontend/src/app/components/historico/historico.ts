@@ -57,7 +57,7 @@ export class Historico implements OnInit {
 
   async excluir(requisicao: RequisicaoModel): Promise<void> {
     const confirmado = await this.dialogo.confirmar(
-      `Deseja realmente excluir a requisição #${requisicao.idRequisicao}?`,
+      `Deseja realmente excluir a requisição #${requisicao.idRequisicao}? ${requisicao.baixaAplicada ? 'O saldo será devolvido às localizações originais.' : 'Este registro antigo não realizou baixa; não haverá devolução de saldo.'}`,
       'Excluir requisição',
     );
     if (!confirmado) return;

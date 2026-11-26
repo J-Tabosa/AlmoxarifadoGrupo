@@ -14,7 +14,7 @@ describe('Saidas', () => {
   let params: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
   let catalogo: Subject<ItemModel[]>;
   let erros: string[];
-  const ativo: ItemModel = { idItem: 12, idCategoria: 1, descricaoItem: 'Papel A4', unidade: 'PC', statusIt: 'A', saldoTotal: 10 };
+  const ativo: ItemModel = { idItem: 12, idCategoria: 1, descricaoItem: 'Papel A4', unidade: 'PC', statusIt: 'A', saldoTotal: 10, estoques: [{ idItem: 12, idLocalizacao: 21, saldo: 10, eMinimo: 0, eMaximo: 0, localizacao: { idLocalizacao: 21, sala: 'Depósito', andar: '', posicao: 'P1', statusL: 'A' } }] };
   const inativo: ItemModel = { ...ativo, idItem: 13, statusIt: 'I' };
   const outro: ItemModel = { ...ativo, idItem: 14, descricaoItem: 'Caneta' };
 
@@ -49,9 +49,17 @@ describe('Saidas', () => {
     expect(component.linhas[0].idItem).toBeNull();
     catalogo.next([ativo, inativo]);
     fixture.detectChanges();
-    expect(component.linhas).toEqual([{ idItem: 12, quantidadeS: 1 }]);
+    expect(component.linhas).toEqual([{ idItem: 12, quantidadeS: 1, idLocalizacao: 21 }]);
     expect(component.modalItensAberto).toBe(false);
     expect(fixture.nativeElement.querySelector('.request-selected-item').textContent).toContain('Papel A4');
+  });
+
+  it('respeita a origem da ficha mesmo com múltiplos estoques', () => {
+    const segunda = { ...ativo.estoques![0], idLocalizacao: 22, localizacao: { ...ativo.estoques![0].localizacao!, idLocalizacao: 22 } };
+    params.next(convertToParamMap({ item: '12', localizacao: '22' }));
+    fixture.detectChanges();
+    catalogo.next([{ ...ativo, estoques: [...ativo.estoques!, segunda] }]);
+    expect(component.linhas[0].idLocalizacao).toBe(22);
   });
 
   it('não inclui item inativo pelo atalho', () => {

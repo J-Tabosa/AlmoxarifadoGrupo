@@ -116,7 +116,7 @@ export class BancoLocalService {
       if (typeof localStorage !== 'undefined') localStorage.setItem(CHAVE_STORAGE, JSON.stringify(this.dados));
       else if (exigirPersistencia) throw new Error('Armazenamento indisponível.');
     } catch {
-      if (exigirPersistencia) throw new Error('Não foi possível salvar a entrada no navegador. Nenhuma movimentação foi registrada.');
+      if (exigirPersistencia) throw new Error('Não foi possível salvar a movimentação no navegador. Nenhuma alteração foi registrada.');
       // A aplicação continua utilizável em memória mesmo se o navegador bloquear o localStorage.
     }
   }

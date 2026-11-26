@@ -1,6 +1,7 @@
 import { Component, DestroyRef, HostListener, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { combineLatest } from 'rxjs';
+import { map, switchMap } from 'rxjs';
+import { EstoqueModel } from '../../models/estoque.model';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { mensagemErro } from '../../core/app-error';
@@ -15,6 +16,7 @@ import { RequisicoesService } from '../../services/requisicoes.service';
 interface LinhaRequisicaoForm {
   idItem: number | null;
   quantidadeS: number;
+  idLocalizacao?: number;
 }
 
 @Component({
@@ -34,6 +36,8 @@ export class Saidas implements OnInit {
   idAlmoxarifeForm: number | null = null;
   idEditando: number | null = null;
   idSolicitanteEditando: number | null = null;
+  private requisicaoOriginal: RequisicaoModel | null = null;
+  get edicaoSemBaixa(): boolean { return !!this.requisicaoOriginal && !this.requisicaoOriginal.baixaAplicada; }
 
   dataHoraS = this.dataHoraLocalAtual();
   justificativa = 'Consumo interno';
@@ -61,8 +65,10 @@ export class Saidas implements OnInit {
     this.carregarFuncionarios();
     // O atalho da ficha e o seletor em modal usam o mesmo catálogo.
     // Aguarda ambos os dados para não perder a seleção caso a API seja assíncrona.
-    combineLatest([this.route.queryParamMap, this.itensApi.listar()])
-      .pipe(takeUntilDestroyed(this.destroyRef))
+    this.route.queryParamMap.pipe(
+      switchMap(params => this.itensApi.listar().pipe(map(dados => [params, dados] as const))),
+      takeUntilDestroyed(this.destroyRef)
+    )
       .subscribe({
         next: ([params, dados]) => {
           this.itensCatalogo = dados;
@@ -88,6 +94,15 @@ export class Saidas implements OnInit {
           }
           this.iniciarNova();
           this.atribuirItem(0, item);
+          const origem = Number(params.get('localizacao'));
+          if (params.has('localizacao')) {
+            const estoque = this.locaisDisponiveis(this.linhas[0]).find(e => e.idLocalizacao === origem);
+            if (estoque) this.linhas[0].idLocalizacao = origem;
+            else {
+              this.linhas[0].idLocalizacao = undefined;
+              this.dialogo.erro('O endereço da ficha não está disponível. Selecione uma origem válida.', 'Localização indisponível');
+            }
+          }
         },
         error: e => this.dialogo.erro(mensagemErro(e), 'Erro ao carregar itens'),
       });
@@ -210,6 +225,10 @@ export class Saidas implements OnInit {
       return false;
     }
     this.linhas[indice].idItem = item.idItem;
+    const linha = this.linhas[indice];
+    linha.idLocalizacao = undefined;
+    const locais = this.locaisDisponiveis(linha).filter(e => this.saldoLocal(linha, e) > 0);
+    if (locais.length === 1) linha.idLocalizacao = locais[0].idLocalizacao;
     return true;
   }
 
@@ -225,6 +244,27 @@ export class Saidas implements OnInit {
     return this.itensCatalogo.find(item => item.idItem === idItem);
   }
 
+  locaisDisponiveis(linha: LinhaRequisicaoForm): EstoqueModel[] {
+    return (this.itemSelecionado(linha.idItem)?.estoques ?? []).filter(e => e.localizacao?.statusL === 'A');
+  }
+
+  saldoLocal(linha: LinhaRequisicaoForm, estoque: EstoqueModel): number {
+    const anterior = this.requisicaoOriginal?.baixaAplicada
+      ? this.requisicaoOriginal.itens.find(i => i.idItem === linha.idItem && i.idLocalizacao === estoque.idLocalizacao)
+      : undefined;
+    return estoque.saldo + (anterior?.quantidadeS ?? 0);
+  }
+
+  saldoDisponivel(linha: LinhaRequisicaoForm): number | string {
+    const estoque = this.locaisDisponiveis(linha).find(e => e.idLocalizacao === linha.idLocalizacao);
+    return estoque ? this.saldoLocal(linha, estoque) : '—';
+  }
+
+  enderecoOrigem(estoque: EstoqueModel): string {
+    const l = estoque.localizacao;
+    return l ? [l.sala, l.andar, l.posicao].filter(Boolean).join(' / ') : 'Localização #' + estoque.idLocalizacao;
+  }
+
   nomeFuncionario(idFuncionario: number | null | undefined): string {
     if (idFuncionario == null) return 'Não informado';
     return this.funcionarios.find(x => x.idFuncionario === idFuncionario)?.nomeFu
@@ -237,6 +277,7 @@ export class Saidas implements OnInit {
   }
 
   editar(requisicao: RequisicaoModel): void {
+    this.requisicaoOriginal = requisicao;
     this.idEditando = requisicao.idRequisicao;
     this.idSolicitanteEditando = requisicao.idFuncionario;
     this.idSolicitanteForm = requisicao.idFuncionario;
@@ -247,7 +288,13 @@ export class Saidas implements OnInit {
     this.linhas = (requisicao.itens || []).map(item => ({
       idItem: item.idItem,
       quantidadeS: item.quantidadeS,
+      idLocalizacao: item.idLocalizacao,
     }));
+    for (const linha of this.linhas) {
+      if (linha.idLocalizacao != null) continue;
+      const locais = this.locaisDisponiveis(linha).filter(e => this.saldoLocal(linha, e) > 0);
+      if (locais.length === 1) linha.idLocalizacao = locais[0].idLocalizacao;
+    }
     if (this.linhas.length === 0) this.linhas = [{ idItem: null, quantidadeS: 1 }];
   }
 
@@ -287,13 +334,21 @@ export class Saidas implements OnInit {
       return;
     }
 
+    for (const linha of validas) {
+      const saldo = this.saldoDisponivel(linha);
+      if (typeof saldo !== 'number' || !Number.isSafeInteger(Number(linha.quantidadeS)) || Number(linha.quantidadeS) > saldo) {
+        this.dialogo.erro('Selecione a localização de origem e informe uma quantidade inteira que não ultrapasse o saldo disponível.', 'Saldo ou origem inválidos');
+        return;
+      }
+    }
+
     const payload: RequisicaoPayload = {
       idAlmoxarife: Number(this.idAlmoxarifeForm),
       idFuncionario: Number(this.idSolicitanteForm),
       dataHoraS: this.dataHoraS,
       justificativa: this.justificativa.trim() || 'Consumo interno',
       tipoS: this.tipoS,
-      itens: validas.map(x => ({ idItem: Number(x.idItem), quantidadeS: Number(x.quantidadeS) })),
+      itens: validas.map(x => ({ idItem: Number(x.idItem), quantidadeS: Number(x.quantidadeS), idLocalizacao: x.idLocalizacao })),
     };
 
     this.salvando = true;
@@ -305,14 +360,15 @@ export class Saidas implements OnInit {
       next: () => {
         const estavaEditando = this.idEditando !== null;
         this.dialogo.sucesso(
-          estavaEditando ? 'Requisição atualizada.' : 'Requisição cadastrada.',
+          estavaEditando ? 'Requisição e saldo atualizados.' : 'Requisição cadastrada e saldo descontado.',
           estavaEditando ? 'Requisição atualizada' : 'Requisição cadastrada',
         );
         this.salvando = false;
         this.limparFormulario();
+        this.itensApi.listar().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: dados => this.itensCatalogo = dados, error: e => this.dialogo.erro(mensagemErro(e), 'Erro ao atualizar catálogo') });
         this.router.navigate([], {
           relativeTo: this.route,
-          queryParams: { editar: null, item: null },
+          queryParams: { editar: null, item: null, localizacao: null },
           queryParamsHandling: 'merge',
         });
       },
@@ -327,6 +383,7 @@ export class Saidas implements OnInit {
     this.fecharModalSelecaoItem();
     this.idEditando = null;
     this.idSolicitanteEditando = null;
+    this.requisicaoOriginal = null;
     this.dataHoraS = this.dataHoraLocalAtual();
     this.justificativa = 'Consumo interno';
     this.tipoS = 'consumo';

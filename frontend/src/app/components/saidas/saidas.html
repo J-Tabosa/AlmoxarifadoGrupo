@@ -73,6 +73,9 @@
         <p class="note"><strong>Observação:</strong> o solicitante fica bloqueado durante a edição porque idFuncionario faz parte da chave composta da tabela requisicao no modelo anexado. O almoxarife responsável pode ser alterado.</p>
       }
 
+      @if (edicaoSemBaixa) {
+        <p class="note">Esta requisição antiga ainda não descontou estoque. Ao salvar, será feita a primeira baixa nas localizações escolhidas. Cancele se o saldo já tiver sido ajustado manualmente.</p>
+      }
       <div class="record-divider">requisicao_item · itens solicitados</div>
       <div class="table-scroller request-items-scroller">
         <table class="table request-items-table">
@@ -80,7 +83,8 @@
             <tr>
               <th>Item</th>
               <th>Unidade</th>
-              <th>Saldo disponível*</th>
+              <th>Localização de origem</th>
+              <th>Saldo disponível</th>
               <th>Quantidade solicitada</th>
               <th>Ações</th>
             </tr>
@@ -102,7 +106,16 @@
                   }
                 </td>
                 <td>{{ itemSelecionado(linha.idItem)?.unidade || '—' }}</td>
-                <td class="numeric">{{ itemSelecionado(linha.idItem)?.saldoTotal ?? '—' }}</td>
+                <td>
+                  <select [name]="'origem-' + i" [disabled]="linha.idItem === null" required [(ngModel)]="linha.idLocalizacao"
+                          [attr.aria-label]="'Localização de origem do item ' + (i + 1)">
+                    <option [ngValue]="undefined">Selecione a origem</option>
+                    @for (e of locaisDisponiveis(linha); track e.idLocalizacao) {
+                      <option [ngValue]="e.idLocalizacao">{{ enderecoOrigem(e) }} · {{ saldoLocal(linha, e) }} disponíveis</option>
+                    }
+                  </select>
+                </td>
+                <td class="numeric">{{ saldoDisponivel(linha) }}</td>
                 <td>
                   <input class="quantity-input" [name]="'quantidade-' + i" type="number" min="1" step="1"
                     required [(ngModel)]="linha.quantidadeS" />
@@ -112,12 +125,12 @@
                 </td>
               </tr>
             } @empty {
-              <tr><td colspan="5" class="empty-state">Adicione pelo menos um item à requisição.</td></tr>
+              <tr><td colspan="6" class="empty-state">Adicione pelo menos um item à requisição.</td></tr>
             }
           </tbody>
         </table>
       </div>
-      <p class="hint">* Saldo demonstrativo, somado por localização. Nesta versão local, as requisições não alteram o saldo automaticamente; as triggers serão consideradas na futura integração com o banco.</p>
+      <p class="hint">Ao confirmar, a quantidade será descontada da localização selecionada e o Painel será atualizado. Cada item utiliza uma origem por requisição; para retirar de duas origens, registre requisições separadas.</p>
       <div class="form-actions">
         <button class="btn" type="button" (click)="adicionarLinha()">＋ Adicionar item</button>
         <div class="actions">

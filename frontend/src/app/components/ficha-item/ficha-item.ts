@@ -32,6 +32,14 @@ export class FichaItem {
     return l ? [l.sala, l.andar, l.posicao].filter(Boolean).join(' · ') : 'Localização #' + e.idLocalizacao;
   }
 
+  get origemEstoque(): EstoqueModel | undefined {
+    return (this.item().estoques ?? []).find(e => this.origem(e));
+  }
+
+  get saidaParams() {
+    return { item: this.item().idItem, localizacao: this.origemEstoque?.idLocalizacao };
+  }
+
   get entradaParams() {
     return { item: this.item().idItem, grupo: this.grupoKey(), estante: this.idEstante(),
       prateleira: this.prateleira(), posicao: this.posicao() };

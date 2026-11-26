@@ -1,6 +1,7 @@
 export interface RequisicaoItemPayload {
   idItem: number;
   quantidadeS: number;
+  idLocalizacao?: number;
 }
 
 /**
@@ -20,6 +21,7 @@ export interface RequisicaoItemModel extends RequisicaoItemPayload {
   descricaoItem?: string;
   unidade?: string;
   saldoTotal?: number;
+  endereco?: string;
 }
 
 export interface RequisicaoModel {
@@ -32,6 +34,8 @@ export interface RequisicaoModel {
   funcionario?: FuncionarioResumo;
   almoxarife?: FuncionarioResumo;
   itens: RequisicaoItemModel[];
+  /** Ausente em requisições antigas, que não movimentavam estoque. */
+  baixaAplicada?: boolean;
 }
 
 export interface FuncionarioResumo {

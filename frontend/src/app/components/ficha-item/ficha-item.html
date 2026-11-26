@@ -60,8 +60,8 @@
         <div class="actions">
           <button class="btn primary" type="button" [disabled]="item().statusIt !== 'A'"
                   routerLink="/entradas" [queryParams]="entradaParams">Realizar entrada</button>
-          <button class="btn" type="button" [disabled]="item().statusIt !== 'A'"
-                  routerLink="/saidas" [queryParams]="{ item: item().idItem }">Realizar saída</button>
+          <button class="btn" type="button" [disabled]="item().statusIt !== 'A' || !origemEstoque || origemEstoque.saldo <= 0"
+                  routerLink="/saidas" [queryParams]="saidaParams">Realizar saída</button>
           <button class="btn" type="button" (click)="fechar.emit()">Fechar</button>
         </div>
       </footer>
