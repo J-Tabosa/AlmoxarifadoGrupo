@@ -44,6 +44,7 @@ interface Estado {
     nextId: number;
     defaultShelfCount: number;
     activeKey: string;
+    showBlocked?: boolean;
 }
 
 /** Estado demonstrativo compartilhado entre Painel e Configurações.
@@ -72,6 +73,14 @@ export class PlantaService {
 
     get groups(): Grupo[] { return this.state.groups; }
     get defaultShelfCount(): number { return this.state.defaultShelfCount; }
+
+    // Preferência visual global: não altera a planta nem os IDs das posições.
+    get showBlocked(): boolean { return this.state.showBlocked === true; }
+
+    setShowBlocked(show: boolean): void {
+        this.state.showBlocked = show;
+        this.persist();
+    }
     get activeGroup(): Grupo {
         return this.groups.find(g => g.key === this.state.activeKey) ?? this.groups[0];
     }
