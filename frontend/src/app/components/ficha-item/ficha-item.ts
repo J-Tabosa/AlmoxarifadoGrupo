@@ -1,7 +1,8 @@
-import { Component, input, output } from '@angular/core';
+import { Component, ElementRef, HostListener, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ItemModel } from '../../models/item.model';
 import { EstoqueModel } from '../../models/estoque.model';
+import { DialogoService } from '../../core/dialogo.service';
 
 @Component({
   selector: 'app-ficha-item',
@@ -10,6 +11,24 @@ import { EstoqueModel } from '../../models/estoque.model';
   styleUrls: ['../item/item.css', './ficha-item.css']
 })
 export class FichaItem {
+  private readonly host: HTMLElement = inject(ElementRef<HTMLElement>).nativeElement;
+  private readonly dialogo = inject(DialogoService);
+
+  // Os atalhos acionam os mesmos botões, preservando os parâmetros e bloqueios existentes.
+  @HostListener('document:keydown', ['$event'])
+  movimentarPorAtalho(event: KeyboardEvent): void {
+    if (event.defaultPrevented || event.repeat || event.isComposing || event.ctrlKey ||
+        event.altKey || event.metaKey || this.dialogo.estado()) return;
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (target?.closest('input:not([readonly]), textarea:not([readonly]), select, [contenteditable]:not([contenteditable="false"])')) return;
+    const tecla = event.key.toLowerCase();
+    if (tecla !== 'i' && tecla !== 'o') return;
+    const botao = this.host.querySelector<HTMLButtonElement>(tecla === 'i' ? '.ficha-entrada' : '.ficha-saida');
+    if (!botao || botao.disabled) return;
+    event.preventDefault();
+    botao.click();
+  }
+
   readonly item = input.required<ItemModel>();
   readonly grupoKey = input.required<string>();
   readonly idEstante = input.required<number>();

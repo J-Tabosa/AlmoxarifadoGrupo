@@ -58,10 +58,12 @@
       <footer class="dialog-actions item-dialog-actions">
         <span class="hint">Consulta · somente leitura</span>
         <div class="actions">
-          <button class="btn primary" type="button" [disabled]="item().statusIt !== 'A'"
-                  routerLink="/entradas" [queryParams]="entradaParams">Realizar entrada</button>
-          <button class="btn" type="button" [disabled]="item().statusIt !== 'A' || !origemEstoque || origemEstoque.saldo <= 0"
-                  routerLink="/saidas" [queryParams]="saidaParams">Realizar saída</button>
+          <button class="btn primary ficha-entrada" type="button" [disabled]="item().statusIt !== 'A'"
+                  title="Realizar entrada (I)" aria-keyshortcuts="I"
+                  routerLink="/entradas" [queryParams]="entradaParams">Realizar entrada (I)</button>
+          <button class="btn primary ficha-saida" type="button" [disabled]="item().statusIt !== 'A' || !origemEstoque || origemEstoque.saldo <= 0"
+                  title="Realizar saída (O)" aria-keyshortcuts="O"
+                  routerLink="/saidas" [queryParams]="saidaParams">Realizar saída (O)</button>
           <button class="btn" type="button" (click)="fechar.emit()">Fechar</button>
         </div>
       </footer>
