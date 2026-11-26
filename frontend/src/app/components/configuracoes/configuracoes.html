@@ -92,16 +92,18 @@
                                         <div class="editor-click-help">
                                             <span><strong>Clique/arraste esquerdo:</strong> ativar ou desativar</span>
                                             <span><strong>Clique direito:</strong> selecionar / nomear (F2 pelo teclado)</span>
+                                            <span><strong>Rodinha do mouse:</strong> zoom do mapa</span>
                                         </div>
                                         <button type="button" class="btn" [disabled]="!validSize" (click)="toggleAll()">
                                             {{ blockedCount > 0 ? 'Ativar todas' : 'Desativar todas' }}
                                         </button>
                                     </div>
                                     @if (validSize) {
-                                        <div class="manager-preview-viewport">
+                                        <div class="manager-preview-viewport" #mapViewport (wheel)="zoomMap($event)">
                                             <div class="preview-location-grid" role="group" aria-label="Editor da planta"
-                                                 [style.grid-template-columns]="'repeat(' + cols + ', minmax(44px, 1fr))'"
-                                                 [style.min-width.px]="cols * 44 + (cols - 1) * 5"
+                                                 [style.--map-zoom]="mapZoom / 100"
+                                                 [style.grid-template-columns]="'repeat(' + cols + ', minmax(0, 1fr))'"
+                                                 [style.min-width.px]="(cols * 44 + (cols - 1) * 5) * mapZoom / 100"
                                                  (pointermove)="moveDrag($event)" (lostpointercapture)="endDrag($event)">
                                                 @for (cell of cells; track cell.key) {
                                                     <button type="button" class="preview-slot"
@@ -127,6 +129,8 @@
                                             <span><strong>{{ cells.length }}</strong> células</span>
                                             <span class="enabled"><strong>{{ enabledCount }}</strong> estantes</span>
                                             <span><strong>{{ blockedCount }}</strong> espaços vazios</span>
+                                            <button class="btn small map-zoom-reset" type="button" (click)="resetMapZoom(mapViewport)"
+                                                    title="Restaurar zoom do mapa" aria-label="Restaurar zoom do mapa">{{ mapZoom }}% · Restaurar zoom</button>
                                         </div>
                                     } @else {
                                         <div class="note" role="status">Informe entre 1 e 15 linhas e entre 1 e 16 colunas.</div>

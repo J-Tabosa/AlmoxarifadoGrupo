@@ -141,6 +141,27 @@ describe('Configuracoes', () => {
         expect(component.noticeError).toBe(true);
     });
 
+    it('aplica zoom somente à prévia, limita a escala e não altera a planta', () => {
+        const viewport = fixture.nativeElement.querySelector('.manager-preview-viewport') as HTMLElement;
+        const grid = viewport.querySelector('.preview-location-grid') as HTMLElement;
+        const wheel = (deltaY: number) => {
+            const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY });
+            viewport.dispatchEvent(event);
+            expect(event.defaultPrevented).toBe(true);
+        };
+        wheel(-100);
+        expect(component.mapZoom).toBe(110);
+        expect(grid.style.getPropertyValue('--map-zoom')).toBe('1.1');
+        for (let i = 0; i < 30; i++) wheel(-100);
+        expect(component.mapZoom).toBe(250);
+        for (let i = 0; i < 30; i++) wheel(100);
+        expect(component.mapZoom).toBe(50);
+        component.resetMapZoom(viewport);
+        expect(component.mapZoom).toBe(100);
+        expect(component.dirty).toBe(false);
+        expect(component.disabled.size).toBe(0);
+    });
+
     it('desativa e reativa todas, permitindo salvar o grupo vazio sem trocar IDs', () => {
         const ids = component.group.slots.map(s => s.idlocalizacao);
         component.toggleAll();

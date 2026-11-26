@@ -1,4 +1,4 @@
-import { Component, HostListener, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Grupo, PlantaService, Posicao } from '../../services/planta';
@@ -14,6 +14,8 @@ type Aba = 'enderecamento' | 'aparencia' | 'usuarios' | 'seguranca' | 'backup';
 export class Configuracoes {
     readonly planta = inject(PlantaService);
     private readonly router = inject(Router);
+    private readonly cdr = inject(ChangeDetectorRef);
+    mapZoom = 100;
     readonly tabs: { key: Aba; label: string }[] = [
         { key: 'enderecamento', label: 'Grupos e posições' },
         { key: 'aparencia', label: 'Aparência' },
@@ -137,6 +139,36 @@ export class Configuracoes {
     cancelEdit(): void {
         this.loadGroup(this.group);
         this.notice = 'Alterações descartadas. A planta salva foi restaurada.';
+    }
+
+    /** Zoom restrito à prévia, mantendo o ponto sob o cursor sempre que houver espaço para rolar. */
+    zoomMap(event: WheelEvent): void {
+        if (event.deltaY === 0 || event.ctrlKey || event.metaKey) return;
+        event.preventDefault();
+        if (this.drag) return;
+        const next = Math.max(50, Math.min(250, this.mapZoom + (event.deltaY < 0 ? 10 : -10)));
+        const viewport = event.currentTarget as HTMLElement;
+        this.setMapZoom(next, viewport, event.clientX, event.clientY);
+    }
+
+    resetMapZoom(viewport: HTMLElement): void {
+        const rect = viewport.getBoundingClientRect();
+        this.setMapZoom(100, viewport, rect.left + viewport.clientWidth / 2, rect.top + viewport.clientHeight / 2);
+    }
+
+    private setMapZoom(next: number, viewport: HTMLElement, x: number, y: number): void {
+        if (next === this.mapZoom || this.drag) return;
+        const grid = viewport.querySelector<HTMLElement>('.preview-location-grid');
+        if (!grid) return;
+        const before = grid.getBoundingClientRect();
+        const fx = before.width ? (x - before.left) / before.width : 0;
+        const fy = before.height ? (y - before.top) / before.height : 0;
+        this.mapZoom = next;
+        // Atualiza o tamanho real da grade antes de reposicionar as barras de rolagem.
+        this.cdr.detectChanges();
+        const after = grid.getBoundingClientRect();
+        viewport.scrollLeft += after.left + fx * after.width - x;
+        viewport.scrollTop += after.top + fy * after.height - y;
     }
 
     /** Clique simples pelo teclado ou por tecnologias assistivas. O mouse e toque

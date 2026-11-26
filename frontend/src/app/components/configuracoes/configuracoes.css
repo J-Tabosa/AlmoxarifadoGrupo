@@ -155,24 +155,38 @@
     max-height: 480px;
     padding: 12px;
     overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
 }
 
 .group-editor .preview-location-grid {
+    --map-zoom: 1;
     min-width: 0;
-    width: 100%;
+    width: calc(100% * var(--map-zoom));
+    gap: calc(5px * var(--map-zoom));
 }
 
 .group-editor .preview-location-grid .preview-slot {
-    min-width: 44px;
-    min-height: 42px;
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: calc(42px * var(--map-zoom));
+    padding: calc(4px * var(--map-zoom)) calc(2px * var(--map-zoom));
+    gap: calc(1px * var(--map-zoom));
+    overflow: hidden;
 }
 
 .group-editor .preview-slot b {
-    font-size: 11px;
+    font-size: calc(11px * var(--map-zoom));
 }
 
 .group-editor .preview-slot small {
-    font-size: 10px;
+    font-size: calc(10px * var(--map-zoom));
+    white-space: nowrap;
+}
+
+.editor-summary .map-zoom-reset {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
 }
 
 .editor-summary {
