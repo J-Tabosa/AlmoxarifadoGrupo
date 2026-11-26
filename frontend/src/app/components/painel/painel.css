@@ -430,3 +430,7 @@
     font-size: calc(var(--base-tile-position-font) * 1.65 * var(--map-zoom, 1));
     font-weight: 800;
 }
+
+.rack-lookup-options { display: grid; gap: 6px; margin-top: 12px; max-height: 220px; overflow: auto; }
+.rack-lookup-options .rack-lookup-choice { display: flex; flex-direction: column; align-items: flex-start; height: auto; padding: 8px; text-align: left; white-space: normal; }
+.rack-lookup-choice small { color: var(--muted); }

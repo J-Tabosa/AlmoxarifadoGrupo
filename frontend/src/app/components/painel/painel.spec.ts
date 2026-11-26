@@ -104,6 +104,37 @@ describe('Painel', () => {
     expect(component.rack).toBeNull();
   });
 
+  it('busca pelo nome quando o ID está oculto e pelo número visual quando todos os campos estão ocultos', () => {
+    const planta = component.planta;
+    const campos = planta.camposEstante;
+    const slot = component.group.slots.find(s => !s.blocked)!;
+    const nome = slot.descricao;
+    try {
+      slot.descricao = 'Expedição Teste Único';
+      planta.setCampoEstante('id', false);
+      planta.setCampoEstante('nome', true);
+      component.openRackLookup();
+      expect(component.rackLookupMode).toBe('nome');
+      component.rackId = 'expedicao teste unico';
+      component.goToRack();
+      expect(component.rack).toBe(slot);
+      component.closeRack();
+      planta.setCampoEstante('nome', false);
+      planta.setCampoEstante('quantidade', false);
+      component.openRackLookup();
+      expect(component.rackLookupMode).toBe('numero');
+      component.rackId = String(planta.numeroVisual(component.group, slot));
+      component.goToRack();
+      expect(component.rack).toBe(slot);
+    } finally {
+      component.closeRack();
+      slot.descricao = nome;
+      planta.setCampoEstante('nome', campos.nome);
+      planta.setCampoEstante('id', campos.id);
+      planta.setCampoEstante('quantidade', campos.quantidade);
+    }
+  });
+
   it('navega pelos resultados com setas e abre a ficha com Enter', () => {
     const slots = component.group.slots.filter(s => !s.blocked).slice(0, 2);
     const old = slots.map(s => s.contents);

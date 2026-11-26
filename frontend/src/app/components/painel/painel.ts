@@ -24,6 +24,7 @@ export class Painel implements OnDestroy {
     rackLookup = false;
     rackId = '';
     rackLookupError = '';
+    rackLookupMatches: { group: Grupo; slot: Posicao }[] = [];
     private lookupPrevious: HTMLElement | null = null;
     private keyboardRack = false;
     mapZoom = 100;
@@ -175,11 +176,32 @@ export class Painel implements OnDestroy {
         else if (t.bottom > bottom) viewport.scrollTop += t.bottom - bottom + 4;
     }
 
+    get rackLookupMode(): 'id' | 'nome' | 'numero' {
+        if (this.planta.camposEstante.id) return 'id';
+        return this.planta.numeracaoEstantes ? 'numero' : 'nome';
+    }
+
+    get rackLookupLabel(): string {
+        return this.rackLookupMode === 'id' ? 'ID da estante' :
+            this.rackLookupMode === 'numero' ? 'Número da estante' : 'Nome da estante';
+    }
+
+    get rackLookupHint(): string {
+        if (this.rackLookupMode === 'id') return 'Digite o ID da estante e pressione Enter. A busca considera todos os grupos.';
+        if (this.rackLookupMode === 'numero') return 'Digite o número visual da estante no grupo ' + this.group.name + ' e pressione Enter.';
+        return 'Digite o nome completo ou as coordenadas da estante e pressione Enter. A busca considera todos os grupos.';
+    }
+
+    changeRackLookup(value: string): void {
+        this.rackId = value;
+        this.rackLookupError = '';
+        this.rackLookupMatches = [];
+    }
+
     openRackLookup(): void {
         if (this.rack || this.rackLookup || this.dialogo.estado()) return;
         this.lookupPrevious = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-        this.rackId = '';
-        this.rackLookupError = '';
+        this.changeRackLookup('');
         this.rackLookup = true;
         this.cdr.detectChanges();
         this.host.querySelector<HTMLInputElement>('#rackLookupId')?.focus();
@@ -188,6 +210,7 @@ export class Painel implements OnDestroy {
     closeRackLookup(restoreFocus = true): void {
         this.rackLookup = false;
         this.rackLookupError = '';
+        this.rackLookupMatches = [];
         this.cdr.detectChanges();
         if (restoreFocus) this.lookupPrevious?.focus({ preventScroll: true });
         this.lookupPrevious = null;
@@ -204,22 +227,52 @@ export class Painel implements OnDestroy {
     }
 
     goToRack(): void {
-        const raw = this.rackId.trim().replace(/^#/, '');
-        if (!/^\d+$/.test(raw) || !Number.isSafeInteger(Number(raw)) || Number(raw) < 1) {
-            this.rackLookupError = 'Informe o ID numérico da estante.';
+        this.rackLookupMatches = [];
+        this.rackLookupError = '';
+        const mode = this.rackLookupMode;
+        const raw = this.rackId.trim();
+        if (!raw) {
+            this.rackLookupError = 'Informe ' + this.rackLookupLabel.toLowerCase() + '.';
             return;
         }
-        const id = Number(raw);
-        const group = this.planta.groups.find(g => g.slots.some(s => s.idlocalizacao === id && !s.blocked));
-        const slot = group?.slots.find(s => s.idlocalizacao === id && !s.blocked);
-        if (!group || !slot) {
-            this.rackLookupError = 'Estante #' + id + ' não encontrada ou desativada.';
+        const candidates = (mode === 'numero' ? [this.group] : this.planta.groups).flatMap(group =>
+            group.slots.filter(slot => !slot.blocked).map(slot => ({ group, slot })));
+        let matches: { group: Grupo; slot: Posicao }[];
+        if (mode === 'nome') {
+            const q = this.planta.normalize(raw);
+            matches = candidates.filter(({ slot }) => this.planta.normalize(this.displayName(slot)) === q);
+            // Coordenadas também permitem localizar estantes quando somente a quantidade é exibida.
+            if (!matches.length) matches = candidates.filter(({ slot }) =>
+                this.planta.normalize(this.pad(slot.r) + '-' + this.pad(slot.c)) === q);
+        } else {
+            const numero = mode === 'id' ? raw.replace(/^#/, '') : raw;
+            const n = Number(numero);
+            if (!/^\d+$/.test(numero) || !Number.isSafeInteger(n) || n < 1) {
+                this.rackLookupError = 'Informe ' + (mode === 'id' ? 'o ID' : 'o número visual') + ' da estante.';
+                return;
+            }
+            matches = candidates.filter(({ group, slot }) =>
+                (mode === 'id' ? slot.idlocalizacao : this.planta.numeroVisual(group, slot)) === n);
+        }
+        if (!matches.length) {
+            this.rackLookupError = 'Estante não encontrada ou desativada.';
             return;
         }
+        if (matches.length > 1) {
+            this.rackLookupMatches = matches;
+            this.cdr.detectChanges();
+            this.host.querySelector<HTMLButtonElement>('.rack-lookup-choice')?.focus();
+            return;
+        }
+        this.openLookupMatch(matches[0]);
+    }
+
+    openLookupMatch(result: { group: Grupo; slot: Posicao }): void {
+        if (result.slot.blocked) return;
         this.closeRackLookup(false);
         this.clearSearch();
-        this.focusResult({ group, slot });
-        this.openRackByKeyboard(slot);
+        this.focusResult(result);
+        this.openRackByKeyboard(result.slot);
     }
 
     private openRackByKeyboard(slot: Posicao): void {

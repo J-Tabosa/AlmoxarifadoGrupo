@@ -65,7 +65,7 @@
                         <span>{{ group.rows }} × {{ group.cols }} · {{ activeCount }} posições · {{ group.slots.length - activeCount }} espaços excluídos</span>
                         <div class="storage-map-actions">
                             <button type="button" class="btn small rack-lookup-button" (click)="openRackLookup()"
-                                    title="Localizar pelo ID da estante (Caps Lock)" aria-keyshortcuts="CapsLock">Ir à estante</button>
+                                    [title]="rackLookupLabel + ' (Caps Lock)'" aria-keyshortcuts="CapsLock">Ir à estante</button>
                             <button type="button" class="btn small panel-map-zoom" (click)="resetMapZoom(mapViewport)"
                                     title="Use a rodinha sobre o mapa. Clique para restaurar 100%." aria-label="Restaurar zoom do mapa">{{ mapZoom }}%</button>
                         </div>
@@ -160,7 +160,7 @@
     </div>
 </section>
 
-<!-- Acesso direto a qualquer estante ativa pelo ID, sem depender do grupo atual. -->
+<!-- Busca direta conforme a identificação visual escolhida em Aparência. -->
 @if (rackLookup) {
     <div class="drawer-overlay open" (click)="$event.target === $event.currentTarget && closeRackLookup()">
         <section class="dialog rack-lookup-dialog" role="dialog" aria-modal="true" aria-labelledby="rackLookupTitle">
@@ -171,14 +171,25 @@
             <form (ngSubmit)="goToRack()">
                 <div class="dialog-body">
                     <div class="field">
-                        <label for="rackLookupId">ID da estante</label>
-                        <input id="rackLookupId" name="rackLookupId" type="text" inputmode="numeric"
-                               autocomplete="off" [(ngModel)]="rackId" (ngModelChange)="rackLookupError = ''"
+                        <label for="rackLookupId">{{ rackLookupLabel }}</label>
+                        <input id="rackLookupId" name="rackLookupId" type="text" [attr.inputmode]="rackLookupMode === 'nome' ? 'text' : 'numeric'"
+                               autocomplete="off" [ngModel]="rackId" (ngModelChange)="changeRackLookup($event)"
                                (keydown.enter)="submitRackLookup($event)"
-                               placeholder="Ex.: 131">
-                        <small class="hint">Digite o número mostrado no quadrado e pressione Enter.</small>
+                               [placeholder]="rackLookupMode === 'nome' ? 'Ex.: Papelaria ou 01-02' : rackLookupMode === 'numero' ? 'Ex.: 3' : 'Ex.: 131'">
+                        <small class="hint">{{ rackLookupHint }}</small>
                     </div>
                     @if (rackLookupError) { <p class="rack-lookup-error" role="alert">{{ rackLookupError }}</p> }
+                    @if (rackLookupMatches.length > 1) {
+                        <div class="rack-lookup-options">
+                            <strong>Mais de uma estante encontrada. Escolha a correta:</strong>
+                            @for (result of rackLookupMatches; track result.slot.idlocalizacao) {
+                                <button type="button" class="btn rack-lookup-choice" (click)="openLookupMatch(result)">
+                                    <strong>{{ displayName(result.slot) }}</strong>
+                                    <small>{{ result.group.name }} · {{ rackName(result.slot) }}</small>
+                                </button>
+                            }
+                        </div>
+                    }
                 </div>
                 <div class="dialog-actions">
                     <button type="button" class="btn" (click)="closeRackLookup()">Cancelar (Esc)</button>
