@@ -10,6 +10,9 @@ export interface EntradaPayload {
   idEstante: number;
   prateleira: number;
   posicao: number;
+  // Limites aplicados apenas ao criar o vínculo item/localização.
+  eMinimo?: number;
+  eMaximo?: number;
 }
 
 export interface EntradaModel extends EntradaPayload {

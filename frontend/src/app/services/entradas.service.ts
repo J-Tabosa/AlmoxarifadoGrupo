@@ -69,7 +69,13 @@ export class EntradasService {
       const stocks = item.estoques ?? (item.estoques = []);
       let stock = stocks.find(e => e.idLocalizacao === id);
       if (!stock) {
-        stock = { idItem: item.idItem, idLocalizacao: id, saldo: 0, eMinimo: 0, eMaximo: 0 };
+        const eMinimo = payload.eMinimo ?? 0;
+        const eMaximo = payload.eMaximo ?? 0;
+        if (!Number.isSafeInteger(eMinimo) || !Number.isSafeInteger(eMaximo) ||
+            eMinimo < 0 || eMaximo < eMinimo) {
+          throw new Error('Informe limites inteiros e não negativos. O estoque máximo deve ser igual ou superior ao mínimo.');
+        }
+        stock = { idItem: item.idItem, idLocalizacao: id, saldo: 0, eMinimo, eMaximo };
         stocks.push(stock);
       }
       const novoSaldo = stock.saldo + payload.quantidade;
@@ -78,7 +84,8 @@ export class EntradasService {
       stock.saldo = novoSaldo;
       item.saldoTotal = stocks.reduce((total, e) => total + e.saldo, 0);
       const registro: EntradaModel = {
-        ...payload, lote: payload.lote.trim(), idEntrada: Math.max(0, ...d.entradas.map(e => e.idEntrada)) + 1,
+        ...payload, eMinimo: stock.eMinimo, eMaximo: stock.eMaximo,
+        lote: payload.lote.trim(), idEntrada: Math.max(0, ...d.entradas.map(e => e.idEntrada)) + 1,
         idLocalizacao: id, descricaoItem: item.descricaoItem, unidade: item.unidade,
         nomeFornecedor: fornecedor?.nomeFo ?? 'Não informado', endereco
       };

@@ -34,3 +34,23 @@
 .entry-form button:disabled { opacity: .55; cursor: not-allowed; }
 @media (max-width: 1000px) { .entry-fields, .entry-address { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .entry-fields, .entry-address { grid-template-columns: minmax(0, 1fr); } .entry-item { grid-column: auto; } }
+
+
+/* Limites por vínculo item/localização, definidos somente na primeira entrada. */
+.entry-stock-config {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  background: var(--paper2);
+  padding: 12px;
+}
+.entry-stock-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.entry-stock-config p { margin: 0; }
+.entry-stock-readonly { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+@media (max-width: 520px) {
+  .entry-stock-fields { grid-template-columns: minmax(0, 1fr); }
+}

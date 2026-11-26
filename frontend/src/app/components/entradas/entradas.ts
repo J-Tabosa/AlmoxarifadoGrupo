@@ -32,6 +32,8 @@ export class Entradas implements OnInit {
   idItem: number | null = null;
   idFornecedor: number | null = null;
   quantidade: number | null = null;
+  eMinimo: number | null = 0;
+  eMaximo: number | null = 0;
   dataHoraE = this.agora();
   lote = '';
   validade = '';
@@ -95,6 +97,48 @@ export class Entradas implements OnInit {
   get conflito(): boolean {
     return !!this.ocupante && this.ocupante.itemCode !== 'ITEM-' + this.idItem;
   }
+  // Um estoque zerado continua sendo um vínculo existente, com seus limites originais.
+  get estoqueDestino() {
+    return this.item?.estoques?.find(e => {
+      const l = e.localizacao;
+      return l?.grupoKey === this.grupoKey && l.idEstante === this.idEstante &&
+        l.prateleira === this.prateleira && l.posicaoInterna === this.posicao;
+    });
+  }
+
+  get novaConfiguracao(): boolean {
+    return !!this.item && !!this.estante && this.prateleira !== null &&
+      this.niveis.includes(this.prateleira) && this.posicao !== null &&
+      Number.isSafeInteger(this.posicao) && this.posicao > 0 && !this.conflito && !this.estoqueDestino;
+  }
+
+  get limitesValidos(): boolean {
+    return this.eMinimo !== null && this.eMaximo !== null &&
+      Number.isSafeInteger(this.eMinimo) && Number.isSafeInteger(this.eMaximo) &&
+      this.eMinimo >= 0 && this.eMaximo >= this.eMinimo;
+  }
+
+  get saldoPrevisto(): number {
+    return (this.estoqueDestino?.saldo ?? 0) + (this.quantidade ?? 0);
+  }
+
+  get ultrapassaMaximo(): boolean {
+    const maximo = this.estoqueDestino?.eMaximo ?? (this.novaConfiguracao ? this.eMaximo : null);
+    return maximo !== null && maximo !== undefined && maximo > 0 && this.saldoPrevisto > maximo;
+  }
+
+  private limparLimites(): void { this.eMinimo = this.eMaximo = 0; }
+
+  trocarItem(id: number | null): void {
+    if (this.idItem !== id) this.limparLimites();
+    this.idItem = id;
+  }
+
+  escolherPosicao(n: number | null): void {
+    if (this.posicao !== n) this.limparLimites();
+    this.posicao = n;
+  }
+
   get endereco(): string {
     return this.grupo && this.estante && this.prateleira && this.posicao
       ? this.grupo.name + ' / ' + this.nomeEstante(this.estante) + ' / P' + this.prateleira + ' / Pos. ' + this.posicao
@@ -106,6 +150,7 @@ export class Entradas implements OnInit {
   trocarGrupo(key: string): void {
     this.grupoKey = key;
     this.idEstante = this.prateleira = this.posicao = null;
+    this.limparLimites();
     if (this.grupo) this.abrirMapa();
   }
   abrirMapa(): void { if (this.grupo) this.mapaAberto = true; }
@@ -116,14 +161,20 @@ export class Entradas implements OnInit {
     if (slot.blocked) return;
     this.idEstante = slot.idlocalizacao;
     this.prateleira = this.posicao = null;
+    this.limparLimites();
     this.fecharMapa();
   }
-  escolherPrateleira(n: number | null): void { this.prateleira = n; this.posicao = null; }
+  escolherPrateleira(n: number | null): void {
+    this.prateleira = n;
+    this.posicao = null;
+    this.limparLimites();
+  }
   get podeSalvar(): boolean {
     return !!this.item && !!this.estante && this.prateleira !== null && this.niveis.includes(this.prateleira) &&
       this.posicao !== null && Number.isSafeInteger(this.posicao) && this.posicao > 0 &&
       this.quantidade !== null && Number.isSafeInteger(this.quantidade) && this.quantidade > 0 &&
-      !!this.dataHoraE && !this.conflito && !this.salvando;
+      !!this.dataHoraE && !this.conflito && !this.salvando &&
+      (!this.novaConfiguracao || this.limitesValidos) && !this.ultrapassaMaximo;
   }
   salvar(): void {
     if (!this.podeSalvar || !this.estante || !this.grupo) return;
@@ -131,7 +182,8 @@ export class Entradas implements OnInit {
       idItem: this.idItem!, idFornecedor: this.idFornecedor, quantidade: this.quantidade!,
       dataHoraE: this.dataHoraE, lote: this.lote, validade: this.validade || null,
       grupoKey: this.grupo.key, idEstante: this.estante.idlocalizacao,
-      prateleira: this.prateleira!, posicao: this.posicao!
+      prateleira: this.prateleira!, posicao: this.posicao!,
+      ...(this.novaConfiguracao ? { eMinimo: this.eMinimo!, eMaximo: this.eMaximo! } : {})
     };
     this.salvando = true;
     this.erro = '';
@@ -147,6 +199,7 @@ export class Entradas implements OnInit {
   }
   limpar(): void {
     this.idItem = this.idFornecedor = this.quantidade = null;
+    this.limparLimites();
     this.idEstante = this.prateleira = this.posicao = null;
     this.grupoKey = this.lote = this.validade = this.erro = '';
     this.dataHoraE = this.agora();

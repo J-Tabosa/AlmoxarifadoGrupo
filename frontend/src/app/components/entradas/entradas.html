@@ -9,7 +9,7 @@
     <div class="entry-fields">
       <div class="field entry-item">
         <label for="entradaItem">Item <span class="req">*</span></label>
-        <select id="entradaItem" name="item" required [(ngModel)]="idItem">
+        <select id="entradaItem" name="item" required [ngModel]="idItem" (ngModelChange)="trocarItem($event)">
           <option [ngValue]="null">Selecione um item cadastrado</option>
           @for (i of itens; track i.idItem) {
             <option [ngValue]="i.idItem">#{{ i.idItem }} · {{ i.descricaoItem }}</option>
@@ -56,7 +56,7 @@
         </select>
       </div>
       <div class="field"><label for="posicaoEntrada">Posição <span class="req">*</span></label>
-        <input id="posicaoEntrada" name="posicao" type="number" min="1" step="1" required [disabled]="!prateleira" [(ngModel)]="posicao" placeholder="Ex.: 1">
+        <input id="posicaoEntrada" name="posicao" type="number" min="1" step="1" required [disabled]="!prateleira" [ngModel]="posicao" (ngModelChange)="escolherPosicao($event)" placeholder="Ex.: 1">
       </div>
     </div>
     @if (prateleira) {
@@ -64,7 +64,7 @@
         <strong>Posições com saldo nesta prateleira</strong>
         <div class="position-list">
           @for (p of conteudoNivel; track p.position + ':' + p.itemCode) {
-            <button class="btn small" type="button" [disabled]="p.itemCode !== 'ITEM-' + idItem" (click)="posicao = p.position">
+            <button class="btn small" type="button" [disabled]="p.itemCode !== 'ITEM-' + idItem" (click)="escolherPosicao(p.position)">
               Pos. {{ p.position }} · {{ planta.material(p.itemCode)?.name || p.itemCode }} · {{ p.qty }}
             </button>
           } @empty { <span class="hint">Nenhuma posição ocupada. Informe uma posição livre.</span> }
@@ -73,6 +73,36 @@
       </div>
     }
     @if (conflito) { <p class="entry-error" role="alert">Esta posição já contém outro material. Escolha outra.</p> }
+    @if (novaConfiguracao) {
+      <div class="entry-step"><b>03</b><h3>Configuração inicial de estoque</h3></div>
+      <div class="entry-stock-config">
+        <div class="entry-stock-fields">
+          <div class="field">
+            <label for="entradaMinimo">Estoque mínimo</label>
+            <input id="entradaMinimo" name="eMinimo" type="number" min="0" step="1" required [(ngModel)]="eMinimo">
+          </div>
+          <div class="field">
+            <label for="entradaMaximo">Estoque máximo</label>
+            <input id="entradaMaximo" name="eMaximo" type="number" min="0" step="1" required [(ngModel)]="eMaximo">
+          </div>
+        </div>
+        <p class="hint">Primeiro vínculo deste item com a posição. Os limites são salvos para futuras entradas. Deixe ambos em 0 se não desejar definir limites.</p>
+        @if (!limitesValidos) { <p class="entry-error" role="alert">Informe valores inteiros não negativos. O máximo não pode ser menor que o mínimo.</p> }
+      </div>
+    } @else if (estoqueDestino; as estoque) {
+      @if (!conflito) {
+        <div class="entry-stock-config">
+          <strong>Estoque já configurado nesta posição</strong>
+          <div class="entry-stock-readonly">
+            <span>Saldo atual: <b>{{ estoque.saldo }}</b></span>
+            <span>Mínimo: <b>{{ estoque.eMinimo }}</b></span>
+            <span>Máximo: <b>{{ estoque.eMaximo || 'Sem limite' }}</b></span>
+          </div>
+          <small class="hint">Os limites cadastrados serão mantidos nesta entrada.</small>
+        </div>
+      }
+    }
+    @if (ultrapassaMaximo) { <p class="entry-error" role="alert">O saldo previsto ({{ saldoPrevisto }}) ultrapassa o estoque máximo desta posição.</p> }
     @if (endereco) {
       <div class="entry-summary"><svg class="ico"><use href="assets/icons.svg#i-pin"/></svg><div><small>DESTINO DA ENTRADA</small><strong>{{ endereco }}</strong></div></div>
     }
