@@ -1,17 +1,20 @@
 import { Component, HostListener, inject, OnDestroy } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Busca, Grupo, PlantaService, Posicao } from '../../services/planta';
 
 @Component({
     selector: 'app-painel',
-    imports: [FormsModule, NgClass],
+    imports: [FormsModule, NgClass, RouterLink],
     templateUrl: './painel.html',
     styleUrl: './painel.css'
 })
 export class Painel implements OnDestroy {
     readonly planta = inject(PlantaService);
     group = this.planta.activeGroup;
+
+    constructor() { this.planta.refreshStock(); }
     selected = this.group.slots.find(s => !s.blocked)!;
 
     // A busca do mapa é aplicada somente quando o usuário confirma.

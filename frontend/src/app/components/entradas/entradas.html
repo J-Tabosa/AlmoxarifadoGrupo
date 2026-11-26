@@ -1,1 +1,137 @@
-<p>entradas works!</p>
+<div class="path">Movimentação / <em>Entrada de materiais</em></div>
+<section class="panel entry-panel">
+  <div class="panel-head">
+    <div><h2 class="panel-title">Registrar entrada</h2><p>Informe o material recebido e seu endereço físico no almoxarifado.</p></div>
+    <span class="tag neutral">ARMAZENAMENTO LOCAL</span>
+  </div>
+  <form class="panel-pad entry-form" (ngSubmit)="salvar()">
+    <div class="entry-step"><b>01</b><h3>Dados do material</h3></div>
+    <div class="entry-fields">
+      <div class="field entry-item">
+        <label for="entradaItem">Item <span class="req">*</span></label>
+        <select id="entradaItem" name="item" required [(ngModel)]="idItem">
+          <option [ngValue]="null">Selecione um item cadastrado</option>
+          @for (i of itens; track i.idItem) {
+            <option [ngValue]="i.idItem">#{{ i.idItem }} · {{ i.descricaoItem }}</option>
+          }
+        </select>
+        @if (item; as i) { <small class="hint">Saldo total atual: {{ i.saldoTotal ?? 0 }} {{ i.unidade }}</small> }
+        @if (!itens.length) { <small class="hint">Nenhum item ativo. <a routerLink="/item">Cadastrar item</a></small> }
+      </div>
+      <div class="field"><label for="quantidade">Quantidade <span class="req">*</span></label>
+        <input id="quantidade" name="quantidade" type="number" min="1" step="1" required [(ngModel)]="quantidade">
+        <small class="hint">Unidade: {{ item?.unidade || '—' }}</small>
+      </div>
+      <div class="field"><label for="fornecedor">Fornecedor</label>
+        <select id="fornecedor" name="fornecedor" [(ngModel)]="idFornecedor">
+          <option [ngValue]="null">Não informado</option>
+          @for (f of fornecedores; track f.idFornecedor) { <option [ngValue]="f.idFornecedor">{{ f.nomeFo }}</option> }
+        </select>
+      </div>
+      <div class="field"><label for="dataEntrada">Data e hora <span class="req">*</span></label>
+        <input id="dataEntrada" type="datetime-local" name="dataEntrada" required [(ngModel)]="dataHoraE">
+      </div>
+      <div class="field"><label for="lote">Lote</label><input id="lote" name="lote" maxlength="45" [(ngModel)]="lote" placeholder="Opcional"></div>
+      <div class="field"><label for="validade">Validade</label><input id="validade" name="validade" type="date" [(ngModel)]="validade"></div>
+    </div>
+
+    <div class="entry-step"><b>02</b><h3>Endereço de armazenamento</h3></div>
+    <div class="entry-address">
+      <div class="field"><label for="grupoEntrada">Grupo <span class="req">*</span></label>
+        <select id="grupoEntrada" name="grupo" required [ngModel]="grupoKey" (ngModelChange)="trocarGrupo($event)">
+          <option value="">Selecione o ambiente</option>
+          @for (g of planta.groups; track g.key) { <option [value]="g.key">{{ g.name }}</option> }
+        </select>
+      </div>
+      <div class="field"><label>Estante <span class="req">*</span></label>
+        <button type="button" class="btn address-button" [disabled]="!grupo" (click)="abrirMapa()">
+          <svg class="ico sm"><use href="assets/icons.svg#i-pin"/></svg>
+          {{ estante ? nomeEstante(estante) + ' · #' + estante.idlocalizacao : 'Selecionar no mapa' }}
+        </button>
+      </div>
+      <div class="field"><label for="prateleira">Prateleira <span class="req">*</span></label>
+        <select id="prateleira" name="prateleira" required [disabled]="!estante" [ngModel]="prateleira" (ngModelChange)="escolherPrateleira($event)">
+          <option [ngValue]="null">Selecione</option>
+          @for (n of niveis; track n) { <option [ngValue]="n">Prateleira {{ n }}</option> }
+        </select>
+      </div>
+      <div class="field"><label for="posicaoEntrada">Posição <span class="req">*</span></label>
+        <input id="posicaoEntrada" name="posicao" type="number" min="1" step="1" required [disabled]="!prateleira" [(ngModel)]="posicao" placeholder="Ex.: 1">
+      </div>
+    </div>
+    @if (prateleira) {
+      <div class="position-info">
+        <strong>Posições com saldo nesta prateleira</strong>
+        <div class="position-list">
+          @for (p of conteudoNivel; track p.position + ':' + p.itemCode) {
+            <button class="btn small" type="button" [disabled]="p.itemCode !== 'ITEM-' + idItem" (click)="posicao = p.position">
+              Pos. {{ p.position }} · {{ planta.material(p.itemCode)?.name || p.itemCode }} · {{ p.qty }}
+            </button>
+          } @empty { <span class="hint">Nenhuma posição ocupada. Informe uma posição livre.</span> }
+        </div>
+        <small class="hint">Não há quantidade máxima fixa de posições. Uma posição com saldo só recebe o mesmo material.</small>
+      </div>
+    }
+    @if (conflito) { <p class="entry-error" role="alert">Esta posição já contém outro material. Escolha outra.</p> }
+    @if (endereco) {
+      <div class="entry-summary"><svg class="ico"><use href="assets/icons.svg#i-pin"/></svg><div><small>DESTINO DA ENTRADA</small><strong>{{ endereco }}</strong></div></div>
+    }
+    @if (erro) { <p class="entry-error" role="alert">{{ erro }}</p> }
+    <div class="entry-actions">
+      <button type="button" class="btn" (click)="limpar()" [disabled]="salvando">Limpar</button>
+      <button type="submit" class="btn primary" [disabled]="!podeSalvar">{{ salvando ? 'Registrando…' : 'Confirmar entrada' }}</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel entry-history">
+  <div class="panel-head"><div><h2 class="panel-title">Entradas registradas</h2><p>Histórico local dos recebimentos e seus endereços.</p></div><span class="hint">{{ entradas.length }} registro(s)</span></div>
+  <div class="table-scroller">
+    <table class="table">
+      <thead><tr><th>ID</th><th>Data</th><th>Material</th><th>Quantidade</th><th>Fornecedor</th><th>Lote / validade</th><th>Destino</th></tr></thead>
+      <tbody>
+        @for (e of entradas; track e.idEntrada) {
+          <tr><td>#{{ e.idEntrada }}</td><td>{{ e.dataHoraE | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ e.descricaoItem }}</td>
+            <td>{{ e.quantidade }} {{ e.unidade }}</td><td>{{ e.nomeFornecedor }}</td>
+            <td>{{ e.lote || '—' }} / {{ e.validade ? (e.validade | date:'dd/MM/yyyy') : '—' }}</td><td>{{ e.endereco }}</td></tr>
+        } @empty { <tr><td colspan="7" class="empty-state">Nenhuma entrada registrada.</td></tr> }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- O mapa é uma seleção de endereço, não uma edição da planta. -->
+@if (mapaAberto ? grupo : undefined; as g) {
+  <div class="drawer-overlay open entry-overlay" (click)="fecharMapa()">
+    <section class="dialog entry-map-dialog" role="dialog" aria-modal="true" aria-labelledby="entryMapTitle" (click)="$event.stopPropagation()">
+      <header class="dialog-head"><span id="entryMapTitle">Selecionar estante · {{ g.name }}</span>
+        <button type="button" aria-label="Fechar mapa" (click)="fecharMapa()">×</button>
+      </header>
+      <div class="dialog-body entry-map-body">
+        <p class="hint">Clique em uma estante ativa. Corredores e espaços vazios não podem receber materiais.</p>
+        <div class="entry-map-viewport">
+          <div class="entry-map-grid" [style.grid-template-columns]="'repeat(' + g.cols + ', 90px)'"
+               [style.grid-template-rows]="'repeat(' + g.rows + ', 60px)'">
+            @for (s of g.slots; track s.idlocalizacao) {
+              @if (!s.blocked) {
+                <button type="button" class="address-tile entry-tile"
+                        [class.good]="planta.situacao(s) === 'good'" [class.low]="planta.situacao(s) === 'low'"
+                        [class.empty]="planta.situacao(s) === 'empty'" [class.review]="planta.situacao(s) === 'review'"
+                        [class.chosen]="s.idlocalizacao === idEstante"
+                        [style.grid-row]="s.r" [style.grid-column]="s.c" [title]="nomeEstante(s)"
+                        (click)="escolherEstante(s)">
+                  <span class="tile-position">{{ nomeEstante(s) }}</span>
+                  <span class="tile-id">#{{ s.idlocalizacao }}</span>
+                  <span class="rack-mini-count">{{ s.contents.length }} {{ s.contents.length === 1 ? 'item' : 'itens' }}</span>
+                </button>
+              } @else if (planta.showBlocked) {
+                <div class="address-tile masked entry-tile" [style.grid-row]="s.r" [style.grid-column]="s.c"><span>Vazio</span></div>
+              }
+            }
+          </div>
+        </div>
+      </div>
+      <footer class="dialog-actions"><button type="button" class="btn" (click)="fecharMapa()">Cancelar</button></footer>
+    </section>
+  </div>
+}

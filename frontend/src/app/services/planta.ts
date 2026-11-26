@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { BancoLocalService } from '../core/banco-local.service';
 
 export type Busca = 'all' | 'name' | 'id' | 'category';
 export type Situacao = 'good' | 'low' | 'empty' | 'review';
@@ -54,7 +55,7 @@ interface Estado {
 @Injectable({ providedIn: 'root' })
 export class PlantaService {
     private readonly storageKey = 'pqn-angular-planta-v1';
-    // O catálogo começa vazio; será preenchido pela API.
+    private readonly banco = inject(BancoLocalService);
     readonly materials: Material[] = [];
     private state: Estado;
     avisoPersistencia = '';
@@ -62,6 +63,7 @@ export class PlantaService {
     constructor() {
         this.state = this.load() ?? this.createInitial();
         this.removeDemoData();
+        this.refreshStock();
         try {
             document.body.classList.toggle('dark', localStorage.getItem('pqn-angular-tema') === 'dark');
         } catch { /* O tema padrão permanece disponível. */ }
@@ -119,6 +121,50 @@ export class PlantaService {
         if (changed) this.persist();
     }
 
+    /** Projeção do estoque do catálogo para o mapa. Não soma novamente as entradas.
+     * Localizações antigas sem vínculo explícito não são atribuídas a estantes por suposição.
+     */
+    refreshStock(): void {
+        this.banco.ler(d => ({ itens: d.itens, categorias: d.categorias, locais: d.localizacoes })).subscribe({
+            next: d => {
+                this.materials.splice(0, this.materials.length, ...d.itens.map(item => ({
+                    code: 'ITEM-' + item.idItem,
+                    name: item.descricaoItem,
+                    category: d.categorias.find(c => c.idCategoria === item.idCategoria)?.tipo ?? '',
+                    unit: item.unidade,
+                    stock: (item.estoques ?? []).reduce((n, e) => n + e.saldo, 0),
+                    min: (item.estoques ?? []).reduce((n, e) => n + e.eMinimo, 0)
+                })));
+                for (const group of this.groups) {
+                    for (const slot of [...group.slots, ...group.archived]) {
+                        // A projeção é reconstruída; a planta continua sendo a fonte da geometria.
+                        slot.contents = slot.contents.filter(p => !/^ITEM-\d+$/.test(p.itemCode));
+                    }
+                }
+                for (const item of d.itens) {
+                    for (const stock of item.estoques ?? []) {
+                        if (stock.saldo <= 0) continue;
+                        const local = d.locais.find(l => l.idLocalizacao === stock.idLocalizacao);
+                        if (!local || local.idEstante == null || !local.grupoKey ||
+                            !local.prateleira || !local.posicaoInterna) continue;
+                        const group = this.groups.find(g => g.key === local.grupoKey);
+                        const slot = group && [...group.slots, ...group.archived].find(s => s.idlocalizacao === local.idEstante);
+                        if (slot) slot.contents.push({
+                            level: local.prateleira, position: local.posicaoInterna,
+                            itemCode: 'ITEM-' + item.idItem, qty: stock.saldo
+                        });
+                    }
+                }
+            }
+        });
+    }
+
+    /** Garante que a geometria de destino existe no armazenamento antes de registrar estoque. */
+    ensureSaved(): void {
+        this.persist();
+        if (this.avisoPersistencia) throw new Error(this.avisoPersistencia);
+    }
+
     private persist(): void {
         try {
             localStorage.setItem(this.storageKey, JSON.stringify(this.state));
@@ -173,7 +219,7 @@ export class PlantaService {
     matches(item: Material, query: string, mode: Busca): boolean {
         const q = this.normalize(query);
         if (!q) return true;
-        const id = String(Number(item.code.slice(4)));
+        const id = String(Number(item.code.split('-').pop()));
         const values = mode === 'name' ? [item.name] : mode === 'id' ? [item.code, id] :
             mode === 'category' ? [item.category] : [item.name, item.code, id, item.category];
         return values.some(v => this.normalize(v).includes(q));

@@ -42,6 +42,11 @@ export class ItensService {
       const registro = d.itens.find(x => x.idItem === id);
       if (!registro) throw new Error('Item não encontrado.');
       if (!d.categorias.some(c => c.idCategoria === payload.idCategoria)) throw new Error('Selecione uma categoria válida.');
+      if ((registro.estoques ?? []).some(e => e.saldo > 0 &&
+          d.localizacoes.some(l => l.idLocalizacao === e.idLocalizacao && l.idEstante != null) &&
+          !payload.estoques.some(c => c.idLocalizacao === e.idLocalizacao))) {
+        throw new Error('Não é possível remover uma localização física com saldo. Realocação necessária.');
+      }
       registro.idCategoria = payload.idCategoria;
       registro.descricaoItem = payload.descricaoItem.trim();
       registro.unidade = payload.unidade;
@@ -54,6 +59,7 @@ export class ItensService {
 
   excluir(id: number) {
     return this.banco.alterar(d => {
+      if (d.entradas.some(e => e.idItem === id)) throw new Error('Não é possível excluir: o item possui entradas registradas.');
       if (d.requisicoes.some(r => r.itens.some(i => i.idItem === id))) throw new Error('Não é possível excluir: o item está vinculado a uma requisição.');
       const antes = d.itens.length;
       d.itens = d.itens.filter(x => x.idItem !== id);

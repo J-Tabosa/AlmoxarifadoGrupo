@@ -25,7 +25,7 @@
         <button class="btn" type="button" (click)="clearSearch()">Limpar</button>
         </div>
         <div class="panel-quick-actions">
-            <button type="button" class="btn primary" (click)="construction('Nova entrada')">
+            <button type="button" class="btn primary" routerLink="/entradas" [queryParams]="{ grupo: group.key }">
                 <svg class="ico sm"><use href="assets/icons.svg#i-plus"/></svg> Nova entrada
             </button>
         </div>

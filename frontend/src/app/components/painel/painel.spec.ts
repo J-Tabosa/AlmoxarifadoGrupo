@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Painel } from './painel';
+import { provideRouter } from '@angular/router';
 
 describe('Painel', () => {
   let component: Painel;
@@ -8,6 +9,7 @@ describe('Painel', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [Painel],
+      providers: [provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Painel);

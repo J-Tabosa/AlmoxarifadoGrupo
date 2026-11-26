@@ -3,6 +3,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { CategoriaModel } from '../models/categoria.model';
 import { FornecedorModel } from '../models/fornecedor.model';
 import { FuncionarioModel } from '../models/funcionario.model';
+import { EntradaModel } from '../models/entrada.model';
 import { ItemModel } from '../models/item.model';
 import { LocalizacaoModel } from '../models/localizacao.model';
 import { RequisicaoModel } from '../models/requisicao.model';
@@ -16,6 +17,7 @@ export interface BancoLocal {
   itens: ItemModel[];
   localizacoes: LocalizacaoModel[];
   requisicoes: RequisicaoModel[];
+  entradas: EntradaModel[];
 }
 
 const CHAVE_STORAGE = 'almoxarifado.crud.local.v1';
@@ -57,7 +59,7 @@ function dadosIniciais(): BancoLocal {
       ], saldoTotal: 12,
     },
   ];
-  return { setores, categorias, funcionarios, fornecedores: [], itens, localizacoes, requisicoes: [] };
+  return { setores, categorias, funcionarios, fornecedores: [], itens, localizacoes, requisicoes: [], entradas: [] };
 }
 
 /** Armazenamento local para prototipagem. Não faz chamadas HTTP nem acessa MySQL. */
@@ -73,11 +75,11 @@ export class BancoLocalService {
     }
   }
 
-  alterar<T>(operacao: (dados: BancoLocal) => T): Observable<T> {
+  alterar<T>(operacao: (dados: BancoLocal) => T, exigirPersistencia = false): Observable<T> {
     const anterior = clonar(this.dados);
     try {
       const resultado = operacao(this.dados);
-      this.salvarNoNavegador();
+      this.salvarNoNavegador(exigirPersistencia);
       return of(clonar(resultado));
     } catch (erro) {
       this.dados = anterior;
@@ -109,10 +111,12 @@ export class BancoLocalService {
     return dadosIniciais();
   }
 
-  private salvarNoNavegador(): void {
+  private salvarNoNavegador(exigirPersistencia = false): void {
     try {
       if (typeof localStorage !== 'undefined') localStorage.setItem(CHAVE_STORAGE, JSON.stringify(this.dados));
+      else if (exigirPersistencia) throw new Error('Armazenamento indisponível.');
     } catch {
+      if (exigirPersistencia) throw new Error('Não foi possível salvar a entrada no navegador. Nenhuma movimentação foi registrada.');
       // A aplicação continua utilizável em memória mesmo se o navegador bloquear o localStorage.
     }
   }

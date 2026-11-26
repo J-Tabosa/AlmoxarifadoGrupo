@@ -4,4 +4,9 @@ export interface LocalizacaoModel {
   andar: string;
   statusL: string;
   posicao: string;
+  // Endereçamento físico do editor da planta (opcional para registros antigos).
+  grupoKey?: string;
+  idEstante?: number;
+  prateleira?: number;
+  posicaoInterna?: number;
 }
