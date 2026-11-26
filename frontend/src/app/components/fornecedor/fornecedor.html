@@ -142,6 +142,19 @@
       <form class="supplier-modal-form" (ngSubmit)="salvarFornecedor()">
         <div class="dialog-body supplier-dialog-body">
           <p class="eyebrow">Fornecedor · dados cadastrais</p>
+          <div class="supplier-lookup">
+            <div class="field">
+              <label for="fornecedorCnpj">CNPJ <span class="req">*</span></label>
+              <div class="supplier-lookup-row">
+                <input id="fornecedorCnpj" name="cnpj" required maxlength="18" [ngModel]="cnpj"
+                       (ngModelChange)="alterarCnpj($event)" (keydown.enter)="confirmarConsulta($event, 'cnpj')"
+                       placeholder="00.000.000/0000-00" inputmode="numeric">
+                <button type="button" class="btn primary" [disabled]="!!consultando || salvandoFornecedor"
+                        (click)="consultarCadastro('cnpj')">{{ consultando === 'cnpj' ? 'Consultando…' : 'Buscar CNPJ' }}</button>
+              </div>
+              <small class="hint">Consulta pública de dados cadastrais pela BrasilAPI.</small>
+            </div>
+          </div>
           <div class="form-grid">
             <div class="field">
               <label for="fornecedorNomeFantasia">Nome fantasia <span class="req">*</span></label>
@@ -161,17 +174,6 @@
                 required
                 maxlength="100"
                 [(ngModel)]="razaoSocial"
-              />
-            </div>
-            <div class="field">
-              <label for="fornecedorCnpj">CNPJ <span class="req">*</span></label>
-              <input
-                id="fornecedorCnpj"
-                name="cnpj"
-                required
-                maxlength="18"
-                [(ngModel)]="cnpj"
-                placeholder="00.000.000/0000-00"
               />
             </div>
             <div class="field">
@@ -197,15 +199,15 @@
           <div class="record-divider">Endereço · dados obrigatórios</div>
           <div class="form-grid">
             <div class="field">
-              <label for="fornecedorCep">CEP <span class="req">*</span></label
-              ><input
-                id="fornecedorCep"
-                name="cep"
-                required
-                maxlength="8"
-                pattern="[0-9]{8}"
-                [(ngModel)]="endereco.cep"
-              />
+              <label for="fornecedorCep">CEP <span class="req">*</span></label>
+              <div class="supplier-lookup-row">
+                <input id="fornecedorCep" name="cep" required maxlength="9" pattern="[0-9]{5}-?[0-9]{3}"
+                       inputmode="numeric" placeholder="00000-000" [ngModel]="endereco.cep"
+                       (ngModelChange)="alterarCep($event)" (keydown.enter)="confirmarConsulta($event, 'cep')">
+                <button type="button" class="btn" [disabled]="!!consultando || salvandoFornecedor"
+                        (click)="consultarCadastro('cep')">{{ consultando === 'cep' ? 'Consultando…' : 'Buscar CEP' }}</button>
+              </div>
+              <small class="hint">ViaCEP · número e complemento permanecem manuais.</small>
             </div>
             <div class="field">
               <label for="fornecedorLogradouro">Logradouro <span class="req">*</span></label
@@ -279,6 +281,9 @@
           </div>
         </div>
 
+        @if (consultaMensagem) {
+          <p class="supplier-lookup-status" [class.lookup-error]="consultaErro" role="status">{{ consultaMensagem }}</p>
+        }
         <footer class="dialog-actions supplier-dialog-actions">
           <span class="hint">{{
             idFornecedorEditando === null
@@ -286,7 +291,7 @@
               : 'Alterando o cadastro do fornecedor #' + idFornecedorEditando + '.'
           }}</span>
           <div class="actions">
-            <button class="btn primary" type="submit" [disabled]="salvandoFornecedor">
+            <button class="btn primary" type="submit" [disabled]="salvandoFornecedor || !!consultando">
               {{
                 salvandoFornecedor
                   ? 'Salvando…'

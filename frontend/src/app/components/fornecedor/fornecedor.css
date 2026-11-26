@@ -473,3 +473,20 @@ body.dark .list-scroll-shell.has-overflow::after {
     justify-content: flex-end;
   }
 }
+
+
+/* Consultas pontuais, sem tornar os serviços externos obrigatórios no cadastro. */
+.supplier-lookup { margin-bottom: 14px; }
+.supplier-lookup-row { display: flex; align-items: stretch; gap: 6px; }
+.supplier-lookup-row input { flex: 1 1 0; min-width: 0; width: 100%; }
+.supplier-lookup-row .btn { flex: 0 0 auto; white-space: nowrap; height: auto; }
+.supplier-lookup-status {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 10px 22px;
+  border-top: 1px solid var(--line);
+  background: var(--paper2);
+  color: var(--ink);
+  font-size: 12px;
+}
+.supplier-lookup-status.lookup-error { color: var(--red); }
