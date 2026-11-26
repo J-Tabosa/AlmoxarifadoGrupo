@@ -49,6 +49,17 @@ export class Painel implements OnDestroy {
     countMatches(g: Grupo): number { return g.slots.filter(s => this.match(s)).length; }
     get totalMatches(): number { return this.planta.groups.reduce((n, g) => n + this.countMatches(g), 0); }
     get activeCount(): number { return this.group.slots.filter(s => !s.blocked).length; }
+
+    // Indicadores locais: não misturam quantidades de materiais com unidades diferentes.
+    get distinctMaterials(): number {
+        return new Set(this.selected.contents.map(item => item.itemCode)).size;
+    }
+
+    get occupiedLevels(): number {
+        const total = this.planta.shelfCount(this.selected);
+        return new Set(this.selected.contents.filter(item => item.qty > 0 &&
+            item.level >= 1 && item.level <= total).map(item => item.level)).size;
+    }
     get searchStatus(): string {
         if (!this.query) return 'Pesquise para localizar estantes';
         if (!this.totalMatches) return 'Nenhuma estante encontrada';
