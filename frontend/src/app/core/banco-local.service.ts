@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
+import { AlertaModel } from '../models/alerta.model';
 import { CategoriaModel } from '../models/categoria.model';
 import { FornecedorModel } from '../models/fornecedor.model';
 import { FuncionarioModel } from '../models/funcionario.model';
@@ -18,6 +19,7 @@ export interface BancoLocal {
   localizacoes: LocalizacaoModel[];
   requisicoes: RequisicaoModel[];
   entradas: EntradaModel[];
+  alertas?: AlertaModel[];
 }
 
 const CHAVE_STORAGE = 'almoxarifado.crud.local.v1';
@@ -59,7 +61,7 @@ function dadosIniciais(): BancoLocal {
       ], saldoTotal: 12,
     },
   ];
-  return { setores, categorias, funcionarios, fornecedores: [], itens, localizacoes, requisicoes: [], entradas: [] };
+  return { setores, categorias, funcionarios, fornecedores: [], itens, localizacoes, requisicoes: [], entradas: [], alertas: [] };
 }
 
 /** Armazenamento local para prototipagem. Não faz chamadas HTTP nem acessa MySQL. */

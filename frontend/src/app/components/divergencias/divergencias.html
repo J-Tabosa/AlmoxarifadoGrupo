@@ -1,1 +1,113 @@
-<p>divergencias works!</p>
+<div class="path">Controle / <em>Alertas</em></div>
+<section class="panel alerts-panel">
+  <div class="panel-head alerts-heading">
+    <div><h2 class="panel-title">Central de alertas</h2><p>Monitore ocorrências de estoque e acompanhe as ações corretivas por localização.</p></div>
+    <button type="button" class="btn" (click)="carregar()" [disabled]="carregando">Atualizar alertas</button>
+  </div>
+  <div class="panel-pad alerts-overview">
+    <div class="alert-metric"><small>ALERTAS ABERTOS</small><strong>{{ abertos.length }}</strong></div>
+    <div class="alert-metric critical"><small>CRÍTICOS · SEM SALDO</small><strong>{{ criticos }}</strong></div>
+    <div class="alert-metric"><small>COM CONTRAMEDIDAS</small><strong>{{ comContramedida }}</strong></div>
+    <div class="alert-metric resolved"><small>ENCERRADOS</small><strong>{{ resolvidos }}</strong></div>
+  </div>
+  <div class="alert-categories">
+    <button type="button" [class.active]="filtroTipo === 'todos'" (click)="filtrar('todos')">Todos <b>{{ abertos.length }}</b></button>
+    <button type="button" [class.active]="filtroTipo === 'estoque_minimo'" (click)="filtrar('estoque_minimo')">Estoque mínimo <b>{{ contar('estoque_minimo') }}</b></button>
+    <button type="button" [class.active]="filtroTipo === 'divergencia_entrada'" (click)="filtrar('divergencia_entrada')">Entradas divergentes <small>Inventário pendente</small></button>
+    <button type="button" [class.active]="filtroTipo === 'divergencia_saida'" (click)="filtrar('divergencia_saida')">Saídas divergentes <small>Inventário pendente</small></button>
+    <button type="button" [class.active]="filtroTipo === 'divergencia_inventario'" (click)="filtrar('divergencia_inventario')">Inventário <small>Integração pendente</small></button>
+  </div>
+  <div class="panel-pad alert-filters">
+    <div class="field"><label for="alertSearch">Pesquisar alerta</label><input id="alertSearch" type="search" [(ngModel)]="pesquisa" placeholder="ID, item ou endereço..."></div>
+    <div class="field"><label for="alertState">Situação</label><select id="alertState" [(ngModel)]="filtroEstado"><option value="aberto">Abertos</option><option value="resolvido">Encerrados</option><option value="todos">Todos</option></select></div>
+    <div class="field"><label for="alertSeverity">Gravidade</label><select id="alertSeverity" [(ngModel)]="filtroGravidade"><option value="todas">Todas</option><option value="critico">Crítico</option><option value="atencao">Atenção</option></select></div>
+  </div>
+  @if (erro && !selecionado) { <p class="alerts-error" role="alert">{{ erro }}</p> }
+  @if (carregando) { <p class="empty-state">Verificando os saldos…</p> }
+  <div class="table-scroller alert-table-scroll">
+    <table class="table alert-table">
+      <thead><tr><th>ID / data</th><th>Ocorrência</th><th>Localização</th><th>Saldo / mínimo</th><th>Gravidade</th><th>Situação</th><th>Contramedidas</th><th>Ações</th></tr></thead>
+      <tbody>
+        @for (a of filtrados; track a.id) {
+          <tr>
+            <td class="code">#{{ a.id }}<small class="alert-subline">{{ a.detectadoEm | date:'dd/MM/yyyy HH:mm' }}</small></td>
+            <td><strong>{{ a.titulo }}</strong><small class="alert-subline">{{ a.descricao }}</small></td>
+            <td>{{ a.endereco }}</td>
+            <td>{{ a.saldo ?? '—' }} / {{ a.minimo ?? '—' }} {{ a.unidade || '' }}</td>
+            <td><span class="tag" [class.bad]="a.gravidade === 'critico'" [class.warn]="a.gravidade === 'atencao'">{{ a.gravidade === 'critico' ? 'Crítico' : 'Atenção' }}</span></td>
+            <td><span class="tag" [class.ok]="a.estado === 'resolvido'" [class.neutral]="a.estado === 'aberto'">{{ a.estado === 'aberto' ? 'Aberto' : 'Encerrado' }}</span></td>
+            <td>{{ a.contramedidas.length ? a.contramedidas.length + ' registrada(s)' : 'Pendente' }}</td>
+            <td><button type="button" class="btn small" (click)="abrir(a)">Ficha do alerta</button></td>
+          </tr>
+        } @empty {
+          <tr><td colspan="8" class="empty-state">
+            @if (filtroTipo !== 'todos' && filtroTipo !== 'estoque_minimo') {
+              As ocorrências desta categoria dependem da integração com o inventário, ainda não implementada.
+            } @else if (carregando) { Consultando… }
+            @else { Nenhum alerta corresponde aos filtros. }
+          </td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="table-foot alerts-foot"><span>{{ filtrados.length }} alerta(s) encontrado(s)</span><span>Estoque local · Detecção ao consultar ou atualizar esta tela.</span></div>
+</section>
+
+@if (selecionado; as a) {
+  <div class="drawer-overlay open alert-overlay" (click)="$event.target === $event.currentTarget && fechar()">
+    <section class="dialog alert-dialog" role="dialog" aria-modal="true" aria-labelledby="alertTitle">
+      <header class="dialog-head"><span id="alertTitle">Ficha do alerta #{{ a.id }} · {{ tipoNome(a.tipo) }}</span><button type="button" aria-label="Fechar" (click)="fechar()">×</button></header>
+      <div class="dialog-body alert-body">
+        <div class="alert-detail-heading">
+          <div><h3>{{ a.titulo }}</h3><p>{{ a.descricao }}</p></div>
+          <span class="tag" [class.bad]="a.gravidade === 'critico'" [class.warn]="a.gravidade === 'atencao'">{{ a.gravidade === 'critico' ? 'Crítico' : 'Atenção' }}</span>
+        </div>
+        <div class="alert-detail-grid">
+          <div><small>SITUAÇÃO</small><strong>{{ a.estado === 'aberto' ? 'Aberto' : 'Encerrado' }}</strong></div>
+          <div><small>DETECTADO EM</small><strong>{{ a.detectadoEm | date:'dd/MM/yyyy HH:mm' }}</strong></div>
+          <div><small>ITEM / LOCALIZAÇÃO</small><strong>#{{ a.idItem ?? '—' }} / #{{ a.idLocalizacao ?? '—' }}</strong></div>
+          <div><small>ENDEREÇO</small><strong>{{ a.endereco }}</strong></div>
+          @if (a.tipo === 'estoque_minimo') {
+            <div><small>SALDO</small><strong>{{ a.saldo }} {{ a.unidade }}</strong></div>
+            <div><small>MÍNIMO / MÁXIMO</small><strong>{{ a.minimo }} / {{ a.maximo || 'Sem limite' }}</strong></div>
+          }
+        </div>
+        @if (a.estado === 'resolvido') {
+          <div class="note">Encerrado em {{ a.resolvidoEm | date:'dd/MM/yyyy HH:mm' }}. {{ a.motivoEncerramento }}</div>
+        } @else {
+          <div class="alert-suggestion"><strong>Contramedida sugerida</strong><p>{{ sugestao }}</p><small class="hint">Registrar uma ação não altera o saldo nem encerra o alerta manualmente.</small></div>
+        }
+        <div class="alert-section-head"><h3>Histórico de contramedidas</h3>
+          @if (a.estado === 'aberto' && !editandoMedida) { <button type="button" class="btn primary" (click)="iniciarMedida()">Registrar contramedida</button> }
+        </div>
+        @for (m of a.contramedidas; track m.id) {
+          <div class="alert-action-record">
+            <div><strong>{{ m.responsavel }}</strong><span class="tag neutral">{{ m.situacao === 'executada' ? 'Executada' : 'Planejada' }}</span></div>
+            <p>{{ m.descricao }}</p>
+            <small class="hint">Registrada em {{ m.registradaEm | date:'dd/MM/yyyy HH:mm' }} · Prazo: {{ m.prazo ? (m.prazo | date:'dd/MM/yyyy') : 'Não informado' }}</small>
+          </div>
+        } @empty { <p class="hint">Nenhuma contramedida registrada.</p> }
+        @if (editandoMedida && a.estado === 'aberto') {
+          <form class="alert-action-form" (ngSubmit)="salvarMedida()">
+            <div class="field"><label for="acaoDescricao">Contramedida *</label><textarea id="acaoDescricao" name="descricao" [(ngModel)]="medida.descricao" maxlength="600" rows="4" required placeholder="Descreva a ação corretiva..."></textarea>
+              <button type="button" class="link-btn" (click)="medida.descricao = sugestao">Usar sugestão</button></div>
+            <div class="alert-form-grid">
+              <div class="field"><label for="acaoResponsavel">Responsável *</label><input id="acaoResponsavel" name="responsavel" [(ngModel)]="medida.responsavel" maxlength="100" required></div>
+              <div class="field"><label for="acaoPrazo">Prazo</label><input id="acaoPrazo" name="prazo" type="date" [(ngModel)]="medida.prazo"></div>
+              <div class="field"><label for="acaoSituacao">Situação da ação</label><select id="acaoSituacao" name="situacao" [(ngModel)]="medida.situacao"><option value="planejada">Planejada</option><option value="executada">Executada</option></select></div>
+            </div>
+            <div class="alert-form-actions"><button type="button" class="btn" (click)="editandoMedida = false" [disabled]="salvando">Cancelar</button><button type="submit" class="btn primary" [disabled]="salvando || !medida.descricao.trim() || !medida.responsavel.trim()">Salvar contramedida</button></div>
+          </form>
+        }
+        @if (erro) { <p class="alerts-error" role="alert">{{ erro }}</p> }
+        @if (mensagem) { <p class="note" role="status">{{ mensagem }}</p> }
+      </div>
+      <footer class="dialog-actions alert-footer">
+        @if (a.estado === 'aberto' && a.tipo === 'estoque_minimo') {
+          <button type="button" class="btn primary" routerLink="/entradas" [queryParams]="{ item: a.idItem, grupo: a.grupoKey }">Registrar entrada</button>
+        }
+        <button type="button" class="btn" (click)="fechar()" [disabled]="salvando">Fechar</button>
+      </footer>
+    </section>
+  </div>
+}
