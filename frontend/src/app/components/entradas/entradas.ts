@@ -46,10 +46,24 @@ export class Entradas implements OnInit {
   ngOnInit(): void {
     this.planta.refreshStock();
     this.carregar();
-    const grupo = this.route.snapshot.queryParamMap.get('grupo');
+    const params = this.route.snapshot.queryParamMap;
+    const id = Number(params.get('item'));
+    if (this.itens.some(i => i.idItem === id)) this.idItem = id;
+    const grupo = params.get('grupo');
     if (grupo && this.planta.groups.some(g => g.key === grupo)) {
       this.grupoKey = grupo;
-      this.abrirMapa();
+      const rack = this.grupo?.slots.find(s => !s.blocked && s.idlocalizacao === Number(params.get('estante')));
+      const level = Number(params.get('prateleira'));
+      const position = Number(params.get('posicao'));
+      if (rack && this.idItem !== null && Number.isInteger(level) && level >= 1 &&
+          level <= this.planta.shelfCount(rack) && Number.isSafeInteger(position) && position >= 1 &&
+          rack.contents.some(p => p.itemCode === 'ITEM-' + this.idItem && p.level === level && p.position === position)) {
+        this.idEstante = rack.idlocalizacao;
+        this.prateleira = level;
+        this.posicao = position;
+      } else {
+        this.abrirMapa();
+      }
     }
   }
 

@@ -2,16 +2,20 @@ import { Component, HostListener, inject, OnDestroy } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Busca, Grupo, PlantaService, Posicao } from '../../services/planta';
+import { Busca, Conteudo, Grupo, PlantaService, Posicao } from '../../services/planta';
+import { ItensService } from '../../services/itens.service';
+import { ItemModel } from '../../models/item.model';
+import { FichaItem } from '../ficha-item/ficha-item';
 
 @Component({
     selector: 'app-painel',
-    imports: [FormsModule, NgClass, RouterLink],
+    imports: [FormsModule, NgClass, RouterLink, FichaItem],
     templateUrl: './painel.html',
     styleUrl: './painel.css'
 })
 export class Painel implements OnDestroy {
     readonly planta = inject(PlantaService);
+    private readonly itensApi = inject(ItensService);
     group = this.planta.activeGroup;
 
     constructor() { this.planta.refreshStock(); }
@@ -32,6 +36,8 @@ export class Painel implements OnDestroy {
     rackView: 'grid' | 'list' = 'grid';
     rackCount = 5;
     rackNotice = '';
+    fichaItem: ItemModel | null = null;
+    fichaOrigem: Conteudo | null = null;
     private previousOverflow = '';
 
     pad(n: number): string { return String(n).padStart(2, '0'); }
@@ -109,12 +115,16 @@ export class Painel implements OnDestroy {
 
     closeRack(): void {
         if (!this.rack) return;
+        this.fecharFichaItem();
         this.rack = null;
         document.body.style.overflow = this.previousOverflow;
     }
 
     @HostListener('document:keydown.escape')
-    escape(): void { this.closeRack(); }
+    escape(): void {
+        if (this.fichaItem) this.fecharFichaItem();
+        else this.closeRack();
+    }
     ngOnDestroy(): void { this.closeRack(); }
 
     get levels(): number[] {
@@ -144,6 +154,30 @@ export class Painel implements OnDestroy {
         this.rackNotice = error || this.planta.avisoPersistencia || 'Configuração salva.';
         this.rackCount = this.planta.shelfCount(this.rack);
         this.level = Math.min(this.level, this.rackCount);
+    }
+
+    abrirFichaItem(posicao: Conteudo): void {
+        const id = Number(posicao.itemCode.split('-').pop());
+        const rack = this.rack;
+        if (!rack || !Number.isSafeInteger(id) || id < 1) return;
+        this.itensApi.listar().subscribe({
+            next: itens => {
+                if (this.rack !== rack) return;
+                const item = itens.find(i => i.idItem === id);
+                if (!item) {
+                    this.rackNotice = 'Item não encontrado no catálogo.';
+                    return;
+                }
+                this.fichaOrigem = posicao;
+                this.fichaItem = item;
+            },
+            error: () => this.rackNotice = 'Não foi possível consultar a ficha do item.'
+        });
+    }
+
+    fecharFichaItem(): void {
+        this.fichaItem = null;
+        this.fichaOrigem = null;
     }
 
     construction(feature: string): void {

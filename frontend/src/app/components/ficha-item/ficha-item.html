@@ -1,0 +1,70 @@
+<!-- Mesma estrutura e folha de estilos do modal de edição, mas sem formulário de alteração. -->
+<div class="drawer-overlay open item-modal-overlay ficha-overlay" (click)="fechar.emit()">
+  <section class="dialog item-dialog ficha-dialog" role="dialog" aria-modal="true"
+           aria-labelledby="fichaItemTitle" (click)="$event.stopPropagation()">
+    <header class="dialog-head">
+      <span id="fichaItemTitle">Ficha do item #{{ item().idItem }}</span>
+      <button type="button" aria-label="Fechar ficha do item" (click)="fechar.emit()">✕</button>
+    </header>
+    <div class="item-modal-form">
+      <div class="dialog-body item-dialog-body">
+        <div class="form-grid">
+          <div class="field">
+            <label for="fichaCategoria">Categoria</label>
+            <input id="fichaCategoria" [value]="item().categoria?.tipo || 'Categoria #' + item().idCategoria" readonly>
+          </div>
+          <div class="field">
+            <label for="fichaUnidade">Unidade</label>
+            <input id="fichaUnidade" [value]="item().unidade" readonly>
+          </div>
+          <div class="field wide">
+            <label for="fichaDescricao">Descrição do item</label>
+            <input id="fichaDescricao" [value]="item().descricaoItem" readonly>
+          </div>
+          <div class="field">
+            <label for="fichaStatus">Situação</label>
+            <input id="fichaStatus" [value]="item().statusIt === 'A' ? 'A · Ativo' : 'I · Inativo'" readonly>
+          </div>
+          <div class="field">
+            <label for="fichaTotal">Saldo total</label>
+            <input id="fichaTotal" [value]="saldoTotal + ' ' + item().unidade" readonly>
+          </div>
+        </div>
+        <div class="record-divider">Estoque · localização e limites</div>
+        <p class="hint item-stock-hint">Dados somente para consulta. Utilize as movimentações para registrar entradas e saídas.</p>
+        @for (e of item().estoques ?? []; track e.idLocalizacao) {
+          <div class="stock-config-row" [class.ficha-origem]="origem(e)">
+            <div class="field">
+              <label [for]="'fichaLocal-' + e.idLocalizacao">Localização {{ origem(e) ? '· atual' : '' }}</label>
+              <textarea rows="2" [id]="'fichaLocal-' + e.idLocalizacao" [value]="endereco(e)" readonly></textarea>
+            </div>
+            <div class="field">
+              <label [for]="'fichaMin-' + e.idLocalizacao">Estoque mínimo</label>
+              <input [id]="'fichaMin-' + e.idLocalizacao" [value]="e.eMinimo" readonly>
+            </div>
+            <div class="field">
+              <label [for]="'fichaMax-' + e.idLocalizacao">Estoque máximo</label>
+              <input [id]="'fichaMax-' + e.idLocalizacao" [value]="e.eMaximo" readonly>
+            </div>
+            <div class="field">
+              <label [for]="'fichaSaldo-' + e.idLocalizacao">Saldo atual</label>
+              <input [id]="'fichaSaldo-' + e.idLocalizacao" [value]="e.saldo" readonly>
+            </div>
+          </div>
+        } @empty {
+          <p class="empty-state inset">Nenhuma localização configurada para este item.</p>
+        }
+      </div>
+      <footer class="dialog-actions item-dialog-actions">
+        <span class="hint">Consulta · somente leitura</span>
+        <div class="actions">
+          <button class="btn primary" type="button" [disabled]="item().statusIt !== 'A'"
+                  routerLink="/entradas" [queryParams]="entradaParams">Realizar entrada</button>
+          <button class="btn" type="button" [disabled]="item().statusIt !== 'A'"
+                  routerLink="/saidas" [queryParams]="{ item: item().idItem }">Realizar saída</button>
+          <button class="btn" type="button" (click)="fechar.emit()">Fechar</button>
+        </div>
+      </footer>
+    </div>
+  </section>
+</div>

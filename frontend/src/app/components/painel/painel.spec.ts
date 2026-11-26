@@ -82,6 +82,27 @@ describe('Painel', () => {
     }
   });
 
+  it('exibe a ficha somente leitura e fecha sem perder a estante', () => {
+    component.openRack(component.selected);
+    component.fichaItem = {
+      idItem: 999, idCategoria: 1, descricaoItem: 'Material de teste', unidade: 'UN', statusIt: 'A',
+      estoques: [{ idItem: 999, idLocalizacao: 99, saldo: 4, eMinimo: 1, eMaximo: 10 }]
+    };
+    component.fichaOrigem = { level: 1, position: 1, itemCode: 'ITEM-999', qty: 4 };
+    fixture.detectChanges();
+    const dialog = fixture.nativeElement.querySelector('app-ficha-item');
+    expect(dialog).toBeTruthy();
+    expect(dialog.querySelectorAll('input:not([readonly])').length).toBe(0);
+    expect((dialog.querySelector('#fichaDescricao') as HTMLInputElement).value).toBe('Material de teste');
+    expect(dialog.textContent).toContain('Realizar entrada');
+    expect(dialog.textContent).toContain('Realizar saída');
+    component.escape();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-ficha-item')).toBeNull();
+    expect(component.rack).toBe(component.selected);
+    component.closeRack();
+  });
+
   it('deve selecionar a estante sem abrir o modal', async () => {
     const tile = fixture.nativeElement.querySelector('.address-tile') as HTMLButtonElement;
     tile.click();

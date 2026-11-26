@@ -55,7 +55,13 @@ export class Saidas implements OnInit {
     this.carregarItens();
     this.route.queryParamMap.subscribe(params => {
       const idEdicao = Number(params.get('editar'));
-      if (!idEdicao) return;
+      if (!idEdicao) {
+        const idItem = Number(params.get('item'));
+        if (this.idEditando === null && this.itensCatalogo.some(i => i.idItem === idItem)) {
+          this.linhas = [{ idItem, quantidadeS: 1 }];
+        }
+        return;
+      }
       this.api.listar().subscribe({
         next: dados => {
           const requisicao = dados.find(item => item.idRequisicao === idEdicao);
@@ -208,7 +214,7 @@ export class Saidas implements OnInit {
         );
         this.salvando = false;
         this.limparFormulario();
-        this.router.navigate([], { relativeTo: this.route, queryParams: { editar: null }, queryParamsHandling: 'merge' });
+        this.router.navigate([], { relativeTo: this.route, queryParams: { editar: null, item: null }, queryParamsHandling: 'merge' });
       },
       error: e => {
         this.dialogo.erro(mensagemErro(e), 'Erro ao salvar requisição');

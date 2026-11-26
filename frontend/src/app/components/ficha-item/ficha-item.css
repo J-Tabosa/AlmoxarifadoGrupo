@@ -1,0 +1,15 @@
+/* A ficha fica acima do modal de estante e preserva suas escolhas ao fechar. */
+.ficha-overlay { z-index: 160; padding: 10px; }
+.ficha-dialog { display: flex; flex-direction: column; max-height: 92dvh; }
+.ficha-dialog .dialog-head, .ficha-dialog .dialog-actions { flex-shrink: 0; }
+.ficha-dialog .stock-config-row { grid-template-columns: minmax(190px, 2fr) repeat(3, minmax(80px, 1fr)); }
+.ficha-dialog .stock-config-row.ficha-origem { border-color: var(--blue); box-shadow: inset 3px 0 var(--blue); }
+.ficha-dialog input[readonly], .ficha-dialog textarea[readonly] { cursor: text; color: var(--ink); }
+.ficha-dialog textarea { resize: none; min-height: 44px; }
+.ficha-dialog .actions { flex-wrap: wrap; }
+@media (max-width: 850px) {
+  .ficha-dialog .stock-config-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .ficha-dialog .stock-config-row { grid-template-columns: 1fr; }
+}
