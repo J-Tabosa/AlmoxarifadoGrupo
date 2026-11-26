@@ -2,25 +2,6 @@
 <section class="view section-stock">
     <div class="path">Início / <em>Painel do depósito</em></div>
 
-    <div class="heading desktop-heading">
-        <div>
-            <div class="heading-meta">
-                <span class="badge-ico">▦</span><span>ÁREA OPERACIONAL</span>
-                <span class="section-chip">MAPA DO ESTOQUE</span>
-            </div>
-            <h1>Visão do almoxarifado</h1>
-            <p>Consulte posições de armazenamento por grupo, linha e coluna. Cada célula possui um idlocalizacao único.</p>
-        </div>
-        <div class="actions">
-            <button class="btn" (click)="construction('Listar materiais')">
-                <svg class="ico sm"><use href="assets/icons.svg#i-search"/></svg> Listar materiais
-            </button>
-            <button class="btn primary" (click)="construction('Nova entrada')">
-                <svg class="ico sm"><use href="assets/icons.svg#i-plus"/></svg> Nova entrada
-            </button>
-        </div>
-    </div>
-
     @if (notice) {
         <div class="note painel-notice" role="status">
             <span>{{ notice }}</span>
@@ -41,14 +22,24 @@
         </select>
         <button class="btn primary" type="submit">Buscar</button>
         <button class="btn" type="button" (click)="clearSearch()">Limpar</button>
-        <span class="map-search-status" [class.has-results]="totalMatches > 0" role="status">{{ searchStatus }}</span>
+        @if (query) {
+            <span class="map-search-status" [class.has-results]="totalMatches > 0" role="status">{{ searchStatus }}</span>
+        }
+        <div class="panel-quick-actions">
+            <button type="button" class="btn" (click)="construction('Listar materiais')">
+                <svg class="ico sm"><use href="assets/icons.svg#i-search"/></svg> Listar materiais
+            </button>
+            <button type="button" class="btn primary" (click)="construction('Nova entrada')">
+                <svg class="ico sm"><use href="assets/icons.svg#i-plus"/></svg> Nova entrada
+            </button>
+        </div>
     </form>
 
     <div class="workstation">
         <div class="location-console">
             <div class="console-head ruby-head">
                 <strong><svg class="ico sm"><use href="assets/icons.svg#i-archive"/></svg> GRUPOS DE LOCALIZAÇÕES</strong>
-                <span>LINHAS × COLUNAS</span>
+                <span>LINHAS  COLUNAS</span>
             </div>
             <div class="console-tabs" role="tablist" aria-label="Grupos de localização">
                 @for (g of planta.groups; track g.key; let i = $index) {
@@ -69,6 +60,7 @@
                 </div>
 
                 <!-- Espaços desativados podem ser exibidos ou ocultados, sem mudar a geometria da planta. -->
+                <div class="map-viewport" [style.--map-rows]="group.rows" [style.--map-cols]="group.cols">
                 <div id="addressGrid" class="address-grid" [class.search-active]="!!query && countMatches(group) > 0"
                      [style.grid-template-columns]="'repeat(' + group.cols + ', minmax(43px, 1fr))'"
                      [style.grid-template-rows]="'repeat(' + group.rows + ', 54px)'"
@@ -101,6 +93,7 @@
                         }
                     }
                 </div>
+                </div>
                 <div class="storage-legend">
                     <span><i class="led good"></i> Com saldo</span><span><i class="led low"></i> Abaixo do mínimo</span>
                     <span><i class="led empty"></i> Sem saldo / vazio</span><span><i class="led review"></i> Em conferência</span>
@@ -117,7 +110,9 @@
             </div>
             <div class="console-body">
                 <div class="console-location">
-                    <span>GRUPO / LINHA / COLUNA</span><strong>{{ rackName(selected) }}</strong>
+                    <span>ESTANTE SELECIONADA</span>
+                    <strong class="rack-main-name">{{ displayName(selected) }}</strong>
+                    <small>Localização: {{ rackName(selected) }}</small>
                     <small>Grupo: {{ group.name }}</small>
                     <small class="loc-id-label">idlocalizacao: {{ selected.idlocalizacao }}</small>
                     <small>Estante com múltiplas prateleiras e posições.</small>
