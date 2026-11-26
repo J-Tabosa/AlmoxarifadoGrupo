@@ -19,7 +19,7 @@ export class Painel implements OnDestroy {
     readonly planta = inject(PlantaService);
     private readonly itensApi = inject(ItensService);
     private readonly cdr = inject(ChangeDetectorRef);
-    private readonly host = inject(ElementRef<HTMLElement>).nativeElement;
+    private readonly host: HTMLElement = inject(ElementRef<HTMLElement>).nativeElement;
     private readonly dialogo = inject(DialogoService);
     rackLookup = false;
     rackId = '';
