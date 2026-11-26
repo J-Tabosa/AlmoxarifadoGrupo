@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -38,6 +38,11 @@ export class Saidas implements OnInit {
   tipoS = 'consumo';
   linhas: LinhaRequisicaoForm[] = [{ idItem: null, quantidadeS: 1 }];
 
+  // Modal de pesquisa e seleção do catálogo de materiais.
+  modalItensAberto = false;
+  pesquisaItemModal = '';
+  indiceLinhaModal: number | null = null;
+
   carregando = false;
   salvando = false;
 
@@ -66,7 +71,7 @@ export class Saidas implements OnInit {
         next: dados => {
           const requisicao = dados.find(item => item.idRequisicao === idEdicao);
           if (requisicao) this.editar(requisicao);
-          else this.dialogo.erro(`A requisição #${idEdicao} não foi encontrada.`, 'Requisição não encontrada');
+          else this.dialogo.erro('A requisição #' + idEdicao + ' não foi encontrada.', 'Requisição não encontrada');
         },
         error: e => this.dialogo.erro(mensagemErro(e), 'Erro ao carregar requisição'),
       });
@@ -95,11 +100,18 @@ export class Saidas implements OnInit {
 
   private carregarItens(): void {
     this.itensApi.listar().subscribe({
-      next: dados => this.itensCatalogo = dados.filter(x => x.statusIt === 'A'),
+      next: dados => {
+        // Mantém o catálogo completo para exibir itens históricos já selecionados.
+        // O modal de inclusão oferece somente itens ativos.
+        this.itensCatalogo = dados;
+        const idItem = Number(this.route.snapshot.queryParamMap.get('item'));
+        if (this.idEditando === null && idItem && dados.some(i => i.idItem === idItem && i.statusIt === 'A')) {
+          this.linhas = [{ idItem, quantidadeS: 1 }];
+        }
+      },
       error: e => this.dialogo.erro(mensagemErro(e), 'Erro ao carregar itens'),
     });
   }
-
 
   iniciarNova(): void {
     this.limparFormulario();
@@ -110,19 +122,98 @@ export class Saidas implements OnInit {
 
   adicionarLinha(): void {
     this.linhas.push({ idItem: null, quantidadeS: 1 });
+    this.abrirModalSelecaoItem(this.linhas.length - 1);
   }
 
   removerLinha(index: number): void {
     if (this.linhas.length > 1) this.linhas.splice(index, 1);
+    if (this.indiceLinhaModal === index) {
+      this.fecharModalSelecaoItem();
+    } else if (this.indiceLinhaModal !== null && this.indiceLinhaModal > index) {
+      this.indiceLinhaModal--;
+    }
   }
 
-  itensDisponiveis(index: number): ItemModel[] {
-    const selecionados = new Set(
-      this.linhas
-        .filter((linha, i) => i !== index && linha.idItem !== null)
-        .map(linha => linha.idItem),
+  abrirModalSelecaoItem(indice: number): void {
+    if (indice < 0 || indice >= this.linhas.length) return;
+    this.indiceLinhaModal = indice;
+    this.pesquisaItemModal = '';
+    this.modalItensAberto = true;
+  }
+
+  fecharModalSelecaoItem(): void {
+    this.modalItensAberto = false;
+    this.indiceLinhaModal = null;
+    this.pesquisaItemModal = '';
+  }
+
+  @HostListener('document:keydown.escape')
+  pressionarEscape(): void {
+    if (this.modalItensAberto) this.fecharModalSelecaoItem();
+  }
+
+  itensFiltradosModal(): ItemModel[] {
+    const termo = this.normalizarPesquisa(this.pesquisaItemModal);
+    return this.itensCatalogo
+      .filter(item => item.statusIt === 'A')
+      .filter(item => {
+        if (!termo) return true;
+        const atributos = [
+          String(item.idItem),
+          item.descricaoItem,
+          item.categoria?.tipo ?? '',
+          item.unidade,
+          this.localizacaoItem(item),
+          String(item.saldoTotal ?? ''),
+          item.statusIt,
+        ];
+        return atributos.some(valor => this.normalizarPesquisa(valor).includes(termo));
+      });
+  }
+
+  localizacaoItem(item: ItemModel): string {
+    const locais = (item.estoques ?? []).map(estoque => {
+      const local = estoque.localizacao;
+      return [
+        local?.sala,
+        local?.andar,
+        local?.posicao,
+        local?.grupoKey,
+        local?.idEstante != null ? 'estante ' + local.idEstante : '',
+        local?.prateleira != null ? 'prateleira ' + local.prateleira : '',
+        local?.posicaoInterna != null ? 'posição ' + local.posicaoInterna : '',
+        'localização ' + estoque.idLocalizacao,
+      ].filter(Boolean).join(' / ');
+    }).filter(Boolean);
+    return locais.length ? [...new Set(locais)].join(' · ') : 'Sem localização';
+  }
+
+  itemJaAdicionado(idItem: number): boolean {
+    return this.linhas.some((linha, indice) =>
+      indice !== this.indiceLinhaModal && linha.idItem === idItem,
     );
-    return this.itensCatalogo.filter(item => !selecionados.has(item.idItem));
+  }
+
+  selecionarItem(item: ItemModel): void {
+    if (this.indiceLinhaModal === null) return;
+    if (item.statusIt !== 'A') return;
+    if (this.itemJaAdicionado(item.idItem)) {
+      this.dialogo.erro(
+        'Este item já foi incluído na requisição. Altere a quantidade na linha existente.',
+        'Item já selecionado',
+      );
+      return;
+    }
+    this.linhas[this.indiceLinhaModal].idItem = item.idItem;
+    this.fecharModalSelecaoItem();
+  }
+
+  private normalizarPesquisa(valor: string): string {
+    return (valor ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('pt-BR')
+      .trim();
   }
 
   itemSelecionado(idItem: number | null): ItemModel | undefined {
@@ -132,12 +223,12 @@ export class Saidas implements OnInit {
   nomeFuncionario(idFuncionario: number | null | undefined): string {
     if (idFuncionario == null) return 'Não informado';
     return this.funcionarios.find(x => x.idFuncionario === idFuncionario)?.nomeFu
-      || `Funcionário #${idFuncionario}`;
+      || 'Funcionário #' + idFuncionario;
   }
 
   nomeSetorFuncionario(idFuncionario: number | null): string {
     const funcionario = this.funcionarios.find(x => x.idFuncionario === idFuncionario);
-    return funcionario?.setor?.nomeSetor || (funcionario ? `Setor #${funcionario.idSetor}` : 'Não informado');
+    return funcionario?.setor?.nomeSetor || (funcionario ? 'Setor #' + funcionario.idSetor : 'Não informado');
   }
 
   editar(requisicao: RequisicaoModel): void {
@@ -214,7 +305,11 @@ export class Saidas implements OnInit {
         );
         this.salvando = false;
         this.limparFormulario();
-        this.router.navigate([], { relativeTo: this.route, queryParams: { editar: null, item: null }, queryParamsHandling: 'merge' });
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { editar: null, item: null },
+          queryParamsHandling: 'merge',
+        });
       },
       error: e => {
         this.dialogo.erro(mensagemErro(e), 'Erro ao salvar requisição');
@@ -223,8 +318,8 @@ export class Saidas implements OnInit {
     });
   }
 
-
   limparFormulario(): void {
+    this.fecharModalSelecaoItem();
     this.idEditando = null;
     this.idSolicitanteEditando = null;
     this.dataHoraS = this.dataHoraLocalAtual();
