@@ -285,7 +285,6 @@ public partial class BdAlmoxarifadoContext : DbContext
                 .HasColumnName("status_l");
             entity.Property(e => e.DescricaoL)
                 .HasMaxLength(45)
-                .IsFixedLength()
                 .HasColumnName("descricao_l");
         });
 

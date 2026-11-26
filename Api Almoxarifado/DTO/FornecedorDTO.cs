@@ -6,8 +6,6 @@ namespace Api_Almoxarifado.DTO
     {
         public int idFornecedor { get; set; }
 
-        public int idEndereco { get; set; }
-
         public string Contato { get; set; }
 
         public string nomeFo {  get; set; }

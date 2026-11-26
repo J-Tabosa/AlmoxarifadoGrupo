@@ -122,7 +122,7 @@ namespace Api_Almoxarifado.Controllers
             funcionario.StatusFu = dto.statusFu;
             funcionario.Senha = dto.Senha;
 
-            if (dto.nomeFu == null || dto.idSetor == 0 || dto.Cargo == null || dto.statusFu == null || dto.Senha == null)
+            if (dto.nomeFu == null || dto.idSetor == 0 || dto.Cargo == null || dto.statusFu == null || dto.Senha == null || dto.idFuncionario == 0)
             {
                 return BadRequest($"Os campos não devem estar vazios.");
             }
