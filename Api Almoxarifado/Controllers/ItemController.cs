@@ -129,6 +129,11 @@ namespace Api_Almoxarifado.Controllers
             item.Unidade = dto.Unidade;
             item.StatusIt = dto.statusIt;
 
+            if (dto.statusIt == null || dto.idCategoria == 0 || dto.descricaoItem == null || dto.Unidade == null)
+            {
+                return BadRequest($"Todos atributos devem ser preenchidos.");
+            }
+
             await _context.SaveChangesAsync();
 
             return NoContent();

@@ -63,9 +63,9 @@ namespace Api_Almoxarifado.Controllers
                 NomeSetor = dto.NomeSetor
             };
 
-            if(string.IsNullOrWhiteSpace(dto.NomeSetor) )
+            if(dto.NomeSetor == null)
             {
-                return BadRequest("Informe o nome do setor corretamente.");
+                return BadRequest("Informe o nome do setor.");
             }
 
             _context.Setors.Add(setor);
@@ -97,6 +97,11 @@ namespace Api_Almoxarifado.Controllers
 
             setor.Idsetor = dto.idSetor;
             setor.NomeSetor = dto.NomeSetor;
+
+            if (dto.NomeSetor == null)
+            {
+                return BadRequest("Informe o nome do setor.");
+            }
 
             await _context.SaveChangesAsync();
 

@@ -137,6 +137,16 @@ namespace Api_Almoxarifado.Controllers
             fornecedor.Cnpj = dto.Cnpj;
             fornecedor.StatusFo = dto.statusFo;
 
+            if (dto.Contato == null || dto.nomeFo == null || dto.Cnpj == null || dto.statusFo == null)
+            {
+                return BadRequest($"Todas as informações do fornecedor deve ser preenchidas.");
+            }
+
+            if (dto.Cnpj.Length != 14 && !dto.Cnpj.All(char.IsDigit))
+            {
+                return BadRequest($"O CNPJ deve ter 14 dígitos");
+            }
+
             await _context.SaveChangesAsync();
 
             return NoContent();
