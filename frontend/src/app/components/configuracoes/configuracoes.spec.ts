@@ -104,6 +104,43 @@ describe('Configuracoes', () => {
         expect(component.group.slots[0].descricao).toBe('Ferramentas');
     });
 
+    it('pinta com o estado do primeiro quadrado sem inverter células revisitadas', () => {
+        const tiles = fixture.nativeElement.querySelectorAll('.preview-slot') as NodeListOf<HTMLButtonElement>;
+        // Clique simples desativa uma célula para testar uma faixa de estados mistos.
+        component.toggleCell(1, 2);
+        tiles[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 7 }));
+        component.dragToCell(7, 1, 2);
+        component.dragToCell(7, 1, 3);
+        component.dragToCell(7, 1, 1);
+        component.endDrag();
+        tiles[0].dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+        expect([1, 2, 3].every(c => component.disabled.has('1:' + c))).toBe(true);
+
+        tiles[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 8 }));
+        component.dragToCell(8, 1, 2);
+        component.dragToCell(8, 1, 3);
+        component.endDrag();
+        expect([1, 2, 3].every(c => !component.disabled.has('1:' + c))).toBe(true);
+        component.dragToCell(8, 1, 4);
+        expect(component.disabled.has('1:4')).toBe(false);
+    });
+
+    it('não desativa estantes ocupadas durante o arraste nem com o botão direito', () => {
+        const tiles = fixture.nativeElement.querySelectorAll('.preview-slot') as NodeListOf<HTMLButtonElement>;
+        component.group.slots[1].contents.push({ level: 1, position: 1, itemCode: 'REAL', qty: 1 });
+        tiles[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 2, pointerId: 9 }));
+        component.dragToCell(9, 1, 3);
+        expect(component.disabled.size).toBe(0);
+        tiles[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 10 }));
+        component.dragToCell(10, 1, 2);
+        component.dragToCell(10, 1, 3);
+        component.endDrag();
+        expect(component.disabled.has('1:1')).toBe(true);
+        expect(component.disabled.has('1:2')).toBe(false);
+        expect(component.disabled.has('1:3')).toBe(true);
+        expect(component.noticeError).toBe(true);
+    });
+
     it('desativa e reativa todas, permitindo salvar o grupo vazio sem trocar IDs', () => {
         const ids = component.group.slots.map(s => s.idlocalizacao);
         component.toggleAll();

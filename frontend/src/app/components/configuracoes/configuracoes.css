@@ -1,10 +1,11 @@
-/* A prévia alterna o estado das células com clique. */
+/* A prévia alterna o estado das células por clique ou arraste. */
 :host {
     display: block;
 }
 
 .preview-location-grid {
     user-select: none;
+    touch-action: none;
 }
 
 .preview-slot {

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, HostListener, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Grupo, PlantaService, Posicao } from '../../services/planta';
@@ -31,6 +31,7 @@ export class Configuracoes {
     disabled = new Set<string>();
     descriptions = new Map<string, string>();
     selectedKey = '';
+    private drag: { pointerId: number; block: boolean; x: number; y: number; grid: HTMLElement; visited: Set<string>; protectedCount: number } | null = null;
     notice = '';
     globalNotice = '';
     dirty = false;
@@ -91,6 +92,7 @@ export class Configuracoes {
     pad(n: number): string { return String(n).padStart(2, '0'); }
 
     private loadGroup(group: Grupo): void {
+        this.endDrag();
         this.groupKey = group.key;
         this.name = group.name;
         this.rows = group.rows;
@@ -137,23 +139,91 @@ export class Configuracoes {
         this.notice = 'Alterações descartadas. A planta salva foi restaurada.';
     }
 
-    /** Clique esquerdo alterna o estado apenas na prévia; o ID não é alterado. */
+    /** Clique simples pelo teclado ou por tecnologias assistivas. O mouse e toque
+     * são tratados no pointerdown para permitir pintar sem alternar duas vezes. */
     toggleCell(r: number, c: number): void {
-        const key = this.planta.coord(r, c);
-        const cell = this.cells.find(p => p.key === key);
-        if (!cell) return;
-        if (cell.blocked) {
-            this.disabled.delete(key);
-        } else {
-            if (cell.slot?.contents.length) {
-                this.notice = 'Não é permitido desativar uma estante com materiais vinculados.';
-                this.noticeError = true;
-                return;
-            }
-            this.disabled.add(key);
-        }
-        this.changed();
+        const cell = this.cells.find(p => p.r === r && p.c === c);
+        if (cell) this.applyCellState(r, c, !cell.blocked);
     }
+
+    onCellClick(event: MouseEvent, r: number, c: number): void {
+        if (event.detail === 0) this.toggleCell(r, c);
+    }
+
+    private applyCellState(r: number, c: number, block: boolean): boolean {
+        const cell = this.cells.find(p => p.r === r && p.c === c);
+        if (!cell || cell.blocked === block) return true;
+        if (block && cell.slot?.contents.length) {
+            this.notice = 'Não é permitido desativar uma estante com materiais vinculados.';
+            this.noticeError = true;
+            return false;
+        }
+        if (block) this.disabled.add(cell.key);
+        else this.disabled.delete(cell.key);
+        this.changed();
+        return true;
+    }
+
+    /** O primeiro quadrado determina a ação do gesto inteiro. */
+    beginDrag(event: PointerEvent, r: number, c: number): void {
+        if (event.button !== 0 || this.drag) return;
+        const cell = this.cells.find(p => p.r === r && p.c === c);
+        const grid = (event.currentTarget as HTMLElement | null)?.closest<HTMLElement>('.preview-location-grid');
+        if (!cell || !grid) return;
+        this.drag = { pointerId: event.pointerId, block: !cell.blocked,
+            x: event.clientX, y: event.clientY, grid, visited: new Set(), protectedCount: 0 };
+        this.dragToCell(event.pointerId, r, c);
+        // A captura mantém o gesto mesmo sobre os espaços entre os quadrados.
+        try { grid.setPointerCapture(event.pointerId); } catch { /* Pointer sintético ou já encerrado. */ }
+    }
+
+    dragToCell(pointerId: number, r: number, c: number): void {
+        const drag = this.drag;
+        if (!drag || drag.pointerId !== pointerId) return;
+        const key = this.planta.coord(r, c);
+        if (drag.visited.has(key)) return;
+        drag.visited.add(key);
+        if (!this.applyCellState(r, c, drag.block)) drag.protectedCount++;
+        if (drag.protectedCount) {
+            this.notice = drag.protectedCount + ' estante(s) com materiais permaneceram ativas.';
+            this.noticeError = true;
+        }
+    }
+
+    moveDrag(event: PointerEvent): void {
+        const drag = this.drag;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+        if (event.pointerType === 'mouse' && !(event.buttons & 1)) {
+            this.endDrag(event);
+            return;
+        }
+        // Amostra o caminho para não pular células quando o mouse se move rapidamente.
+        const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
+        const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 12));
+        for (let i = 1; i <= steps; i++) {
+            const hit = document.elementFromPoint(drag.x + dx * i / steps, drag.y + dy * i / steps);
+            const tile = hit?.closest<HTMLElement>('[data-drag-cell]');
+            if (tile && drag.grid.contains(tile)) {
+                this.dragToCell(event.pointerId, Number(tile.dataset['r']), Number(tile.dataset['c']));
+            }
+        }
+        drag.x = event.clientX;
+        drag.y = event.clientY;
+    }
+
+    @HostListener('document:pointerup', ['$event'])
+    @HostListener('document:pointercancel', ['$event'])
+    endDrag(event?: PointerEvent): void {
+        const drag = this.drag;
+        if (!drag || (event && event.pointerId !== drag.pointerId)) return;
+        this.drag = null;
+        try {
+            if (drag.grid.hasPointerCapture(drag.pointerId)) drag.grid.releasePointerCapture(drag.pointerId);
+        } catch { /* O navegador pode ter liberado a captura. */ }
+    }
+
+    @HostListener('window:blur')
+    cancelDrag(): void { this.endDrag(); }
 
     /** Se houver células desativadas, ativa todas. Caso contrário, desativa as vazias. */
     toggleAll(): void {

@@ -85,12 +85,12 @@
 
                                 <div class="manager-preview">
                                     <div class="panel-head">
-                                        <div><div class="panel-title">Desenhar planta</div><p>Clique com o botão esquerdo para ativar/desativar. Use o botão direito para selecionar e nomear.</p></div>
+                                        <div><div class="panel-title">Desenhar planta</div><p>Clique ou arraste com o botão esquerdo para ativar/desativar. Use o botão direito para selecionar e nomear.</p></div>
                                         @if (validSize) { <span class="hint">{{ rows }} × {{ cols }}</span> }
                                     </div>
                                     <div class="editor-tools">
                                         <div class="editor-click-help">
-                                            <span><strong>Clique esquerdo:</strong> alternar estado</span>
+                                            <span><strong>Clique/arraste esquerdo:</strong> ativar ou desativar</span>
                                             <span><strong>Clique direito:</strong> selecionar / nomear (F2 pelo teclado)</span>
                                         </div>
                                         <button type="button" class="btn" [disabled]="!validSize" (click)="toggleAll()">
@@ -101,7 +101,8 @@
                                         <div class="manager-preview-viewport">
                                             <div class="preview-location-grid" role="group" aria-label="Editor da planta"
                                                  [style.grid-template-columns]="'repeat(' + cols + ', minmax(44px, 1fr))'"
-                                                 [style.min-width.px]="cols * 44 + (cols - 1) * 5">
+                                                 [style.min-width.px]="cols * 44 + (cols - 1) * 5"
+                                                 (pointermove)="moveDrag($event)" (lostpointercapture)="endDrag($event)">
                                                 @for (cell of cells; track cell.key) {
                                                     <button type="button" class="preview-slot"
                                                             [class.masked]="cell.blocked"
@@ -111,7 +112,9 @@
                                                             [class.occupied]="!cell.blocked && !!cell.slot?.contents?.length"
                                                             [class.review]="!cell.blocked && state(cell.slot) === 'review'"
                                                             [attr.aria-label]="'Linha ' + cell.r + ', coluna ' + cell.c + (cell.blocked ? ', espaço vazio' : ', estante ativa')"
-                                                            (click)="toggleCell(cell.r, cell.c)"
+                                                            [attr.data-drag-cell]="cell.key" [attr.data-r]="cell.r" [attr.data-c]="cell.c"
+                                                            (pointerdown)="beginDrag($event, cell.r, cell.c)"
+                                                            (click)="onCellClick($event, cell.r, cell.c)"
                                                             (contextmenu)="selectWithContextMenu($event, cell.r, cell.c)"
                                                             (keydown.f2)="$event.preventDefault(); selectCell(cell.r, cell.c)">
                                                         <b>{{ !cell.blocked && cell.descricao.trim() ? cell.descricao : pad(cell.r) + '-' + pad(cell.c) }}</b>
