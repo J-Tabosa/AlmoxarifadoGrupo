@@ -25,6 +25,6 @@ export const routes: Routes = [
   { path: 'conferencia', component: Conferencia },
   { path: 'divergencias', component: Divergencias },
   { path: 'relatorios', component: Relatorios },
-  { path: 'configuracoes', component: Configuracoes },
+  { path: 'configuracoes', component: Configuracoes, canDeactivate: [(component: Configuracoes) => component.canLeave()] },
   { path: '**', redirectTo: 'painel' },
 ];

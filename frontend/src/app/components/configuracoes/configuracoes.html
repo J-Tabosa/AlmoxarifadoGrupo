@@ -11,7 +11,7 @@
     </div>
     <div class="pill-tabs">
         @for (item of tabs; track item.key) {
-            <button [class.active]="tab === item.key" (click)="tab = item.key">{{ item.label }}</button>
+            <button [class.active]="tab === item.key" (click)="changeTab(item.key)">{{ item.label }}</button>
         }
     </div>
 
@@ -20,87 +20,183 @@
             @case ('enderecamento') {
                 <div class="location-settings">
                     <div class="manager-head">
-                        <div><h3>Editor da planta do almoxarifado</h3>
-                            <p>Desenhe a sala real: defina grupo, linhas e colunas; depois pinte os quadrados que não devem ser usados como posições de armazenamento (corredores, portas, paredes e espaços vazios).</p>
+                        <div>
+                            <h3>Grupos de localização</h3>
+                            <p>Organize os ambientes físicos do almoxarifado. Cada grupo possui uma planta independente.</p>
                         </div>
                         <span class="tag neutral">GESTOR · SIMULAÇÃO</span>
                     </div>
 
-                    <!-- Padrão de prateleiras e opção de sobrescrever as configurações individuais. -->
-                    <div class="rack-global-settings">
-                        <div><strong>Prateleiras · padrão geral</strong><p class="hint">Aplica-se a estantes novas e às que seguem o padrão. Cada estante pode ter uma configuração própria.</p></div>
-                        <div class="rack-global-controls">
-                            <input type="number" min="1" max="30" [(ngModel)]="defaultCount" aria-label="Quantidade padrão de prateleiras">
-                            <button class="btn primary" (click)="saveDefault()">Salvar padrão</button>
-                            <button class="btn" (click)="saveDefault(true)">Aplicar a todas</button>
-                        </div>
-                        <small id="globalShelfStatus" class="hint" role="status">{{ globalNotice || 'Padrão atual: ' + planta.defaultShelfCount + ' prateleiras' }}</small>
-                    </div>
+                    <!-- Lista de ambientes e editor independente da seleção. -->
+                    <div class="group-workspace">
+                        <aside class="group-sidebar">
+                            <div class="panel-head">
+                                <div><div class="panel-title">Ambientes cadastrados</div><p>{{ planta.groups.length }} de 12 grupos</p></div>
+                            </div>
+                            <div class="group-list" aria-label="Grupos cadastrados">
+                                @for (g of planta.groups; track g.key) {
+                                    <button type="button" class="group-option"
+                                            [class.current]="g.key === groupKey"
+                                            [attr.aria-pressed]="g.key === groupKey"
+                                            (click)="changeGroup(g.key)">
+                                        <svg class="ico lg"><use href="assets/icons.svg#i-archive"/></svg>
+                                        <span><strong>{{ g.name }}</strong><small>{{ g.rows }} × {{ g.cols }} · {{ countActive(g) }} estantes ativas</small></span>
+                                        <svg class="ico sm group-chevron"><use href="assets/icons.svg#i-settings"/></svg>
+                                    </button>
+                                }
+                            </div>
+                            <div class="group-create">
+                                <button class="btn primary" type="button" [disabled]="planta.groups.length >= 12 || creating" (click)="startCreate()">
+                                    <svg class="ico sm"><use href="assets/icons.svg#i-plus"/></svg> Novo grupo
+                                </button>
+                                @if (creating) {
+                                    <form class="create-form" (ngSubmit)="newGroup()">
+                                        <div class="field"><label for="newGroupName">Nome do novo grupo</label>
+                                            <input id="newGroupName" name="newGroupName" maxlength="45" [(ngModel)]="newName" placeholder="Ex.: Depósito de ferramentas">
+                                        </div>
+                                        <small class="hint">A planta inicial será de 8 × 8.</small>
+                                        @if (createError) { <p class="group-error" role="alert">{{ createError }}</p> }
+                                        <div class="manager-actions"><button type="submit" class="btn primary">Criar grupo</button><button type="button" class="btn" (click)="cancelCreate()">Cancelar</button></div>
+                                    </form>
+                                }
+                            </div>
+                        </aside>
 
-                    <div class="manager-layout">
-                        <div class="manager-fields">
-                            <div class="field">
-                                <label for="settingGroup">Grupo de localização</label>
-                                <select id="settingGroup" [ngModel]="groupKey" (ngModelChange)="changeGroup($event)">
-                                    @for (g of planta.groups; track g.key) { <option [value]="g.key">{{ g.name }}</option> }
-                                </select>
+                        <section class="group-editor">
+                            <div class="panel-head group-editor-head">
+                                <div><div class="panel-title">Editar grupo · {{ group.name }}</div><p>Altere a identificação e desenhe a planta física.</p></div>
+                                <span class="editor-state" [class.unsaved]="dirty">{{ dirty ? 'Alterações não salvas' : 'Salvo' }}</span>
                             </div>
-                            <div class="field"><label for="groupName">Nome do grupo</label><input id="groupName" maxlength="45" [(ngModel)]="name" (ngModelChange)="changed()"></div>
-                            <div class="grid g2">
-                                <div class="field"><label for="settingRows">Linhas da planta</label><input id="settingRows" type="number" min="1" max="15" step="1" [(ngModel)]="rows" (ngModelChange)="changed()"></div>
-                                <div class="field"><label for="settingCols">Colunas da planta</label><input id="settingCols" type="number" min="1" max="16" step="1" [(ngModel)]="cols" (ngModelChange)="changed()"></div>
-                            </div>
-                            <div class="settings-stats">
-                                @if (validSize) {
-                                    {{ rows }} linhas × {{ cols }} colunas · <span class="active-count">{{ enabledCount }} ativas</span> · <span class="masked-count">{{ blockedCount }} vazias</span>
-                                } @else { Informe 1–15 linhas e 1–16 colunas. }
-                            </div>
-                            <div class="map-brushbar" aria-label="Ferramentas de desenho">
-                                <button type="button" class="btn" [class.tool-active]="brush === 'block'" [attr.aria-pressed]="brush === 'block'" (click)="brush = 'block'">▨ Pintar espaço vazio</button>
-                                <button type="button" class="btn" [class.tool-active]="brush === 'restore'" [attr.aria-pressed]="brush === 'restore'" (click)="brush = 'restore'">▣ Reativar posição</button>
-                            </div>
-                            <p class="brush-tip">Toque ou arraste na prévia. Os quadrados listrados serão espaços vazios no painel.</p>
-                            <div class="manager-actions"><button class="btn" (click)="corridor()">Exemplo: corredor</button><button class="btn" (click)="restoreAll()">Reativar todos os vazios</button></div>
-                            <div class="manager-actions">
-                                <button class="btn primary" [disabled]="!validSize" (click)="save()">Aplicar mapa</button>
-                                <button class="btn" (click)="newGroup()">+ Novo grupo 8×8</button>
-                                <button class="btn" routerLink="/painel" (click)="viewPlant()">Ver planta</button>
-                            </div>
-                            <div class="note"><svg class="ico sm"><use href="assets/icons.svg#i-info"/></svg>
-                                <div>Não é permitido bloquear posições com materiais. O <strong>idlocalizacao</strong> é preservado ao desativar e reativar uma posição. Clique em <strong>Aplicar mapa</strong> para gravar a prévia no navegador.</div>
-                            </div>
-                            @if (notice) { <div class="note" role="status">{{ notice }}</div> }
-                        </div>
-
-                        <!-- A prévia preserva a geometria, inclusive as células pintadas. -->
-                        <div class="manager-preview">
-                            <div class="panel-head"><div><div class="panel-title">Planta do grupo · editor de pintura</div><p>Visão superior aproximada, personalizável</p></div><span class="hint">{{ name }}</span></div>
-                            <div class="manager-preview-viewport">
-                                <div class="preview-location-grid paintable" role="group" aria-label="Editor de planta com posições pintáveis"
-                                     [style.grid-template-columns]="'repeat(' + (validSize ? cols : 1) + ', minmax(40px, 1fr))'"
-                                     (pointermove)="movePaint($event)" (pointercancel)="endPaint()">
-                                    @for (cell of cells; track cell.key) {
-                                        <button type="button" class="preview-slot"
-                                                [class.masked]="cell.blocked"
-                                                [class.occupied]="!cell.blocked && !!cell.slot?.contents?.length"
-                                                [class.review]="!cell.blocked && state(cell.slot) === 'review'"
-                                                [attr.data-paint-cell]="cell.key" [attr.data-r]="cell.r" [attr.data-c]="cell.c"
-                                                [attr.aria-label]="'Linha ' + cell.r + ', coluna ' + cell.c + (cell.blocked ? ', espaço vazio' : ', posição ativa')"
-                                                (pointerdown)="beginPaint($event, cell.r, cell.c)"
-                                                (click)="paint(cell.r, cell.c)">
-                                            <b>{{ pad(cell.r) }}-{{ pad(cell.c) }}</b>
-                                            <small>{{ cell.blocked ? '—' : cell.slot ? '#' + cell.slot.idlocalizacao : 'Novo' }}</small>
-                                        </button>
-                                    }
+                            <div class="group-editor-body">
+                                <div class="group-fields">
+                                    <div class="field">
+                                        <label for="groupName">Nome do grupo</label>
+                                        <input id="groupName" maxlength="45" [(ngModel)]="name" (ngModelChange)="changed()">
+                                    </div>
+                                    <div class="field">
+                                        <label for="settingRows">Linhas</label>
+                                        <input id="settingRows" type="number" min="1" max="15" step="1" [(ngModel)]="rows" (ngModelChange)="changed()">
+                                    </div>
+                                    <div class="field">
+                                        <label for="settingCols">Colunas</label>
+                                        <input id="settingCols" type="number" min="1" max="16" step="1" [(ngModel)]="cols" (ngModelChange)="changed()">
+                                    </div>
                                 </div>
-                                <div class="map-preview-instructions"><span class="map-legend-mask"></span> Áreas listradas = espaços fora do estoque físico</div>
+
+                                <div class="manager-preview">
+                                    <div class="panel-head">
+                                        <div><div class="panel-title">Desenhar planta</div><p>Selecione uma estante para nomeá-la ou escolha uma ferramenta para desenhar.</p></div>
+                                        @if (validSize) { <span class="hint">{{ rows }} × {{ cols }}</span> }
+                                    </div>
+                                    <div class="editor-tools">
+                                        <div class="map-brushbar" aria-label="Ferramentas de desenho">
+                                            <button type="button" class="btn" [class.tool-active]="brush === 'select'" [attr.aria-pressed]="brush === 'select'" (click)="brush = 'select'">Selecionar / nomear</button>
+                                            <button type="button" class="btn" [class.tool-active]="brush === 'block'" [attr.aria-pressed]="brush === 'block'" (click)="brush = 'block'">▨ Marcar espaço vazio</button>
+                                            <button type="button" class="btn" [class.tool-active]="brush === 'restore'" [attr.aria-pressed]="brush === 'restore'" (click)="brush = 'restore'">▣ Reativar estante</button>
+                                        </div>
+                                        <div class="manager-actions">
+                                            <button type="button" class="btn" [disabled]="!validSize" (click)="corridor()">Criar corredor</button>
+                                            <button type="button" class="btn" [disabled]="!validSize" (click)="restoreAll()">Reativar todas</button>
+                                        </div>
+                                    </div>
+                                    @if (validSize) {
+                                        <div class="manager-preview-viewport">
+                                            <div class="preview-location-grid paintable" role="group" aria-label="Editor da planta"
+                                                 [style.grid-template-columns]="'repeat(' + cols + ', minmax(44px, 1fr))'"
+                                                 [style.min-width.px]="cols * 44 + (cols - 1) * 5"
+                                                 (pointermove)="movePaint($event)" (pointercancel)="endPaint()">
+                                                @for (cell of cells; track cell.key) {
+                                                    <button type="button" class="preview-slot"
+                                                            [class.masked]="cell.blocked"
+                                                            [class.naming-selected]="selectedKey === cell.key && !cell.blocked"
+                                                            [title]="cell.descricao || pad(cell.r) + '-' + pad(cell.c)"
+                                                            [class.occupied]="!cell.blocked && !!cell.slot?.contents?.length"
+                                                            [class.review]="!cell.blocked && state(cell.slot) === 'review'"
+                                                            [attr.data-paint-cell]="cell.key" [attr.data-r]="cell.r" [attr.data-c]="cell.c"
+                                                            [attr.aria-label]="'Linha ' + cell.r + ', coluna ' + cell.c + (cell.blocked ? ', espaço vazio' : ', estante ativa')"
+                                                            (pointerdown)="beginPaint($event, cell.r, cell.c)"
+                                                            (click)="paint(cell.r, cell.c)">
+                                                        <b>{{ !cell.blocked && cell.descricao.trim() ? cell.descricao : pad(cell.r) + '-' + pad(cell.c) }}</b>
+                                                        <small>{{ cell.blocked ? 'Vazio' : cell.slot ? '#' + cell.slot.idlocalizacao : 'Novo' }}</small>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="editor-summary">
+                                            <span><strong>{{ cells.length }}</strong> células</span>
+                                            <span class="enabled"><strong>{{ enabledCount }}</strong> estantes</span>
+                                            <span><strong>{{ blockedCount }}</strong> espaços vazios</span>
+                                        </div>
+                                    } @else {
+                                        <div class="note" role="status">Informe entre 1 e 15 linhas e entre 1 e 16 colunas.</div>
+                                    }
+                                    <div class="manager-key">
+                                        <span><i class="led empty"></i> Estante disponível</span>
+                                        <span><i class="led good"></i> Com material</span>
+                                        <span><i class="led review"></i> Conferência</span>
+                                        <span><i class="map-legend-mask"></i> Corredor / espaço vazio</span>
+                                    </div>
+                                </div>
+
+                                @if (selectedCell; as cell) {
+                                    <div class="shelf-name-editor">
+                                        <div>
+                                            <strong>Estante {{ pad(cell.r) }}-{{ pad(cell.c) }}</strong>
+                                            <p class="hint">{{ cell.slot ? 'ID #' + cell.slot.idlocalizacao : 'ID gerado ao salvar' }}</p>
+                                        </div>
+                                        <div class="field">
+                                            <label for="shelfDescription">Descrição da estante (opcional)</label>
+                                            <input id="shelfDescription" maxlength="60" [ngModel]="cell.descricao"
+                                                   (ngModelChange)="editDescription(cell.key, $event)"
+                                                   placeholder="Ex.: Papelaria">
+                                            <small class="hint">Deixe vazio para usar as coordenadas. Salve as alterações para aplicar ao Painel.</small>
+                                        </div>
+                                        <button type="button" class="btn" [disabled]="!cell.descricao" (click)="editDescription(cell.key, '')">Restaurar nome padrão</button>
+                                    </div>
+                                } @else {
+                                    <p class="hint">Use Selecionar / nomear e clique em uma estante ativa para editar sua descrição.</p>
+                                }
+
+                                <p class="hint editor-help">As células listradas não aparecem no Painel. Posições com materiais não podem ser removidas ou bloqueadas. Os IDs são preservados ao redimensionar a planta.</p>
+                                @if (notice) {
+                                    <div class="note editor-notice" [class.group-error]="noticeError" role="status">{{ notice }}</div>
+                                }
                             </div>
-                            <div class="manager-key"><span><i class="led good"></i> Com material</span><span><i class="led empty"></i> Disponível</span><span><i class="led review"></i> Conferência</span><span><i class="map-legend-mask"></i> Removido da planta</span></div>
-                            <div class="panel-pad editor-footer"><span class="map-saved-tag">{{ dirty ? 'Prévia alterada · aplique para salvar' : 'Mapa salvo · ' + group.rows + '×' + group.cols }}</span></div>
-                        </div>
+
+                            <!-- Ações de edição ficam juntas, abaixo da prévia. -->
+                            <div class="editor-actions">
+                                <div class="manager-actions">
+                                    <button type="button" class="btn danger" [disabled]="!!removalError || creating" [title]="removalError || 'Excluir este grupo'" (click)="requestDelete()">Excluir grupo</button>
+                                    @if (removalError) { <small class="hint">{{ removalError }}</small> }
+                                </div>
+                                <div class="manager-actions">
+                                    <button class="btn" type="button" [disabled]="dirty || creating" (click)="viewPlant()">Ver no Painel</button>
+                                    <button class="btn" type="button" [disabled]="!dirty" (click)="cancelEdit()">Descartar</button>
+                                    <button class="btn primary" type="button" [disabled]="!dirty || !validSize || !name.trim() || enabledCount === 0" (click)="save()">Salvar alterações</button>
+                                </div>
+                            </div>
+                            @if (confirmDelete) {
+                                <div class="delete-confirm" role="alert">
+                                    <div><strong>Excluir {{ group.name }}?</strong><p>As estantes e o desenho deste grupo serão removidos. Esta ação não pode ser desfeita. Alterações não salvas deste grupo também serão descartadas.</p></div>
+                                    <div class="manager-actions"><button class="btn" type="button" (click)="confirmDelete = false">Cancelar</button><button class="btn danger" type="button" (click)="deleteGroup()">Confirmar exclusão</button></div>
+                                </div>
+                            }
+                        </section>
                     </div>
 
-                    <div class="schema-note"><strong>Modelo de localização:</strong> <code>idlocalizacao, grupo, linha, coluna, ativo</code>. Pintar uma célula não apaga a chave primária nem altera os saldos. Em produção, as restrições e a permissão de gestor deverão ser garantidas pela API.</div>
+                    <!-- A preferência global é independente da edição de um grupo. -->
+                    <details class="global-preferences">
+                        <summary>Configuração geral de prateleiras · {{ planta.defaultShelfCount }} por estante</summary>
+                        <div class="rack-global-settings">
+                            <div><strong>Quantidade padrão</strong><p class="hint">Aplica-se às estantes que seguem o padrão geral. Configurações individuais são preservadas, salvo ao aplicar a todas.</p></div>
+                            <div class="rack-global-controls">
+                                <input type="number" min="1" max="30" [(ngModel)]="defaultCount" aria-label="Quantidade padrão de prateleiras">
+                                <button class="btn primary" (click)="saveDefault()">Salvar padrão</button>
+                                <button class="btn" (click)="saveDefault(true)">Aplicar a todas</button>
+                            </div>
+                            <small id="globalShelfStatus" class="hint" role="status">{{ globalNotice || 'Padrão atual: ' + planta.defaultShelfCount + ' prateleiras' }}</small>
+                        </div>
+                    </details>
                 </div>
             }
             @case ('aparencia') {

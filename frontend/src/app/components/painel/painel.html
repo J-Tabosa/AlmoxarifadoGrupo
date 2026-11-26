@@ -1,0 +1,228 @@
+<!-- Painel operacional: consulta de localizações, sem movimentações reais. -->
+<section class="view section-stock">
+    <div class="path">Início / <em>Painel do depósito</em></div>
+
+    @if (notice) {
+        <div class="note painel-notice" role="status">
+            <span>{{ notice }}</span>
+            <button type="button" class="btn small" (click)="notice = ''">Fechar</button>
+        </div>
+    }
+
+    <!-- Pesquisa explícita por tipo; o destaque é calculado a partir das estantes. -->
+    <form class="map-searchbar" (ngSubmit)="search()">
+        <div class="panel-search-controls">
+        <label class="map-search-field">
+            <svg class="ico"><use href="assets/icons.svg#i-search"/></svg>
+            <input type="search" name="search" [(ngModel)]="searchText"
+                   placeholder="Localizar material nas estantes..." aria-label="Buscar material nas estantes">
+        </label>
+        <select class="select" name="mode" [(ngModel)]="searchMode" aria-label="Pesquisar por">
+            <option value="all">Todo o conteúdo</option><option value="name">Nome</option>
+            <option value="id">ID / código</option><option value="category">Categoria</option>
+        </select>
+        <button class="btn primary" type="submit">Buscar</button>
+        <button class="btn" type="button" (click)="clearSearch()">Limpar</button>
+        </div>
+        <div class="panel-quick-actions">
+            <button type="button" class="btn primary" (click)="construction('Nova entrada')">
+                <svg class="ico sm"><use href="assets/icons.svg#i-plus"/></svg> Nova entrada
+            </button>
+        </div>
+    </form>
+
+    <div class="workstation">
+        <div class="location-console">
+            <div class="console-head ruby-head">
+                <strong><svg class="ico sm"><use href="assets/icons.svg#i-archive"/></svg> GRUPOS DE LOCALIZAÇÕES</strong>
+                <span>LINHAS × COLUNAS</span>
+            </div>
+            <div class="console-tabs" role="tablist" aria-label="Grupos de localização">
+                @for (g of planta.groups; track g.key; let i = $index) {
+                    <button type="button" role="tab" [attr.aria-selected]="g.key === group.key"
+                            [class.chosen]="g.key === group.key" (click)="selectGroup(g)">
+                        {{ pad(i + 1) }} · {{ g.name }}
+                        @if (query) {
+                            <span class="map-tab-count" [class.has-matches]="countMatches(g) > 0">{{ countMatches(g) }}</span>
+                        }
+                    </button>
+                }
+            </div>
+
+            <div class="storage-board">
+                <div class="storage-tools">
+                    <span><svg class="ico sm"><use href="assets/icons.svg#i-pin"/></svg>
+                        @if (query) {
+                            <span class="map-result-status" [class.has-results]="totalMatches > 0" role="status">{{ searchStatus }}</span>
+                        } @else {
+                            Planta vista de cima · selecione uma estante para consultar seus dados
+                        }
+                    </span>
+                    <span>{{ group.rows }} × {{ group.cols }} · {{ activeCount }} posições · {{ group.slots.length - activeCount }} espaços excluídos</span>
+                </div>
+
+                <!-- Espaços desativados podem ser exibidos ou ocultados, sem mudar a geometria da planta. -->
+                <div class="map-viewport" [style.--map-rows]="group.rows" [style.--map-cols]="group.cols">
+                <div id="addressGrid" class="address-grid" [class.search-active]="!!query && countMatches(group) > 0"
+                     [style.grid-template-columns]="'repeat(' + group.cols + ', var(--tile-width))'"
+                     [style.grid-template-rows]="'repeat(' + group.rows + ', var(--tile-height))'"
+                     aria-label="Mapa de endereços">
+                    @for (slot of group.slots; track slot.idlocalizacao) {
+                        @if (!slot.blocked) {
+                            <button type="button" class="address-tile has-estante"
+                                    [class.good]="planta.situacao(slot) === 'good'"
+                                    [class.low]="planta.situacao(slot) === 'low'"
+                                    [class.empty]="planta.situacao(slot) === 'empty'"
+                                    [class.review]="planta.situacao(slot) === 'review'"
+                                    [class.chosen]="slot.idlocalizacao === selected.idlocalizacao"
+                                    [class.search-match]="match(slot)"
+                                    [style.grid-row]="slot.r" [style.grid-column]="slot.c"
+                                    [attr.aria-label]="'Estante ' + displayName(slot) + ', ' + rackName(slot) + ', ID ' + slot.idlocalizacao"
+                                    [title]="displayName(slot) + ' · ' + rackName(slot) + ' · #' + slot.idlocalizacao"
+                                    [attr.aria-pressed]="slot.idlocalizacao === selected.idlocalizacao"
+                                    (click)="selectPosition(slot)">
+                                <span class="tile-position">{{ displayName(slot) }}</span>
+                                <span class="tile-id">#{{ slot.idlocalizacao }}</span>
+                                <span class="rack-mini-count">{{ slot.contents.length }} {{ slot.contents.length === 1 ? 'item' : 'itens' }}</span>
+                                <span class="mini-corner">{{ planta.situacao(slot) === 'low' ? '!' : planta.situacao(slot) === 'review' ? '~' : '' }}</span>
+                            </button>
+                        } @else if (planta.showBlocked) {
+                            <div class="address-tile has-estante masked"
+                                 [style.grid-row]="slot.r" [style.grid-column]="slot.c"
+                                 [attr.aria-label]="'Espaço desativado ' + pad(slot.r) + '-' + pad(slot.c)"
+                                 [title]="'Espaço desativado · ' + pad(slot.r) + '-' + pad(slot.c)">
+                                <span class="tile-position">{{ pad(slot.r) }}-{{ pad(slot.c) }}</span>
+                                <span class="tile-id">Vazio</span>
+                            </div>
+                        }
+                    }
+                </div>
+                </div>
+                <div class="storage-legend">
+                    <span><i class="led good"></i> Com saldo</span><span><i class="led low"></i> Abaixo do mínimo</span>
+                    <span><i class="led empty"></i> Sem saldo / vazio</span><span><i class="led review"></i> Em conferência</span>
+                    <span><i class="map-legend-mask"></i> Sem posição (corredor / parede)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- A seleção no mapa atualiza a ficha lateral; somente o botão abaixo abre o modal. -->
+        <aside class="detail-console">
+            <div class="console-head teal-head">
+                <strong><svg class="ico sm"><use href="assets/icons.svg#i-pin"/></svg> POSIÇÃO SELECIONADA</strong>
+                <span>{{ status(selected) }}</span>
+            </div>
+            <div class="console-body" aria-live="polite">
+                <div class="console-location">
+                    <span>ESTANTE SELECIONADA</span>
+                    <strong class="rack-main-name">{{ displayName(selected) }}</strong>
+                    <small>Localização: {{ rackName(selected) }}</small>
+                    <small>Grupo: {{ group.name }}</small>
+                    <small class="loc-id-label">idlocalizacao: {{ selected.idlocalizacao }}</small>
+                </div>
+                <div class="console-field"><label>Itens da estante</label><strong>{{ selected.contents.length }} {{ selected.contents.length === 1 ? 'item' : 'itens' }}</strong></div>
+                <div class="console-field"><label>Materiais distintos</label><strong>{{ distinctMaterials }}</strong></div>
+                <div class="console-field"><label>Prateleiras</label><strong>{{ planta.shelfCount(selected) }}</strong></div>
+                <div class="console-field"><label>Prateleiras com saldo</label><strong>{{ occupiedLevels }} de {{ planta.shelfCount(selected) }}</strong></div>
+                <div class="console-field"><label>Prateleiras sem saldo</label><strong>{{ planta.shelfCount(selected) - occupiedLevels }}</strong></div>
+                <div class="console-field"><label>Configuração de prateleiras</label><strong>{{ selected.shelfCount == null ? 'Padrão geral' : 'Individual' }}</strong></div>
+                <div class="console-field"><label>Situação</label><span class="tag" [ngClass]="tag(selected)">{{ status(selected) }}</span></div>
+            </div>
+            <div class="console-actions"><button class="btn primary" (click)="openRack(selected)">Ficha da estante</button></div>
+        </aside>
+    </div>
+</section>
+
+<!-- Modal interno de estante: prateleiras à esquerda e materiais à direita. -->
+@if (rack; as sl) {
+    <div class="drawer-overlay open" (click)="$event.target === $event.currentTarget && closeRack()">
+        <div class="dialog estante-modal" role="dialog" aria-modal="true" aria-labelledby="rackTitle">
+            <div class="dialog-head">
+                <span id="rackTitle">Conteúdo da estante · {{ displayName(sl) }}</span>
+                <button type="button" title="Fechar" aria-label="Fechar" (click)="closeRack()"><svg class="ico"><use href="assets/icons.svg#i-close"/></svg></button>
+            </div>
+            <div class="dialog-body">
+                <div class="rack-topline"><span>{{ rackName(sl) }} · ID #{{ sl.idlocalizacao }}</span><span>{{ planta.shelfCount(sl) }} prateleiras · {{ sl.contents.length }} itens</span></div>
+                <div class="estante-layout">
+                    <aside class="estante-left">
+                        <div class="estante-card rack-search">
+                            <h3>Buscar material</h3>
+                            <div class="rack-search-row">
+                                <select class="select rack-search-mode" [(ngModel)]="rackMode" aria-label="Pesquisar por">
+                                    <option value="all">Todo o conteúdo</option><option value="name">Nome</option>
+                                    <option value="id">ID / código</option><option value="category">Categoria</option>
+                                </select>
+                                <label class="search"><svg class="ico sm"><use href="assets/icons.svg#i-search"/></svg>
+                                    <input type="search" [(ngModel)]="rackQuery" placeholder="Buscar material..." aria-label="Buscar material na estante">
+                                </label>
+                            </div>
+                            <p class="hint">Pesquisa em todas as prateleiras desta estante.</p>
+                        </div>
+                        <div class="estante-card rack-shelves">
+                            <div class="rack-section-head"><h4>Prateleiras da estante</h4><span class="hint">{{ levels.length }} níveis</span></div>
+                            <div class="shelf-list">
+                                @for (n of levels; track n) {
+                                    <button type="button" class="shelf-btn" [class.active]="!rackQuery && n === level" (click)="selectLevel(n)">
+                                        <span><strong>Prateleira {{ pad(n) }}</strong><small>{{ levelCount(n) }} itens</small></span>
+                                        <span class="shelf-badge">{{ n }}</span>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </aside>
+                    <section class="estante-right">
+                        <div class="rack-results-head">
+                            <div><h3>{{ rackQuery.trim() ? 'Resultados em toda a estante' : 'Prateleira ' + pad(level) }}</h3><span class="hint">{{ entries.length }} item(ns)</span></div>
+                            <div class="segmented rack-toggle">
+                                <button [class.active]="rackView === 'grid'" (click)="rackView = 'grid'">▦ Grade</button>
+                                <button [class.active]="rackView === 'list'" (click)="rackView = 'list'">☰ Lista</button>
+                            </div>
+                        </div>
+                        <div class="rack-results">
+                            @if (!entries.length) {
+                                <div class="rack-empty">{{ rackQuery.trim() ? 'Nenhum material encontrado nesta estante.' : 'Nenhum material nesta prateleira.' }}</div>
+                            } @else if (rackView === 'grid') {
+                                <div class="position-grid">
+                                    @for (p of entries; track p.level + ':' + p.position) {
+                                        <div class="position-box">
+                                            <div class="position-head"><strong>Posição {{ pad(p.position) }}</strong><span class="tag" [ngClass]="entryTag(p.qty, p.item.stock, p.item.min)">{{ entryLabel(p.qty, p.item.stock, p.item.min) }}</span></div>
+                                            <div class="mini">Prateleira {{ p.level }} · {{ rackName(sl) }}</div>
+                                            <div class="material-name">{{ p.item.name }}</div><div class="qty">{{ p.qty }} {{ p.item.unit }}</div>
+                                            <div class="rack-card-footer"><span class="statusline">{{ p.item.code }} · {{ p.item.category }}</span>
+                                                <button class="btn small rack-info" (click)="construction('Ficha do item')"><svg class="ico sm"><use href="assets/icons.svg#i-info"/></svg> Ficha</button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            } @else {
+                                <div class="rack-table-scroll"><table class="table rack-table">
+                                    <thead><tr><th>Prat.</th><th>Pos.</th><th>ID</th><th>Material</th><th>Tipo</th><th>Saldo local</th><th>Situação</th><th>Ficha</th></tr></thead>
+                                    <tbody>
+                                        @for (p of entries; track p.level + ':' + p.position) {
+                                            <tr><td>{{ p.level }}</td><td>{{ p.position }}</td><td class="code">{{ p.item.code }}</td><td><strong>{{ p.item.name }}</strong></td><td>{{ p.item.category }}</td><td>{{ p.qty }} {{ p.item.unit }}</td><td><span class="tag" [ngClass]="entryTag(p.qty, p.item.stock, p.item.min)">{{ entryLabel(p.qty, p.item.stock, p.item.min) }}</span></td><td><button class="btn small" (click)="construction('Ficha do item')">Ficha</button></td></tr>
+                                        }
+                                    </tbody>
+                                </table></div>
+                            }
+                        </div>
+                    </section>
+                </div>
+            </div>
+            @if (rackNotice) { <div class="note rack-message" role="status">{{ rackNotice }}</div> }
+            <div class="dialog-actions">
+                <div class="rack-footer-config">
+                    <div class="rack-config">
+                        <label class="hint" for="rackShelfCount">Prateleiras desta estante</label>
+                        <div class="rack-config-row">
+                            <input type="number" id="rackShelfCount" min="1" max="30" [(ngModel)]="rackCount">
+                            <button class="btn small" (click)="applyRackCount()">Aplicar</button>
+                            <button class="btn small" (click)="applyRackCount(true)">Padrão</button>
+                        </div>
+                        <small class="hint">{{ sl.shelfCount == null ? 'Segue o padrão geral' : 'Configuração individual' }} · gestor (simulação)</small>
+                    </div>
+                </div>
+                <button class="btn primary" (click)="closeRack()">Fechar</button>
+            </div>
+        </div>
+    </div>
+}
