@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { BancoLocalService, validarMovimentacaoPermitida } from '../core/banco-local.service';
+import { validarMovimentacaoPermitida } from '../core/banco-local.service';
 import { InventarioModel } from '../models/inventario.model';
 import { InventariosService } from './inventarios.service';
 import { PlantaService } from './planta';
