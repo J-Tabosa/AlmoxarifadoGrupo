@@ -8,25 +8,32 @@
     <div class="entry-step"><b>01</b><h3>Dados do material</h3></div>
     <div class="entry-fields">
       <div class="field entry-item">
-        <label for="entradaItem">Item <span class="req">*</span></label>
-        <select id="entradaItem" name="item" required [ngModel]="idItem" (ngModelChange)="trocarItem($event)">
-          <option [ngValue]="null">Selecione um item cadastrado</option>
-          @for (i of itens; track i.idItem) {
-            <option [ngValue]="i.idItem">#{{ i.idItem }} · {{ i.descricaoItem }}</option>
+        <label>Item <span class="req">*</span></label>
+        <button type="button" class="btn entry-selection-button" (click)="abrirModalSelecao('item')">
+          @if (item; as selecionado) {
+            <span class="entry-selection-value"><strong>#{{ selecionado.idItem }} · {{ selecionado.descricaoItem }}</strong><small>{{ selecionado.categoria?.tipo || 'Sem categoria' }} · {{ selecionado.unidade }} · Saldo: {{ selecionado.saldoTotal ?? 0 }}</small></span>
+            <span class="entry-selection-action">Trocar item</span>
+          } @else {
+            <span>＋ Selecionar item</span>
           }
-        </select>
-        @if (item; as i) { <small class="hint">Saldo total atual: {{ i.saldoTotal ?? 0 }} {{ i.unidade }}</small> }
+        </button>
         @if (!itens.length) { <small class="hint">Nenhum item ativo. <a routerLink="/item">Cadastrar item</a></small> }
       </div>
       <div class="field"><label for="quantidade">Quantidade <span class="req">*</span></label>
         <input id="quantidade" name="quantidade" type="number" min="1" step="1" required [(ngModel)]="quantidade">
         <small class="hint">Unidade: {{ item?.unidade || '—' }}</small>
       </div>
-      <div class="field"><label for="fornecedor">Fornecedor</label>
-        <select id="fornecedor" name="fornecedor" [(ngModel)]="idFornecedor">
-          <option [ngValue]="null">Não informado</option>
-          @for (f of fornecedores; track f.idFornecedor) { <option [ngValue]="f.idFornecedor">{{ f.nomeFo }}</option> }
-        </select>
+      <div class="field">
+        <label>Fornecedor</label>
+        <button type="button" class="btn entry-selection-button" (click)="abrirModalSelecao('fornecedor')">
+          @if (fornecedor; as selecionado) {
+            <span class="entry-selection-value"><strong>{{ selecionado.nomeFo }}</strong><small>{{ selecionado.razaoSocial || selecionado.cnpj }} · #{{ selecionado.idFornecedor }}</small></span>
+            <span class="entry-selection-action">Trocar</span>
+          } @else {
+            <span>＋ Selecionar fornecedor</span>
+          }
+        </button>
+        <small class="hint">Opcional. Você também pode registrar a entrada sem informar fornecedor.</small>
       </div>
       <div class="field"><label for="dataEntrada">Data e hora <span class="req">*</span></label>
         <input id="dataEntrada" type="datetime-local" name="dataEntrada" required [(ngModel)]="dataHoraE">
@@ -129,6 +136,97 @@
     </table>
   </div>
 </section>
+
+<!-- Seleção de item e fornecedor em modais pesquisáveis. -->
+@if (modalSelecao === 'item') {
+  <div class="drawer-overlay open entry-picker-overlay" role="presentation" (click)="fecharModalSelecao()">
+    <section class="dialog entry-picker-dialog" role="dialog" aria-modal="true"
+      aria-labelledby="entry-item-picker-title" (click)="$event.stopPropagation()">
+      <header class="dialog-head">
+        <span id="entry-item-picker-title">Selecionar item para a entrada</span>
+        <button type="button" aria-label="Fechar seleção de itens" (click)="fecharModalSelecao()">×</button>
+      </header>
+      <div class="dialog-body entry-picker-body">
+        <p class="hint">Pesquise pelo código, descrição, categoria, unidade ou localização do material.</p>
+        <label class="entry-picker-search" for="pesquisa-item-entrada">
+          <span aria-hidden="true">⌕</span>
+          <input id="pesquisa-item-entrada" name="pesquisaItemEntrada" type="search"
+            [(ngModel)]="pesquisaItemModal" placeholder="Pesquisar por ID, descrição, categoria, unidade ou localização..." />
+        </label>
+        <div class="entry-picker-results">
+          <table class="table entry-picker-table">
+            <thead><tr><th>ID</th><th>Descrição</th><th>Categoria</th><th>Unidade</th><th>Localização</th><th class="numeric">Saldo atual</th><th>Ação</th></tr></thead>
+            <tbody>
+              @for (i of itensFiltradosModal(); track i.idItem) {
+                <tr>
+                  <td class="code">{{ i.idItem }}</td>
+                  <td><strong>{{ i.descricaoItem }}</strong></td>
+                  <td>{{ i.categoria?.tipo || '—' }}</td>
+                  <td>{{ i.unidade }}</td>
+                  <td>{{ localizacaoItem(i) }}</td>
+                  <td class="numeric">{{ i.saldoTotal ?? 0 }}</td>
+                  <td><button class="btn primary small" type="button" (click)="trocarItem(i.idItem); fecharModalSelecao()">Selecionar</button></td>
+                </tr>
+              } @empty {
+                <tr><td colspan="7" class="empty-state">{{ pesquisaItemModal ? 'Nenhum item corresponde à pesquisa.' : 'Nenhum item ativo cadastrado.' }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <footer class="dialog-actions entry-picker-actions">
+        <span class="hint">{{ itensFiltradosModal().length }} item(ns) encontrado(s)</span>
+        <button class="btn" type="button" (click)="fecharModalSelecao()">Cancelar</button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (modalSelecao === 'fornecedor') {
+  <div class="drawer-overlay open entry-picker-overlay" role="presentation" (click)="fecharModalSelecao()">
+    <section class="dialog entry-picker-dialog" role="dialog" aria-modal="true"
+      aria-labelledby="entry-supplier-picker-title" (click)="$event.stopPropagation()">
+      <header class="dialog-head">
+        <span id="entry-supplier-picker-title">Selecionar fornecedor</span>
+        <button type="button" aria-label="Fechar seleção de fornecedores" (click)="fecharModalSelecao()">×</button>
+      </header>
+      <div class="dialog-body entry-picker-body">
+        <p class="hint">Pesquise pelo código, nome fantasia, razão social, CNPJ ou contato.</p>
+        <label class="entry-picker-search" for="pesquisa-fornecedor-entrada">
+          <span aria-hidden="true">⌕</span>
+          <input id="pesquisa-fornecedor-entrada" name="pesquisaFornecedorEntrada" type="search"
+            [(ngModel)]="pesquisaFornecedorModal" placeholder="Pesquisar por nome, CNPJ ou contato..." />
+        </label>
+        <div class="entry-picker-results">
+          <table class="table entry-picker-table">
+            <thead><tr><th>ID</th><th>Nome fantasia</th><th>Razão social</th><th>CNPJ</th><th>Contato</th><th>Ação</th></tr></thead>
+            <tbody>
+              @for (f of fornecedoresFiltradosModal(); track f.idFornecedor) {
+                <tr>
+                  <td class="code">{{ f.idFornecedor }}</td>
+                  <td><strong>{{ f.nomeFo }}</strong></td>
+                  <td>{{ f.razaoSocial || '—' }}</td>
+                  <td>{{ f.cnpj || '—' }}</td>
+                  <td>{{ f.contato || '—' }}</td>
+                  <td><button class="btn primary small" type="button" (click)="selecionarFornecedor(f)">Selecionar</button></td>
+                </tr>
+              } @empty {
+                <tr><td colspan="6" class="empty-state">{{ pesquisaFornecedorModal ? 'Nenhum fornecedor corresponde à pesquisa.' : 'Nenhum fornecedor ativo cadastrado.' }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <footer class="dialog-actions entry-picker-actions">
+        <span class="hint">{{ fornecedoresFiltradosModal().length }} fornecedor(es) encontrado(s)</span>
+        <div class="actions">
+          <button class="btn" type="button" (click)="selecionarFornecedor(null)">Não informar fornecedor</button>
+          <button class="btn" type="button" (click)="fecharModalSelecao()">Cancelar</button>
+        </div>
+      </footer>
+    </section>
+  </div>
+}
 
 <!-- O mapa é uma seleção de endereço, não uma edição da planta. -->
 @if (mapaAberto ? grupo : undefined; as g) {

@@ -45,6 +45,11 @@ export class Entradas implements OnInit {
   salvando = false;
   erro = '';
 
+  // Seleção de item e fornecedor em modais com pesquisa, no mesmo padrão da saída.
+  modalSelecao: 'item' | 'fornecedor' | null = null;
+  pesquisaItemModal = '';
+  pesquisaFornecedorModal = '';
+
   ngOnInit(): void {
     this.planta.refreshStock();
     this.carregar();
@@ -83,6 +88,7 @@ export class Entradas implements OnInit {
   }
 
   get item() { return this.itens.find(i => i.idItem === this.idItem); }
+  get fornecedor() { return this.fornecedores.find(f => f.idFornecedor === this.idFornecedor); }
   get grupo() { return this.planta.groups.find(g => g.key === this.grupoKey); }
   get estante() { return this.grupo?.slots.find(s => s.idlocalizacao === this.idEstante && !s.blocked); }
   get niveis(): number[] {
@@ -134,6 +140,81 @@ export class Entradas implements OnInit {
     this.idItem = id;
   }
 
+  abrirModalSelecao(tipo: 'item' | 'fornecedor'): void {
+    this.modalSelecao = tipo;
+    this.pesquisaItemModal = '';
+    this.pesquisaFornecedorModal = '';
+  }
+
+  fecharModalSelecao(): void {
+    this.modalSelecao = null;
+    this.pesquisaItemModal = '';
+    this.pesquisaFornecedorModal = '';
+  }
+
+  selecionarFornecedor(fornecedor: FornecedorModel | null): void {
+    this.idFornecedor = fornecedor?.idFornecedor ?? null;
+    this.fecharModalSelecao();
+  }
+
+  itensFiltradosModal(): ItemModel[] {
+    const termo = this.normalizarPesquisa(this.pesquisaItemModal);
+    return this.itens.filter(item => {
+      if (!termo) return true;
+      return [
+        String(item.idItem),
+        item.descricaoItem,
+        item.categoria?.tipo ?? '',
+        item.unidade,
+        this.localizacaoItem(item),
+        String(item.saldoTotal ?? ''),
+      ].some(valor => this.normalizarPesquisa(valor).includes(termo));
+    });
+  }
+
+  localizacaoItem(item: ItemModel): string {
+    const locais = (item.estoques ?? []).map(estoque => {
+      const local = estoque.localizacao;
+      return [
+        local?.sala,
+        local?.andar,
+        local?.posicao,
+        local?.grupoKey,
+        local?.idEstante != null ? 'estante ' + local.idEstante : '',
+        local?.prateleira != null ? 'prateleira ' + local.prateleira : '',
+        local?.posicaoInterna != null ? 'posição ' + local.posicaoInterna : '',
+        'localização ' + estoque.idLocalizacao,
+      ].filter(Boolean).join(' / ');
+    }).filter(Boolean);
+    return locais.length ? [...new Set(locais)].join(' · ') : 'Sem localização';
+  }
+
+  fornecedoresFiltradosModal(): FornecedorModel[] {
+    const termo = this.normalizarPesquisa(this.pesquisaFornecedorModal);
+    const termoNumerico = termo.replace(/\D/g, '');
+    return this.fornecedores.filter(fornecedor => {
+      if (!termo) return true;
+      const texto = [
+        String(fornecedor.idFornecedor),
+        fornecedor.nomeFo,
+        fornecedor.razaoSocial ?? '',
+        fornecedor.cnpj ?? '',
+        fornecedor.contato ?? '',
+      ];
+      const correspondeTexto = texto.some(valor => this.normalizarPesquisa(valor).includes(termo));
+      const cnpjNumerico = (fornecedor.cnpj ?? '').replace(/\D/g, '');
+      return correspondeTexto || (!!termoNumerico && cnpjNumerico.includes(termoNumerico));
+    });
+  }
+
+  private normalizarPesquisa(valor: string): string {
+    return (valor ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('pt-BR')
+      .trim();
+  }
+
   escolherPosicao(n: number | null): void {
     if (this.posicao !== n) this.limparLimites();
     this.posicao = n;
@@ -156,7 +237,13 @@ export class Entradas implements OnInit {
   abrirMapa(): void { if (this.grupo) this.mapaAberto = true; }
   fecharMapa(): void { this.mapaAberto = false; }
   @HostListener('document:keydown.escape')
-  escape(): void { this.fecharMapa(); }
+  escape(): void {
+    if (this.modalSelecao) {
+      this.fecharModalSelecao();
+      return;
+    }
+    this.fecharMapa();
+  }
   escolherEstante(slot: Posicao): void {
     if (slot.blocked) return;
     this.idEstante = slot.idlocalizacao;
@@ -204,5 +291,6 @@ export class Entradas implements OnInit {
     this.grupoKey = this.lote = this.validade = this.erro = '';
     this.dataHoraE = this.agora();
     this.fecharMapa();
+    this.fecharModalSelecao();
   }
 }

@@ -62,6 +62,61 @@ describe('Entradas', () => {
     expect(fixture.nativeElement.querySelector('#entradaMinimo')).toBeNull();
   });
 
+  it('pesquisa itens por descrição e localização e fecha o modal ao selecionar', () => {
+    const item = component.itens[0];
+    component.abrirModalSelecao('item');
+    expect(component.modalSelecao).toBe('item');
+
+    component.pesquisaItemModal = 'papel a4';
+    expect(component.itensFiltradosModal().map(i => i.idItem)).toContain(item.idItem);
+
+    component.pesquisaItemModal = 'a-01';
+    expect(component.itensFiltradosModal().map(i => i.idItem)).toContain(item.idItem);
+
+    component.trocarItem(item.idItem);
+    component.fecharModalSelecao();
+    expect(component.idItem).toBe(item.idItem);
+    expect(component.modalSelecao).toBeNull();
+  });
+
+  it('pesquisa fornecedor por CNPJ com ou sem pontuação e permite limpar a seleção', () => {
+    const fornecedor = {
+      idFornecedor: 7,
+      idEndereco: 7,
+      nomeFo: 'Fornecedor de teste',
+      razaoSocial: 'Fornecedor Teste Ltda.',
+      cnpj: '12.345.678/0001-90',
+      contato: 'contato@teste.com',
+      statusFo: 'A',
+      endereco: { cep: '49000-000', logradouro: 'Rua A', numero: '10', complemento: '',
+        cidade: 'Aracaju', bairro: 'Centro', estado: 'SE', pais: 'Brasil' },
+    };
+    component.fornecedores = [fornecedor];
+    component.abrirModalSelecao('fornecedor');
+    component.pesquisaFornecedorModal = '12345678000190';
+    expect(component.fornecedoresFiltradosModal()).toEqual([fornecedor]);
+    component.pesquisaFornecedorModal = '12.345.678/0001-90';
+    expect(component.fornecedoresFiltradosModal()).toEqual([fornecedor]);
+
+    component.selecionarFornecedor(fornecedor);
+    expect(component.idFornecedor).toBe(7);
+    expect(component.modalSelecao).toBeNull();
+
+    component.abrirModalSelecao('fornecedor');
+    component.selecionarFornecedor(null);
+    expect(component.idFornecedor).toBeNull();
+  });
+
+  it('fecha primeiro o modal de seleção ao pressionar Escape', () => {
+    component.abrirModalSelecao('item');
+    component.mapaAberto = true;
+    component.escape();
+    expect(component.modalSelecao).toBeNull();
+    expect(component.mapaAberto).toBe(true);
+    component.escape();
+    expect(component.mapaAberto).toBe(false);
+  });
+
   it('registra entrada, atualiza saldo e não duplica a localização', () => {
     const api = TestBed.inject(EntradasService);
     const g = component.planta.groups[0];
