@@ -5,6 +5,7 @@ import { CategoriaModel } from '../models/categoria.model';
 import { FornecedorModel } from '../models/fornecedor.model';
 import { FuncionarioModel } from '../models/funcionario.model';
 import { EntradaModel } from '../models/entrada.model';
+import { InventarioModel } from '../models/inventario.model';
 import { ItemModel } from '../models/item.model';
 import { LocalizacaoModel } from '../models/localizacao.model';
 import { RequisicaoModel } from '../models/requisicao.model';
@@ -19,10 +20,17 @@ export interface BancoLocal {
   localizacoes: LocalizacaoModel[];
   requisicoes: RequisicaoModel[];
   entradas: EntradaModel[];
+  inventarios: InventarioModel[];
   alertas?: AlertaModel[];
 }
 
 const CHAVE_STORAGE = 'almoxarifado.crud.local.v1';
+
+/** Impede alterações do catálogo e movimentos de estoque durante uma contagem aberta. */
+export function validarMovimentacaoPermitida(dados: Pick<BancoLocal, 'inventarios'>): void {
+  const ativo = (dados.inventarios ?? []).find(i => i.status === 'em_andamento');
+  if (ativo) throw new Error('Movimentações e alterações de estoque estão bloqueadas durante o inventário #' + ativo.idInventario + '. Finalize o inventário para liberar o estoque.');
+}
 
 function clonar<T>(valor: T): T {
   if (valor === undefined || valor === null) return valor;
@@ -61,7 +69,7 @@ function dadosIniciais(): BancoLocal {
       ], saldoTotal: 12,
     },
   ];
-  return { setores, categorias, funcionarios, fornecedores: [], itens, localizacoes, requisicoes: [], entradas: [], alertas: [] };
+  return { setores, categorias, funcionarios, fornecedores: [], itens, localizacoes, requisicoes: [], entradas: [], inventarios: [], alertas: [] };
 }
 
 /** Armazenamento local para prototipagem. Não faz chamadas HTTP nem acessa MySQL. */
@@ -95,7 +103,7 @@ export class BancoLocalService {
         const salvo = localStorage.getItem(CHAVE_STORAGE);
         if (salvo) {
           const dados = JSON.parse(salvo) as Partial<BancoLocal>;
-          const mesclados: BancoLocal = { ...dadosIniciais(), ...dados };
+          const mesclados: BancoLocal = { ...dadosIniciais(), ...dados, inventarios: dados.inventarios ?? [] };
           // Não há conversão de perfil ou permissão. Funcionários permanecem
           // como cadastros comuns; o papel na requisição é informado nos campos.
           // Migração dos registros criados antes da inclusão do almoxarife responsável.

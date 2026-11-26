@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BancoLocalService, BancoLocal } from '../core/banco-local.service';
+import { BancoLocalService, BancoLocal, validarMovimentacaoPermitida } from '../core/banco-local.service';
 import { FuncionarioModel } from '../models/funcionario.model';
 import { RequisicaoItemModel, RequisicaoModel, RequisicaoPayload } from '../models/requisicao.model';
 import { PlantaService } from './planta';
@@ -26,6 +26,7 @@ export class RequisicoesService {
 
   criar(payload: RequisicaoPayload) {
     return this.banco.alterar(d => {
+      validarMovimentacaoPermitida(d);
       this.validarFuncionarios(payload, d);
       const itens = this.validarItens(payload, d);
       this.movimentar([], itens, d);
@@ -46,6 +47,7 @@ export class RequisicoesService {
 
   atualizar(idRequisicao: number, idFuncionarioOriginal: number, payload: RequisicaoPayload) {
     return this.banco.alterar(d => {
+      validarMovimentacaoPermitida(d);
       const registro = d.requisicoes.find(r => r.idRequisicao === idRequisicao && r.idFuncionario === idFuncionarioOriginal);
       if (!registro) throw new Error('Requisição não encontrada.');
       if (payload.idFuncionario !== idFuncionarioOriginal) {
@@ -66,6 +68,7 @@ export class RequisicoesService {
 
   excluir(idRequisicao: number, idFuncionario: number) {
     return this.banco.alterar(d => {
+      validarMovimentacaoPermitida(d);
       const registro = d.requisicoes.find(r => r.idRequisicao === idRequisicao && r.idFuncionario === idFuncionario);
       if (!registro) throw new Error('Requisição não encontrada.');
       if (registro.baixaAplicada) this.movimentar(registro.itens, [], d);

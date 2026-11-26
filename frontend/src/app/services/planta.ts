@@ -63,6 +63,20 @@ interface Estado {
 export class PlantaService {
     private readonly storageKey = 'pqn-angular-planta-v1';
     private readonly banco = inject(BancoLocalService);
+
+    /** O inventário congela a geometria para preservar as posições selecionadas. */
+    private inventarioEmAndamento(): boolean {
+        let ativo = false;
+        this.banco.ler(d => (d.inventarios ?? []).some(i => i.status === 'em_andamento'))
+            .subscribe({ next: valor => ativo = valor });
+        return ativo;
+    }
+
+    private bloqueioInventario(): string {
+        return this.inventarioEmAndamento()
+            ? 'Não é possível alterar a planta enquanto um inventário estiver em andamento.'
+            : '';
+    }
     readonly materials: Material[] = [];
     private state: Estado;
     avisoPersistencia = '';
@@ -268,6 +282,8 @@ export class PlantaService {
     }
 
     setShelfCount(slot: Posicao, n: number | null): string {
+        const bloqueio = this.bloqueioInventario();
+        if (bloqueio) return bloqueio;
         const count = n ?? this.defaultShelfCount;
         if (!this.validCount(count)) return 'Informe de 1 a 30 prateleiras.';
         if (count < this.minimum(slot)) return 'Não é possível remover prateleiras com materiais vinculados.';
@@ -278,6 +294,8 @@ export class PlantaService {
     }
 
     setDefault(n: number, all: boolean): string {
+        const bloqueio = this.bloqueioInventario();
+        if (bloqueio) return bloqueio;
         if (!this.validCount(n)) return 'Informe de 1 a 30 prateleiras.';
         const affected = this.groups.flatMap(g => [...g.slots, ...g.archived]).filter(s => all || s.shelfCount == null);
         if (affected.some(s => this.minimum(s) > n)) return 'Há materiais acima desse limite. Realocação necessária.';
@@ -289,6 +307,8 @@ export class PlantaService {
 
     /** Alterações são validadas antes de trocar a planta ou consumir novos IDs. */
     saveGroup(key: string, name: string, rows: number, cols: number, disabled: Set<string>, descriptions: ReadonlyMap<string, string> = new Map()): string {
+        const bloqueio = this.bloqueioInventario();
+        if (bloqueio) return bloqueio;
         const group = this.groups.find(g => g.key === key);
         name = name.trim();
         if (!group || !name || name.length > 45 || !Number.isInteger(rows) || !Number.isInteger(cols) ||
@@ -325,6 +345,7 @@ export class PlantaService {
     coord(r: number, c: number): string { return r + ':' + c; }
 
     createGroup(name: string): Grupo | null {
+        if (this.bloqueioInventario()) return null;
         name = name.trim();
         if (this.groups.length >= 12 || !name || name.length > 45 ||
             this.groups.some(g => this.normalize(g.name) === this.normalize(name))) return null;
@@ -342,6 +363,8 @@ export class PlantaService {
      * O contador de IDs permanece intacto para não reutilizar localizações excluídas.
      */
     groupRemovalError(key: string): string {
+        const bloqueio = this.bloqueioInventario();
+        if (bloqueio) return bloqueio;
         const group = this.groups.find(g => g.key === key);
         if (!group) return 'Grupo não encontrado.';
         if ([...group.slots, ...group.archived].some(s => s.contents.length > 0)) {

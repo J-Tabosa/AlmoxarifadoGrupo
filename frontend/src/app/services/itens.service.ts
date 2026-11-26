@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BancoLocalService } from '../core/banco-local.service';
+import { BancoLocalService, validarMovimentacaoPermitida } from '../core/banco-local.service';
 import { EstoqueModel, EstoqueConfiguracaoPayload } from '../models/estoque.model';
 import { ItemModel, ItemPayload } from '../models/item.model';
 import { LocalizacaoModel } from '../models/localizacao.model';
@@ -24,6 +24,7 @@ export class ItensService {
 
   criar(payload: ItemPayload) {
     return this.banco.alterar(d => {
+      validarMovimentacaoPermitida(d);
       if (!d.categorias.some(c => c.idCategoria === payload.idCategoria)) throw new Error('Selecione uma categoria válida.');
       const idItem = this.proximoId(d.itens.map(x => x.idItem));
       const estoques = this.montarEstoques(payload.estoques, idItem, d.localizacoes, []);
@@ -39,6 +40,7 @@ export class ItensService {
 
   atualizar(id: number, payload: ItemPayload) {
     return this.banco.alterar(d => {
+      validarMovimentacaoPermitida(d);
       const registro = d.itens.find(x => x.idItem === id);
       if (!registro) throw new Error('Item não encontrado.');
       if (!d.categorias.some(c => c.idCategoria === payload.idCategoria)) throw new Error('Selecione uma categoria válida.');
@@ -59,6 +61,7 @@ export class ItensService {
 
   excluir(id: number) {
     return this.banco.alterar(d => {
+      validarMovimentacaoPermitida(d);
       if (d.entradas.some(e => e.idItem === id)) throw new Error('Não é possível excluir: o item possui entradas registradas.');
       if (d.requisicoes.some(r => r.itens.some(i => i.idItem === id))) throw new Error('Não é possível excluir: o item está vinculado a uma requisição.');
       const antes = d.itens.length;

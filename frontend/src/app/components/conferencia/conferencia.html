@@ -1,1 +1,360 @@
-<p>conferencia works!</p>
+ <div class="path">Controle / <em>Inventário físico</em></div>
+
+<section class="panel inventory-panel">
+  <div class="panel-head">
+    <div>
+      <h2 class="panel-title">Inventários realizados</h2>
+      <p>Planeje as áreas de contagem, registre as diferenças e consulte o histórico.</p>
+    </div>
+    <button class="btn primary" type="button" (click)="abrirModalInicio()" [disabled]="!!inventarioAtivo">
+      <span aria-hidden="true">＋</span> Iniciar inventário
+    </button>
+  </div>
+
+  <div class="inventory-summary">
+    <article class="inventory-summary-card">
+      <small>Inventários registrados</small>
+      <strong>{{ inventarios.length }}</strong>
+    </article>
+    <article class="inventory-summary-card">
+      <small>Prateleiras contadas</small>
+      <strong>{{ totalPrateleirasContadas }}</strong>
+    </article>
+    <article class="inventory-summary-card">
+      <small>Divergências registradas</small>
+      <strong>{{ totalDivergencias }}</strong>
+    </article>
+    <article class="inventory-summary-card">
+      <small>Situação atual</small>
+      <strong class="inventory-status-value">{{ inventarioAtivo ? 'Em andamento' : 'Sem contagem ativa' }}</strong>
+    </article>
+  </div>
+
+  @if (inventarioAtivo; as ativo) {
+    <section class="inventory-active">
+      <div class="inventory-active-heading">
+        <div>
+          <span class="eyebrow">CONTAGEM EM ANDAMENTO</span>
+          <h3>Inventário #{{ ativo.idInventario }}</h3>
+          <p>Iniciado em {{ ativo.dataInicio | date:'dd/MM/yyyy HH:mm' }} · {{ ativo.prateleiras.length }} prateleira(s) selecionada(s)</p>
+        </div>
+        <span class="tag neutral">Estoque bloqueado</span>
+      </div>
+      <div class="inventory-active-team">
+        <span><b>Responsável:</b> {{ ativo.responsavel.nomeFu }}</span>
+        <span><b>Contadores:</b> {{ ativo.contadores.length }}</span>
+      </div>
+      <div class="inventory-shelf-chips">
+        @for (prateleira of ativo.prateleiras; track prateleira.chave) {
+          <span class="inventory-shelf-chip">{{ rotuloPrateleiraRegistro(prateleira) }}</span>
+        }
+      </div>
+      <div class="inventory-active-actions">
+        <button class="btn" type="button" (click)="abrirDetalhes(ativo)">Ver dados do inventário</button>
+        <button class="btn primary" type="button" (click)="abrirFinalizacao(ativo)">Registrar resultado e finalizar</button>
+      </div>
+    </section>
+  }
+
+  <div class="inventory-history-heading">
+    <div>
+      <h3>Histórico</h3>
+      <p>Selecione um registro para consultar a composição e o relatório completo.</p>
+    </div>
+    <span class="hint">{{ inventarios.length }} registro(s)</span>
+  </div>
+
+  <div class="table-scroller inventory-table-scroller">
+    <table class="table inventory-table">
+      <thead>
+        <tr>
+          <th>Inventário</th>
+          <th>Data de início</th>
+          <th>Data de fim</th>
+          <th>Responsável</th>
+          <th>Prateleiras</th>
+          <th>Divergências</th>
+          <th>Justificadas</th>
+          <th>Situação</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (inventario of inventarios; track inventario.idInventario) {
+          <tr>
+            <td class="code">#{{ inventario.idInventario }}</td>
+            <td>{{ inventario.dataInicio | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td>{{ inventario.dataFim ? (inventario.dataFim | date:'dd/MM/yyyy HH:mm') : '—' }}</td>
+            <td>{{ inventario.responsavel.nomeFu }}</td>
+            <td>{{ inventario.prateleiras.length }}</td>
+            <td>{{ inventario.quantidadeDivergencias }}</td>
+            <td>{{ inventario.quantidadeJustificadas }}</td>
+            <td><span class="tag" [class.good]="inventario.status === 'finalizado'" [class.review]="inventario.status === 'em_andamento'">
+              {{ inventario.status === 'finalizado' ? 'Finalizado' : 'Em andamento' }}
+            </span></td>
+            <td><button type="button" class="btn small" (click)="abrirDetalhes(inventario)">Detalhes</button></td>
+          </tr>
+        } @empty {
+          <tr><td colspan="9" class="empty-state">Nenhum inventário foi registrado ainda.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+@if (modalInicioAberto) {
+  <div class="drawer-overlay open inventory-overlay" role="presentation" (click)="fecharInicio()">
+    <section class="dialog inventory-dialog inventory-start-dialog" role="dialog" aria-modal="true"
+      aria-labelledby="inventory-start-title" (click)="$event.stopPropagation()">
+      <header class="dialog-head">
+        <span id="inventory-start-title">Iniciar inventário</span>
+        <button type="button" aria-label="Fechar" (click)="fecharInicio()" [disabled]="salvando">×</button>
+      </header>
+      <form (ngSubmit)="iniciarInventario()">
+        <div class="dialog-body inventory-dialog-body">
+          <p class="inventory-intro">Defina a equipe responsável e marque cada nível de prateleira que será contado. O saldo do sistema será preservado como referência do início.</p>
+
+          <section class="inventory-form-section">
+            <div class="inventory-section-heading"><span>01</span><div><h3>Equipe do inventário</h3><p>O responsável coordena a atividade; os contadores registram a conferência física.</p></div></div>
+            <div class="field">
+              <label for="inventarioResponsavel">Responsável pelo inventário <span class="req">*</span></label>
+              <select id="inventarioResponsavel" name="inventarioResponsavel" required
+                [ngModel]="idResponsavel" (ngModelChange)="alterarResponsavel($event)">
+                <option [ngValue]="null">Selecione o responsável</option>
+                @for (funcionario of funcionarios; track funcionario.idFuncionario) {
+                  <option [ngValue]="funcionario.idFuncionario">{{ funcionario.nomeFu }} · {{ funcionario.cargo }}</option>
+                }
+              </select>
+            </div>
+            <div class="inventory-counter-list">
+              <label class="inventory-field-label">Contadores <span class="req">*</span></label>
+              @for (funcionario of funcionarios; track funcionario.idFuncionario) {
+                <label class="inventory-person-option" [class.disabled]="funcionario.idFuncionario === idResponsavel">
+                  <input type="checkbox" [checked]="idsContadores.includes(funcionario.idFuncionario)"
+                    [disabled]="funcionario.idFuncionario === idResponsavel"
+                    (change)="alternarContador(funcionario.idFuncionario, $any($event.target).checked)">
+                  <span><b>{{ funcionario.nomeFu }}</b><small>{{ funcionario.cargo }}</small></span>
+                </label>
+              } @empty {
+                <p class="hint">Cadastre funcionários ativos antes de iniciar.</p>
+              }
+            </div>
+            <small class="hint">Recomenda-se que a contagem seja feita em dupla: uma pessoa conta e outra registra.</small>
+          </section>
+
+          <section class="inventory-form-section">
+            <div class="inventory-section-heading"><span>02</span><div><h3>Prateleiras que serão contadas</h3><p>Selecione os níveis físicos individualmente. Estantes bloqueadas não aparecem.</p></div></div>
+            @for (grupo of planta.groups; track grupo.key) {
+              <div class="inventory-group">
+                <div class="inventory-group-heading">
+                  <h4>{{ grupo.name }}</h4>
+                  <div class="inventory-group-actions">
+                    <button class="btn small" type="button" (click)="selecionarPrateleirasDoGrupo(grupo, true)">Marcar grupo</button>
+                    <button class="btn small" type="button" (click)="selecionarPrateleirasDoGrupo(grupo, false)">Limpar grupo</button>
+                  </div>
+                </div>
+                <div class="inventory-shelf-grid">
+                  @for (opcao of prateleirasDoGrupo(grupo); track opcao.chave) {
+                    <label class="inventory-shelf-option" [class.selected]="prateleirasSelecionadas.includes(opcao.chave)">
+                      <input type="checkbox" [checked]="prateleirasSelecionadas.includes(opcao.chave)"
+                        (change)="alternarPrateleira(opcao.chave, $any($event.target).checked)">
+                      <span class="inventory-shelf-option-main"><b>Estante {{ opcao.nomeEstante }}</b><strong>Prateleira {{ opcao.nivel }}</strong></span>
+                      <small>Contagem física desta prateleira</small>
+                    </label>
+                  } @empty {
+                    <p class="hint">Este grupo não possui prateleiras ativas.</p>
+                  }
+                </div>
+              </div>
+            }
+            <div class="inventory-selection-summary">
+              <b>{{ prateleirasSelecionadas.length }}</b> prateleira(s) selecionada(s)
+            </div>
+          </section>
+
+          @if (erro) { <p class="entry-error" role="alert">{{ erro }}</p> }
+        </div>
+        <footer class="dialog-actions inventory-dialog-actions">
+          <span class="hint">As entradas, saídas e alterações de estoque ficam bloqueadas até o encerramento.</span>
+          <div class="actions">
+            <button class="btn primary" type="submit" [disabled]="!podeIniciar">{{ salvando ? 'Iniciando…' : 'Iniciar contagem' }}</button>
+            <button class="btn" type="button" (click)="fecharInicio()" [disabled]="salvando">Cancelar</button>
+          </div>
+        </footer>
+      </form>
+    </section>
+  </div>
+}
+
+@if (modalFinalizacaoAberto && inventarioFinalizando; as ativo) {
+  <div class="drawer-overlay open inventory-overlay" role="presentation" (click)="fecharFinalizacao()">
+    <section class="dialog inventory-dialog inventory-finish-dialog" role="dialog" aria-modal="true"
+      aria-labelledby="inventory-finish-title" (click)="$event.stopPropagation()">
+      <header class="dialog-head">
+        <span id="inventory-finish-title">Finalizar inventário #{{ ativo.idInventario }}</span>
+        <button type="button" aria-label="Fechar" (click)="fecharFinalizacao()" [disabled]="salvando">×</button>
+      </header>
+      <div class="dialog-body inventory-dialog-body">
+        <p class="inventory-intro">Registre somente os materiais cuja quantidade física ficou diferente do saldo registrado no início do inventário. O sistema calcula automaticamente o total de divergências e quantas receberam justificativa.</p>
+        <div class="inventory-count-summary">
+          <article><small>Divergências informadas</small><strong>{{ quantidadeDivergenciasForm }}</strong></article>
+          <article><small>Com justificativa</small><strong>{{ quantidadeJustificadasForm }}</strong></article>
+          <article><small>Sem justificativa</small><strong>{{ quantidadeDivergenciasForm - quantidadeJustificadasForm }}</strong></article>
+        </div>
+        <div class="inventory-divergence-heading">
+          <div><h3>Divergências encontradas</h3><p>Uma linha para cada material divergente em uma prateleira.</p></div>
+          <button class="btn small" type="button" (click)="adicionarDivergencia()">＋ Adicionar divergência</button>
+        </div>
+        @for (linha of divergenciasForm; track $index; let i = $index) {
+          <section class="inventory-divergence-card">
+            <header><b>Divergência {{ i + 1 }}</b><button class="btn small" type="button" (click)="removerDivergencia(i)">Remover</button></header>
+            <div class="inventory-divergence-grid">
+              <div class="field">
+                <label [for]="'divergenciaPrateleira-' + i">Prateleira <span class="req">*</span></label>
+                <select [id]="'divergenciaPrateleira-' + i" [name]="'divergenciaPrateleira-' + i" [(ngModel)]="linha.chavePrateleira">
+                  @for (prateleira of ativo.prateleiras; track prateleira.chave) {
+                    <option [ngValue]="prateleira.chave">{{ rotuloPrateleiraRegistro(prateleira) }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label [for]="'divergenciaMaterial-' + i">Material do catálogo</label>
+                <select [id]="'divergenciaMaterial-' + i" [name]="'divergenciaMaterial-' + i"
+                  [ngModel]="linha.idItem" (ngModelChange)="selecionarMaterialDivergencia(linha, $event)">
+                  <option [ngValue]="null">Material não cadastrado / informar abaixo</option>
+                  @for (item of itens; track item.idItem) {
+                    <option [ngValue]="item.idItem">#{{ item.idItem }} · {{ item.descricaoItem }}</option>
+                  }
+                </select>
+              </div>
+              @if (linha.idItem === null) {
+                <div class="field">
+                  <label [for]="'divergenciaDescricao-' + i">Descrição do material <span class="req">*</span></label>
+                  <input [id]="'divergenciaDescricao-' + i" [name]="'divergenciaDescricao-' + i"
+                    [(ngModel)]="linha.descricaoItem" maxlength="120" placeholder="Informe o material encontrado">
+                </div>
+              }
+              <div class="field">
+                <label [for]="'divergenciaQuantidade-' + i">Quantidade física contada <span class="req">*</span></label>
+                <input [id]="'divergenciaQuantidade-' + i" [name]="'divergenciaQuantidade-' + i"
+                  type="number" min="0" step="1" [(ngModel)]="linha.quantidadeContada">
+              </div>
+              <div class="inventory-reference">
+                <small>Saldo registrado no início</small>
+                <strong>{{ saldoSistemaDivergencia(linha) }} {{ unidadeDivergencia(linha) }}</strong>
+                @if (diferencaDivergencia(linha) !== null) {
+                  <span [class.negative]="(diferencaDivergencia(linha) ?? 0) < 0" [class.positive]="(diferencaDivergencia(linha) ?? 0) > 0">
+                    {{ (diferencaDivergencia(linha) ?? 0) > 0 ? '+' : '' }}{{ diferencaDivergencia(linha) }}
+                    · {{ (diferencaDivergencia(linha) ?? 0) < 0 ? 'Falta' : 'Sobra' }}
+                  </span>
+                }
+              </div>
+              <div class="field full">
+                <label [for]="'divergenciaObservacao-' + i">Observação</label>
+                <textarea [id]="'divergenciaObservacao-' + i" [name]="'divergenciaObservacao-' + i"
+                  rows="2" maxlength="500" [(ngModel)]="linha.observacao" placeholder="Descreva a ocorrência, se necessário"></textarea>
+              </div>
+              <div class="field full">
+                <label [for]="'divergenciaJustificativa-' + i">Justificativa da divergência</label>
+                <textarea [id]="'divergenciaJustificativa-' + i" [name]="'divergenciaJustificativa-' + i"
+                  rows="2" maxlength="800" [(ngModel)]="linha.justificativa" placeholder="Deixe em branco enquanto a divergência não estiver justificada"></textarea>
+              </div>
+            </div>
+          </section>
+        } @empty {
+          <div class="inventory-no-divergences">
+            <strong>Nenhuma divergência informada.</strong>
+            <p>Se todas as quantidades físicas coincidirem com o saldo de referência, finalize sem adicionar linhas.</p>
+          </div>
+        }
+        <p class="inventory-regularization-note">O encerramento registra o resultado e as justificativas, mas não ajusta o saldo automaticamente. Regularizações devem ser analisadas e aprovadas antes de um lançamento de estoque.</p>
+        @if (erro) { <p class="entry-error" role="alert">{{ erro }}</p> }
+      </div>
+      <footer class="dialog-actions inventory-dialog-actions">
+        <span class="hint">Confirme as quantidades antes de finalizar.</span>
+        <div class="actions">
+          <button class="btn primary" type="button" (click)="finalizarInventario()" [disabled]="!podeFinalizar">{{ salvando ? 'Finalizando…' : 'Finalizar inventário' }}</button>
+          <button class="btn" type="button" (click)="fecharFinalizacao()" [disabled]="salvando">Cancelar</button>
+        </div>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (inventarioDetalhe; as detalhe) {
+  <div class="drawer-overlay open inventory-overlay" role="presentation" (click)="inventarioDetalhe = null">
+    <section class="dialog inventory-dialog inventory-detail-dialog" role="dialog" aria-modal="true"
+      aria-labelledby="inventory-detail-title" (click)="$event.stopPropagation()">
+      <header class="dialog-head">
+        <span id="inventory-detail-title">Inventário #{{ detalhe.idInventario }} · informações completas</span>
+        <button type="button" aria-label="Fechar detalhes" (click)="inventarioDetalhe = null">×</button>
+      </header>
+      <div class="dialog-body inventory-dialog-body">
+        <div class="inventory-detail-grid">
+          <article><small>Data de início</small><strong>{{ detalhe.dataInicio | date:'dd/MM/yyyy HH:mm' }}</strong></article>
+          <article><small>Data de fim</small><strong>{{ detalhe.dataFim ? (detalhe.dataFim | date:'dd/MM/yyyy HH:mm') : 'Em andamento' }}</strong></article>
+          <article><small>Responsável</small><strong>{{ detalhe.responsavel.nomeFu }}</strong><small>{{ detalhe.responsavel.cargo }}</small></article>
+          <article><small>Contadores</small><strong>{{ detalhe.contadores.length }}</strong><small>{{ nomesContadores(detalhe) }}</small></article>
+          <article><small>Prateleiras contadas</small><strong>{{ detalhe.prateleiras.length }}</strong></article>
+          <article><small>Divergências</small><strong>{{ detalhe.quantidadeDivergencias }}</strong></article>
+          <article><small>Justificadas</small><strong>{{ detalhe.quantidadeJustificadas }}</strong></article>
+        </div>
+
+        <section class="inventory-detail-section">
+          <h3>Prateleiras selecionadas para contagem</h3>
+          <div class="inventory-detail-shelves">
+            @for (prateleira of detalhe.prateleiras; track prateleira.chave) {
+              <article>
+                <strong>{{ rotuloPrateleiraRegistro(prateleira) }}</strong>
+                @if (detalhe.status === 'finalizado') {
+                  <small>{{ prateleira.itensSistema.length }} material(is) com vínculo no saldo de referência</small>
+                  @if (prateleira.itensSistema.length) {
+                    <ul>
+                      @for (item of prateleira.itensSistema; track item.idItem) {
+                        <li>#{{ item.idItem }} · {{ item.descricaoItem }} — {{ item.saldo }} {{ item.unidade }}</li>
+                      }
+                    </ul>
+                  }
+                } @else {
+                  <small>O saldo de referência permanece oculto durante a contagem.</small>
+                }
+              </article>
+            }
+          </div>
+        </section>
+
+        <section class="inventory-detail-section">
+          <h3>Divergências e justificativas</h3>
+          @if (detalhe.divergencias.length) {
+            <div class="table-scroller">
+              <table class="table inventory-detail-table">
+                <thead><tr><th>Prateleira</th><th>Material</th><th>Saldo inicial</th><th>Contado</th><th>Diferença</th><th>Observação</th><th>Justificativa</th></tr></thead>
+                <tbody>
+                  @for (dvg of detalhe.divergencias; track dvg.id) {
+                    <tr>
+                      <td>{{ dvg.prateleira }}</td>
+                      <td>{{ dvg.descricaoItem }}<small>{{ dvg.unidade }}</small></td>
+                      <td>{{ dvg.saldoSistema }}</td>
+                      <td>{{ dvg.quantidadeContada }}</td>
+                      <td [class.negative]="dvg.diferenca < 0" [class.positive]="dvg.diferenca > 0">
+                        {{ dvg.diferenca > 0 ? '+' : '' }}{{ dvg.diferenca }}
+                      </td>
+                      <td>{{ dvg.observacao || '—' }}</td>
+                      <td>{{ dvg.justificativa || 'Pendente de justificativa' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="inventory-no-divergences">Nenhuma divergência foi registrada.</p>
+          }
+        </section>
+      </div>
+      <footer class="dialog-actions inventory-dialog-actions">
+        <span class="hint">{{ detalhe.status === 'finalizado' ? 'Registro histórico finalizado.' : 'Este inventário ainda está em andamento.' }}</span>
+        <button class="btn" type="button" (click)="inventarioDetalhe = null">Fechar</button>
+      </footer>
+    </section>
+  </div>
+}

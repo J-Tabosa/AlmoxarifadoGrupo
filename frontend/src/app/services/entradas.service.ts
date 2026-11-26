@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { tap, throwError } from 'rxjs';
-import { BancoLocalService } from '../core/banco-local.service';
+import { BancoLocalService, validarMovimentacaoPermitida } from '../core/banco-local.service';
 import { EntradaModel, EntradaPayload } from '../models/entrada.model';
 import { LocalizacaoModel } from '../models/localizacao.model';
 import { PlantaService } from './planta';
@@ -40,6 +40,7 @@ export class EntradasService {
 
     // Uma única transação local registra histórico, endereço e saldo.
     return this.banco.alterar(d => {
+      validarMovimentacaoPermitida(d);
       const item = d.itens.find(i => i.idItem === payload.idItem && i.statusIt === 'A');
       if (!item) throw new Error('Selecione um item ativo do catálogo.');
       const fornecedor = d.fornecedores.find(f => f.idFornecedor === payload.idFornecedor && f.statusFo === 'A');
