@@ -125,8 +125,17 @@
                                                             (click)="onCellClick($event, cell.r, cell.c)"
                                                             (contextmenu)="selectWithContextMenu($event, cell.r, cell.c)"
                                                             (keydown.f2)="$event.preventDefault(); selectCell(cell.r, cell.c)">
-                                                        <b>{{ !cell.blocked && cell.descricao.trim() ? cell.descricao : pad(cell.r) + '-' + pad(cell.c) }}</b>
-                                                        <small>{{ cell.blocked ? 'Vazio' : cell.slot ? '#' + cell.slot.idlocalizacao : 'Novo' }}</small>
+                                                        @if (cell.blocked) {
+                                                            <b>{{ pad(cell.r) }}-{{ pad(cell.c) }}</b><small>Vazio</small>
+                                                        } @else if (planta.numeracaoEstantes) {
+                                                            <b class="preview-number">{{ cell.numero }}</b>
+                                                        } @else {
+                                                            @if (planta.camposEstante.nome) { <b>{{ cell.descricao.trim() || pad(cell.r) + '-' + pad(cell.c) }}</b> }
+                                                            @if (planta.camposEstante.id) { <small>{{ cell.slot ? '#' + cell.slot.idlocalizacao : 'Novo' }}</small> }
+                                                            @if (planta.camposEstante.quantidade) {
+                                                                <small>{{ cell.slot?.contents?.length ?? 0 }} {{ (cell.slot?.contents?.length ?? 0) === 1 ? 'item' : 'itens' }}</small>
+                                                            }
+                                                        }
                                                     </button>
                                                 }
                                             </div>
@@ -241,6 +250,45 @@
                     </div>
                     <p class="hint" role="status">{{ planta.avisoPersistencia || 'Preferência salva automaticamente neste navegador.' }}</p>
                 </div>
+                <div class="settings-block">
+                     <div class="setting-line"><div>
+                         <strong>Informações exibidas nas estantes</strong>
+                         <p>Escolha o que aparece dentro dos quadrados de todos os grupos.</p>
+                     </div></div>
+                     <div class="tile-appearance">
+                         <div class="tile-appearance-options" role="group" aria-label="Informações das estantes">
+                             <label class="tile-appearance-check">
+                                 <input type="checkbox" [ngModel]="planta.camposEstante.nome" (ngModelChange)="planta.setCampoEstante('nome', $event)">
+                                 <span><strong>Nome da estante</strong><small>Descrição cadastrada ou coordenadas.</small></span>
+                             </label>
+                             <label class="tile-appearance-check">
+                                 <input type="checkbox" [ngModel]="planta.camposEstante.id" (ngModelChange)="planta.setCampoEstante('id', $event)">
+                                 <span><strong>ID da estante</strong><small>Identificador permanente, como #128.</small></span>
+                             </label>
+                             <label class="tile-appearance-check">
+                                 <input type="checkbox" [ngModel]="planta.camposEstante.quantidade" (ngModelChange)="planta.setCampoEstante('quantidade', $event)">
+                                 <span><strong>Quantidade de itens</strong><small>Quantidade de registros de materiais na estante.</small></span>
+                             </label>
+                         </div>
+                         <div class="tile-appearance-preview">
+                             <span class="hint">Prévia do mapa</span>
+                             <div class="tile-preview-grid" aria-label="Exemplo de quatro estantes">
+                                 @for (ex of [{ nome: 'Papelaria', id: 128, quantidade: 3 }, { nome: '01-02', id: 129, quantidade: 0 }, { nome: 'Limpeza', id: 142, quantidade: 2 }, { nome: '02-02', id: 143, quantidade: 1 }]; track ex.id; let i = $index) {
+                                     <div class="tile-preview-cell" [class.example-empty]="ex.quantidade === 0">
+                                         @if (planta.numeracaoEstantes) { <b class="example-number">{{ i + 1 }}</b> }
+                                         @else {
+                                             @if (planta.camposEstante.nome) { <b>{{ ex.nome }}</b> }
+                                             @if (planta.camposEstante.id) { <small>#{{ ex.id }}</small> }
+                                             @if (planta.camposEstante.quantidade) { <small>{{ ex.quantidade }} {{ ex.quantidade === 1 ? 'item' : 'itens' }}</small> }
+                                         }
+                                     </div>
+                                 }
+                             </div>
+                         </div>
+                     </div>
+                     <p class="hint">Sem nenhuma opção marcada, as estantes ativas recebem números visuais de 1 em diante (→ e depois ↓), pulando os corredores. Os IDs e nomes cadastrados não mudam.</p>
+                     <p class="hint" role="status">{{ planta.avisoPersistencia || 'Preferências salvas automaticamente neste navegador.' }}</p>
+                 </div>
                 <div class="settings-block"><div class="setting-line"><div><strong>Tema de visualização</strong><p>Escolha entre o tema claro original e o tema escuro.</p></div><div class="segmented"><button [class.active]="!dark" (click)="setTheme(false)">Claro</button><button [class.active]="dark" (click)="setTheme(true)">Escuro</button></div></div></div>
                 <div class="settings-block"><div class="setting-line"><div><strong>Layout da aplicação</strong><p>Janela centralizada, botões retos e menu horizontal.</p></div><span class="tag ok">Ativo</span></div></div>
             }

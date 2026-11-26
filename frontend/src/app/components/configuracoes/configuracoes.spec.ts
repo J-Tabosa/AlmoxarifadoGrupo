@@ -26,6 +26,28 @@ describe('Configuracoes', () => {
         else localStorage.setItem(storageKey, previous);
     });
 
+    it('persiste as opções de aparência e numera somente estantes ativas', () => {
+        const planta = component.planta;
+        const ids = component.group.slots.map(s => s.idlocalizacao);
+        expect(planta.camposEstante).toEqual({ nome: true, id: true, quantidade: true });
+        planta.setCampoEstante('id', false);
+        expect(planta.numeracaoEstantes).toBe(false);
+        planta.setCampoEstante('nome', false);
+        planta.setCampoEstante('quantidade', false);
+        expect(planta.numeracaoEstantes).toBe(true);
+        expect(JSON.parse(localStorage.getItem(storageKey)!).camposEstante).toEqual({ nome: false, id: false, quantidade: false });
+        component.changeTab('aparencia');
+        fixture.detectChanges();
+        expect(Array.from(fixture.nativeElement.querySelectorAll('.example-number') as NodeListOf<HTMLElement>).map(n => n.textContent?.trim())).toEqual(['1', '2', '3', '4']);
+        component.changeTab('enderecamento');
+        component.toggleCell(1, 2);
+        fixture.detectChanges();
+        expect(component.cells.slice(0, 3).map(c => c.numero)).toEqual([1, 0, 2]);
+        expect(component.save()).toBe(true);
+        expect(planta.numeroVisual(component.group, component.group.slots[2])).toBe(2);
+        expect(component.group.slots.map(s => s.idlocalizacao)).toEqual(ids);
+    });
+
     it('cria o editor e lista os grupos', () => {
         expect(component).toBeTruthy();
         expect(fixture.nativeElement.querySelectorAll('.group-option').length).toBe(1);

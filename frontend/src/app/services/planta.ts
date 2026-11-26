@@ -41,12 +41,19 @@ export interface Grupo {
     archived: Posicao[];
 }
 
+export interface CamposEstante {
+    nome: boolean;
+    id: boolean;
+    quantidade: boolean;
+}
+
 interface Estado {
     groups: Grupo[];
     nextId: number;
     defaultShelfCount: number;
     activeKey: string;
     showBlocked?: boolean;
+    camposEstante?: CamposEstante;
 }
 
 /** Estado demonstrativo compartilhado entre Painel e Configurações.
@@ -79,6 +86,28 @@ export class PlantaService {
         this.state.showBlocked = show;
         this.persist();
     }
+    // Preferências independentes; registros antigos mantêm a visualização completa.
+    get camposEstante(): CamposEstante {
+        const campos = this.state.camposEstante;
+        return { nome: campos?.nome !== false, id: campos?.id !== false, quantidade: campos?.quantidade !== false };
+    }
+
+    setCampoEstante(campo: keyof CamposEstante, exibir: boolean): void {
+        this.state.camposEstante = { ...this.camposEstante, [campo]: exibir };
+        this.persist();
+    }
+
+    get numeracaoEstantes(): boolean {
+        const { nome, id, quantidade } = this.camposEstante;
+        return !nome && !id && !quantidade;
+    }
+
+    /** Numeração visual por grupo, em ordem de linha e coluna, sem contar corredores. */
+    numeroVisual(grupo: Grupo, slot: Posicao): number {
+        return grupo.slots.filter(s => !s.blocked &&
+            (s.r < slot.r || (s.r === slot.r && s.c <= slot.c))).length;
+    }
+
     get activeGroup(): Grupo {
         return this.groups.find(g => g.key === this.state.activeKey) ?? this.groups[0];
     }

@@ -58,10 +58,13 @@ export class Configuracoes {
     get cells() {
         if (!this.validSize) return [];
         const old = new Map([...this.group.slots, ...this.group.archived].map(s => [this.planta.coord(s.r, s.c), s]));
+        let numero = 0;
         return Array.from({ length: this.rows * this.cols }, (_, i) => {
             const r = Math.floor(i / this.cols) + 1, c = i % this.cols + 1;
             const key = this.planta.coord(r, c);
-            return { r, c, key, slot: old.get(key), blocked: this.disabled.has(key), descricao: this.descriptions.get(key) ?? '' };
+            const blocked = this.disabled.has(key);
+            return { r, c, key, slot: old.get(key), blocked,
+                descricao: this.descriptions.get(key) ?? '', numero: blocked ? 0 : ++numero };
         });
     }
 

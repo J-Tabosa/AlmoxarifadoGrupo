@@ -196,3 +196,7 @@
   }
   .entry-picker-actions > .hint { margin-right: 0; }
 }
+
+
+.entry-map-grid .entry-tile:not(.masked) { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.entry-map-grid .tile-position.tile-sequence { font-size: 18px; font-weight: 800; }

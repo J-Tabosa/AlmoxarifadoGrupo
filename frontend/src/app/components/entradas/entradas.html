@@ -246,11 +246,18 @@
                         [class.good]="planta.situacao(s) === 'good'" [class.low]="planta.situacao(s) === 'low'"
                         [class.empty]="planta.situacao(s) === 'empty'" [class.review]="planta.situacao(s) === 'review'"
                         [class.chosen]="s.idlocalizacao === idEstante"
-                        [style.grid-row]="s.r" [style.grid-column]="s.c" [title]="nomeEstante(s)"
+                        [style.grid-row]="s.r" [style.grid-column]="s.c" [title]="nomeEstante(s) + ' · #' + s.idlocalizacao"
+                        [attr.aria-label]="'Estante ' + nomeEstante(s) + ', ID ' + s.idlocalizacao"
                         (click)="escolherEstante(s)">
-                  <span class="tile-position">{{ nomeEstante(s) }}</span>
-                  <span class="tile-id">#{{ s.idlocalizacao }}</span>
-                  <span class="rack-mini-count">{{ s.contents.length }} {{ s.contents.length === 1 ? 'item' : 'itens' }}</span>
+                  @if (planta.numeracaoEstantes) {
+                                    <span class="tile-position tile-sequence">{{ planta.numeroVisual(g, s) }}</span>
+                                } @else {
+                                    @if (planta.camposEstante.nome) { <span class="tile-position">{{ nomeEstante(s) }}</span> }
+                                    @if (planta.camposEstante.id) { <span class="tile-id">#{{ s.idlocalizacao }}</span> }
+                                    @if (planta.camposEstante.quantidade) {
+                                        <span class="rack-mini-count">{{ s.contents.length }} {{ s.contents.length === 1 ? 'item' : 'itens' }}</span>
+                                    }
+                                }
                 </button>
               } @else if (planta.showBlocked) {
                 <div class="address-tile masked entry-tile" [style.grid-row]="s.r" [style.grid-column]="s.c"><span>Vazio</span></div>

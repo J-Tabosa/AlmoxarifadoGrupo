@@ -94,9 +94,15 @@
                                     [title]="displayName(slot) + ' · ' + rackName(slot) + ' · #' + slot.idlocalizacao"
                                     [attr.aria-pressed]="slot.idlocalizacao === selected?.idlocalizacao"
                                     (click)="selectPosition(slot)">
-                                <span class="tile-position">{{ displayName(slot) }}</span>
-                                <span class="tile-id">#{{ slot.idlocalizacao }}</span>
-                                <span class="rack-mini-count">{{ slot.contents.length }} {{ slot.contents.length === 1 ? 'item' : 'itens' }}</span>
+                                @if (planta.numeracaoEstantes) {
+                                    <span class="tile-position tile-sequence">{{ planta.numeroVisual(group, slot) }}</span>
+                                } @else {
+                                    @if (planta.camposEstante.nome) { <span class="tile-position">{{ displayName(slot) }}</span> }
+                                    @if (planta.camposEstante.id) { <span class="tile-id">#{{ slot.idlocalizacao }}</span> }
+                                    @if (planta.camposEstante.quantidade) {
+                                        <span class="rack-mini-count">{{ slot.contents.length }} {{ slot.contents.length === 1 ? 'item' : 'itens' }}</span>
+                                    }
+                                }
                                 <span class="mini-corner">{{ planta.situacao(slot) === 'low' ? '!' : planta.situacao(slot) === 'review' ? '~' : '' }}</span>
                             </button>
                         } @else if (planta.showBlocked) {

@@ -417,3 +417,16 @@
     outline: 2px solid var(--blue);
     outline-offset: 1px;
 }
+
+
+/* Centraliza os campos visíveis, sem reservar espaço para informações ocultas. */
+#addressGrid .address-tile.has-estante:not(.masked) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+#addressGrid .tile-position.tile-sequence {
+    font-size: calc(var(--base-tile-position-font) * 1.65 * var(--map-zoom, 1));
+    font-weight: 800;
+}
