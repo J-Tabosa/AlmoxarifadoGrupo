@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, HostListener, inject, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, HostListener, inject, OnDestroy } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -7,6 +7,7 @@ import { ItensService } from '../../services/itens.service';
 import { ItemModel } from '../../models/item.model';
 import { FichaItem } from '../ficha-item/ficha-item';
 import { MapPan } from '../../shared/map-pan';
+import { DialogoService } from '../../core/dialogo.service';
 
 @Component({
     selector: 'app-painel',
@@ -18,6 +19,13 @@ export class Painel implements OnDestroy {
     readonly planta = inject(PlantaService);
     private readonly itensApi = inject(ItensService);
     private readonly cdr = inject(ChangeDetectorRef);
+    private readonly host = inject(ElementRef<HTMLElement>).nativeElement;
+    private readonly dialogo = inject(DialogoService);
+    rackLookup = false;
+    rackId = '';
+    rackLookupError = '';
+    private lookupPrevious: HTMLElement | null = null;
+    private keyboardRack = false;
     mapZoom = 100;
     group = this.planta.activeGroup;
 
@@ -107,16 +115,130 @@ export class Painel implements OnDestroy {
             ' grupo(s) · ' + this.countMatches(this.group) + ' neste grupo';
     }
 
+    /** Resultados ordenados por grupo, linha e coluna, com os mesmos critérios do destaque. */
+    get searchResults(): { group: Grupo; slot: Posicao }[] {
+        return this.planta.groups.flatMap(group => group.slots
+            .filter(slot => this.match(slot))
+            .sort((a, b) => a.r - b.r || a.c - b.c)
+            .map(slot => ({ group, slot })));
+    }
+
+    get resultIndex(): number {
+        return this.searchResults.findIndex(result => result.group.key === this.group.key &&
+            result.slot.idlocalizacao === this.selected?.idlocalizacao);
+    }
+
     search(): void {
         this.query = this.planta.normalize(this.searchText);
         this.mode = this.searchMode;
-        if (this.query && !this.countMatches(this.group)) {
-            const other = this.planta.groups.find(g => this.countMatches(g) > 0);
-            if (other) this.selectGroup(other);
-        }
+        const results = this.searchResults;
+        const first = results.find(result => result.group.key === this.group.key) ?? results[0];
+        if (first) this.focusResult(first);
     }
 
     clearSearch(): void { this.searchText = ''; this.query = ''; }
+
+    private focusResult(result: { group: Grupo; slot: Posicao }): void {
+        if (this.group.key !== result.group.key) this.selectGroup(result.group);
+        this.selectPosition(result.slot);
+        this.cdr.detectChanges();
+        this.focusSelectedTile();
+    }
+
+    /** Só a área interna do mapa rola para mostrar o resultado, inclusive com zoom. */
+    private focusSelectedTile(): void {
+        if (!this.selected) return;
+        const viewport = this.host.querySelector<HTMLElement>('.map-viewport');
+        const tile = viewport?.querySelector<HTMLElement>('[data-rack-id="' + this.selected.idlocalizacao + '"]');
+        if (!viewport || !tile) return;
+        tile.focus({ preventScroll: true });
+        const v = viewport.getBoundingClientRect();
+        const t = tile.getBoundingClientRect();
+        const left = v.left + viewport.clientLeft, top = v.top + viewport.clientTop;
+        const right = left + viewport.clientWidth, bottom = top + viewport.clientHeight;
+        if (t.left < left) viewport.scrollLeft += t.left - left - 4;
+        else if (t.right > right) viewport.scrollLeft += t.right - right + 4;
+        if (t.top < top) viewport.scrollTop += t.top - top - 4;
+        else if (t.bottom > bottom) viewport.scrollTop += t.bottom - bottom + 4;
+    }
+
+    openRackLookup(): void {
+        if (this.rack || this.rackLookup || this.dialogo.estado()) return;
+        this.lookupPrevious = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        this.rackId = '';
+        this.rackLookupError = '';
+        this.rackLookup = true;
+        this.cdr.detectChanges();
+        this.host.querySelector<HTMLInputElement>('#rackLookupId')?.focus();
+    }
+
+    closeRackLookup(restoreFocus = true): void {
+        this.rackLookup = false;
+        this.rackLookupError = '';
+        this.cdr.detectChanges();
+        if (restoreFocus) this.lookupPrevious?.focus({ preventScroll: true });
+        this.lookupPrevious = null;
+    }
+
+    goToRack(): void {
+        const raw = this.rackId.trim().replace(/^#/, '');
+        if (!/^\d+$/.test(raw) || !Number.isSafeInteger(Number(raw)) || Number(raw) < 1) {
+            this.rackLookupError = 'Informe o ID numérico da estante.';
+            return;
+        }
+        const id = Number(raw);
+        const group = this.planta.groups.find(g => g.slots.some(s => s.idlocalizacao === id && !s.blocked));
+        const slot = group?.slots.find(s => s.idlocalizacao === id && !s.blocked);
+        if (!group || !slot) {
+            this.rackLookupError = 'Estante #' + id + ' não encontrada ou desativada.';
+            return;
+        }
+        this.closeRackLookup(false);
+        this.clearSearch();
+        this.focusResult({ group, slot });
+        this.openRackByKeyboard(slot);
+    }
+
+    private openRackByKeyboard(slot: Posicao): void {
+        this.keyboardRack = true;
+        this.openRack(slot);
+        this.cdr.detectChanges();
+        this.host.querySelector<HTMLElement>('.estante-modal .dialog-head button')?.focus({ preventScroll: true });
+    }
+
+    @HostListener('document:keydown', ['$event'])
+    handlePanelShortcut(event: KeyboardEvent): void {
+        if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey || this.dialogo.estado() || this.rack || this.rackLookup) return;
+        const target = event.target instanceof HTMLElement ? event.target : document.activeElement;
+        const editing = !!target?.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
+        // Não captura Caps Lock enquanto o usuário digita, nem impede Tab nos outros campos.
+        if (event.key === 'CapsLock' && !editing && !event.repeat) {
+            event.preventDefault();
+            this.openRackLookup();
+            return;
+        }
+        const mapFocus = !!target?.closest('.map-viewport') || target === document.body || !target;
+        if (event.key === 'Tab' && !event.shiftKey && !editing && mapFocus) {
+            event.preventDefault();
+            const input = this.host.querySelector<HTMLInputElement>('.map-search-field input');
+            input?.focus();
+            input?.select();
+            return;
+        }
+        if (editing || !mapFocus || !this.query) return;
+        const results = this.searchResults;
+        if (!results.length) return;
+        const index = this.resultIndex;
+        if (['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(event.key)) {
+            event.preventDefault();
+            const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1;
+            const next = index < 0 ? (step > 0 ? 0 : results.length - 1) : (index + step + results.length) % results.length;
+            this.focusResult(results[next]);
+        } else if (event.key === 'Enter' && index >= 0 && !event.repeat) {
+            event.preventDefault();
+            this.openRackByKeyboard(results[index].slot);
+        }
+    }
 
     status(slot: Posicao): string {
         return { good: 'Em dia', low: 'Requer atenção', empty: 'Sem saldo / vazia', review: 'Conferência' }[this.planta.situacao(slot)];
@@ -149,14 +271,25 @@ export class Painel implements OnDestroy {
         this.fecharFichaItem();
         this.rack = null;
         document.body.style.overflow = this.previousOverflow;
+        if (this.keyboardRack) {
+            this.keyboardRack = false;
+            this.cdr.detectChanges();
+            this.focusSelectedTile();
+        }
     }
 
     @HostListener('document:keydown.escape')
     escape(): void {
-        if (this.fichaItem) this.fecharFichaItem();
+        if (this.dialogo.estado()) return;
+        if (this.rackLookup) this.closeRackLookup();
+        else if (this.fichaItem) this.fecharFichaItem();
         else this.closeRack();
     }
-    ngOnDestroy(): void { this.closeRack(); }
+    ngOnDestroy(): void {
+        // Destruição da rota não deve tentar focar elementos que estão saindo da tela.
+        this.keyboardRack = false;
+        this.closeRack();
+    }
 
     get levels(): number[] {
         return this.rack ? Array.from({ length: this.planta.shelfCount(this.rack) }, (_, i) => i + 1) : [];

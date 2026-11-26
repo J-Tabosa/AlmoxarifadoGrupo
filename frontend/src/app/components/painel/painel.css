@@ -363,3 +363,28 @@
 .map-viewport.map-panning .address-tile {
     cursor: grabbing !important;
 }
+
+
+/* Atalhos do Painel: acesso direto por ID e foco visível durante a navegação. */
+.rack-lookup-button {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+.rack-lookup-dialog {
+    width: min(440px, calc(100vw - 32px));
+}
+.rack-lookup-dialog .dialog-body {
+    padding: 18px;
+}
+.rack-lookup-dialog .field input {
+    width: 100%;
+}
+.rack-lookup-error {
+    color: var(--red);
+    margin: 10px 0 0;
+}
+#addressGrid .address-tile.search-match.chosen {
+    outline: 3px solid var(--wine) !important;
+    outline-offset: 2px;
+    box-shadow: inset 0 0 0 3px #c9ffff, 0 0 0 2px #fff, 0 0 12px 3px #00cde7 !important;
+}

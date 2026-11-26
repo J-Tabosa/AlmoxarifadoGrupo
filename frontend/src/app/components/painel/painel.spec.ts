@@ -85,6 +85,57 @@ describe('Painel', () => {
     expect(component.group.slots.map(s => s.idlocalizacao)).toEqual(ids);
   });
 
+  it('abre a ficha pelo ID digitado e mantém aviso para IDs inválidos', () => {
+    fixture.detectChanges();
+    const slot = component.group.slots.find(s => !s.blocked)!;
+    const caps = new KeyboardEvent('keydown', { key: 'CapsLock', bubbles: true, cancelable: true });
+    document.body.dispatchEvent(caps);
+    expect(caps.defaultPrevented).toBe(true);
+    expect(component.rackLookup).toBe(true);
+    component.rackId = '999999999';
+    component.goToRack();
+    expect(component.rackLookupError).toContain('não encontrada');
+    component.rackId = String(slot.idlocalizacao);
+    component.goToRack();
+    expect(component.rackLookup).toBe(false);
+    expect(component.rack).toBe(slot);
+    component.escape();
+    expect(component.rack).toBeNull();
+  });
+
+  it('navega pelos resultados com setas e abre a ficha com Enter', () => {
+    const slots = component.group.slots.filter(s => !s.blocked).slice(0, 2);
+    const old = slots.map(s => s.contents);
+    const code = 'TESTE-ATALHO';
+    component.planta.materials.push({ code, name: 'Produto teste atalhos', category: 'Teste', unit: 'UN', stock: 2, min: 0 });
+    try {
+      slots.forEach(s => s.contents = [{ level: 1, position: 1, itemCode: code, qty: 1 }]);
+      fixture.detectChanges();
+      component.searchText = 'Produto teste atalhos';
+      component.search();
+      expect(component.selected).toBe(slots[0]);
+      const key = (value: string) => {
+        const tile = fixture.nativeElement.querySelector('.address-tile.chosen') as HTMLElement;
+        tile.dispatchEvent(new KeyboardEvent('keydown', { key: value, bubbles: true, cancelable: true }));
+      };
+      key('ArrowRight');
+      expect(component.selected).toBe(slots[1]);
+      key('ArrowDown');
+      expect(component.selected).toBe(slots[0]);
+      key('Enter');
+      expect(component.rack).toBe(slots[0]);
+      component.escape();
+      key('Tab');
+      expect(document.activeElement).toBe(fixture.nativeElement.querySelector('.map-search-field input'));
+    } finally {
+      slots.forEach((s, i) => s.contents = old[i]);
+      const index = component.planta.materials.findIndex(m => m.code === code);
+      if (index >= 0) component.planta.materials.splice(index, 1);
+      component.closeRack();
+      component.clearSearch();
+    }
+  });
+
   it('mostra o nome personalizado como título da ficha lateral', () => {
     const original = component.selected!.descricao;
     try {
