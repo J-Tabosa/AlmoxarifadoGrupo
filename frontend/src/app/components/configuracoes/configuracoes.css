@@ -439,3 +439,15 @@
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Modo de navegação separado da edição; botão do meio funciona nos dois modos. */
+.group-editor .manager-preview-viewport.map-pan-mode,
+.group-editor .manager-preview-viewport.map-pan-mode .preview-slot {
+    cursor: grab !important;
+    touch-action: none;
+}
+.group-editor .manager-preview-viewport.map-panning,
+.group-editor .manager-preview-viewport.map-panning .preview-slot {
+    cursor: grabbing !important;
+}

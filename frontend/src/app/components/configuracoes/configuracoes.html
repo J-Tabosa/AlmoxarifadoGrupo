@@ -93,13 +93,19 @@
                                             <span><strong>Clique/arraste esquerdo:</strong> ativar ou desativar</span>
                                             <span><strong>Clique direito:</strong> selecionar / nomear (F2 pelo teclado)</span>
                                             <span><strong>Rodinha do mouse:</strong> zoom do mapa</span>
+                                            <span><strong>Botão do meio:</strong> arrastar o mapa</span>
                                         </div>
-                                        <button type="button" class="btn" [disabled]="!validSize" (click)="toggleAll()">
-                                            {{ blockedCount > 0 ? 'Ativar todas' : 'Desativar todas' }}
-                                        </button>
+                                        <div class="manager-actions">
+                                            <button type="button" class="btn" [class.primary]="moveMap" [attr.aria-pressed]="moveMap"
+                                                    [disabled]="!validSize" (click)="toggleMoveMap()">{{ moveMap ? 'Voltar a editar' : 'Mover mapa' }}</button>
+                                            <button type="button" class="btn" [disabled]="!validSize" (click)="toggleAll()">
+                                                {{ blockedCount > 0 ? 'Ativar todas' : 'Desativar todas' }}
+                                            </button>
+                                        </div>
                                     </div>
                                     @if (validSize) {
-                                        <div class="manager-preview-viewport" #mapViewport (wheel)="zoomMap($event)">
+                                        <div class="manager-preview-viewport" #mapViewport [appMapPan]="moveMap"
+                                             [class.map-pan-mode]="moveMap" (wheel)="zoomMap($event)">
                                             <div class="preview-location-grid" role="group" aria-label="Editor da planta"
                                                  [style.--map-zoom]="mapZoom / 100"
                                                  [style.grid-template-columns]="'repeat(' + cols + ', minmax(0, 1fr))'"

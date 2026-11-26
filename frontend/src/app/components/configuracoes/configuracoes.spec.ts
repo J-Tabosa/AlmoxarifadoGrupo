@@ -141,6 +141,20 @@ describe('Configuracoes', () => {
         expect(component.noticeError).toBe(true);
     });
 
+    it('não pinta estantes enquanto o modo de movimentação estiver ativo', () => {
+        const tile = fixture.nativeElement.querySelector('.preview-slot') as HTMLButtonElement;
+        component.toggleMoveMap();
+        fixture.detectChanges();
+        tile.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 15 }));
+        tile.click();
+        component.endDrag();
+        expect(component.disabled.size).toBe(0);
+        expect(component.dirty).toBe(false);
+        component.toggleMoveMap();
+        tile.click();
+        expect(component.disabled.has('1:1')).toBe(true);
+    });
+
     it('aplica zoom somente à prévia, limita a escala e não altera a planta', () => {
         const viewport = fixture.nativeElement.querySelector('.manager-preview-viewport') as HTMLElement;
         const grid = viewport.querySelector('.preview-location-grid') as HTMLElement;

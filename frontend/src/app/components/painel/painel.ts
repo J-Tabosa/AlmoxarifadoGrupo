@@ -6,10 +6,11 @@ import { Busca, Conteudo, Grupo, PlantaService, Posicao } from '../../services/p
 import { ItensService } from '../../services/itens.service';
 import { ItemModel } from '../../models/item.model';
 import { FichaItem } from '../ficha-item/ficha-item';
+import { MapPan } from '../../shared/map-pan';
 
 @Component({
     selector: 'app-painel',
-    imports: [FormsModule, NgClass, RouterLink, FichaItem],
+    imports: [FormsModule, NgClass, RouterLink, FichaItem, MapPan],
     templateUrl: './painel.html',
     styleUrl: './painel.css'
 })

@@ -55,7 +55,7 @@
                         @if (query) {
                             <span class="map-result-status" [class.has-results]="totalMatches > 0" role="status">{{ searchStatus }}</span>
                         } @else {
-                            Planta vista de cima · selecione uma estante para consultar seus dados
+                            Clique para selecionar · arraste para navegar · rodinha para zoom
                         }
                     </span>
                     <span>{{ group.rows }} × {{ group.cols }} · {{ activeCount }} posições · {{ group.slots.length - activeCount }} espaços excluídos</span>
@@ -64,7 +64,7 @@
                 </div>
 
                 <!-- Espaços desativados podem ser exibidos ou ocultados, sem mudar a geometria da planta. -->
-                <div class="map-viewport" #mapViewport (wheel)="zoomMap($event)"
+                <div class="map-viewport" #mapViewport [appMapPan]="true" (wheel)="zoomMap($event)"
                      [style.--map-rows]="group.rows" [style.--map-cols]="group.cols" [style.--map-zoom]="mapZoom / 100">
                 <div id="addressGrid" class="address-grid" [class.search-active]="!!query && countMatches(group) > 0"
                      [style.grid-template-columns]="'repeat(' + group.cols + ', var(--tile-width))'"

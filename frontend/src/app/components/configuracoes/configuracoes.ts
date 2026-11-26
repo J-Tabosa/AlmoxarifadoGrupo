@@ -2,12 +2,13 @@ import { ChangeDetectorRef, Component, HostListener, inject } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Grupo, PlantaService, Posicao } from '../../services/planta';
+import { MapPan } from '../../shared/map-pan';
 
 type Aba = 'enderecamento' | 'aparencia' | 'usuarios' | 'seguranca' | 'backup';
 
 @Component({
     selector: 'app-configuracoes',
-    imports: [FormsModule, RouterLink],
+    imports: [FormsModule, RouterLink, MapPan],
     templateUrl: './configuracoes.html',
     styleUrl: './configuracoes.css'
 })
@@ -16,6 +17,7 @@ export class Configuracoes {
     private readonly router = inject(Router);
     private readonly cdr = inject(ChangeDetectorRef);
     mapZoom = 100;
+    moveMap = false;
     readonly tabs: { key: Aba; label: string }[] = [
         { key: 'enderecamento', label: 'Grupos e posições' },
         { key: 'aparencia', label: 'Aparência' },
@@ -179,7 +181,7 @@ export class Configuracoes {
     }
 
     onCellClick(event: MouseEvent, r: number, c: number): void {
-        if (event.detail === 0) this.toggleCell(r, c);
+        if (!this.moveMap && event.detail === 0) this.toggleCell(r, c);
     }
 
     private applyCellState(r: number, c: number, block: boolean): boolean {
@@ -196,9 +198,14 @@ export class Configuracoes {
         return true;
     }
 
+    toggleMoveMap(): void {
+        this.endDrag();
+        this.moveMap = !this.moveMap;
+    }
+
     /** O primeiro quadrado determina a ação do gesto inteiro. */
     beginDrag(event: PointerEvent, r: number, c: number): void {
-        if (event.button !== 0 || this.drag) return;
+        if (event.button !== 0 || this.drag || this.moveMap) return;
         const cell = this.cells.find(p => p.r === r && p.c === c);
         const grid = (event.currentTarget as HTMLElement | null)?.closest<HTMLElement>('.preview-location-grid');
         if (!cell || !grid) return;

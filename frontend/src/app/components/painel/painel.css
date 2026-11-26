@@ -351,3 +351,15 @@
         padding-block: 4px;
     }
 }
+
+
+/* Navegação por arraste não modifica as dimensões nem a seleção das estantes. */
+.map-viewport {
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+}
+.map-viewport.map-panning,
+.map-viewport.map-panning .address-tile {
+    cursor: grabbing !important;
+}
