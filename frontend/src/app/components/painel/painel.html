@@ -59,10 +59,13 @@
                         }
                     </span>
                     <span>{{ group.rows }} × {{ group.cols }} · {{ activeCount }} posições · {{ group.slots.length - activeCount }} espaços excluídos</span>
+                    <button type="button" class="btn small panel-map-zoom" (click)="resetMapZoom(mapViewport)"
+                            title="Use a rodinha sobre o mapa. Clique para restaurar 100%." aria-label="Restaurar zoom do mapa">{{ mapZoom }}%</button>
                 </div>
 
                 <!-- Espaços desativados podem ser exibidos ou ocultados, sem mudar a geometria da planta. -->
-                <div class="map-viewport" [style.--map-rows]="group.rows" [style.--map-cols]="group.cols">
+                <div class="map-viewport" #mapViewport (wheel)="zoomMap($event)"
+                     [style.--map-rows]="group.rows" [style.--map-cols]="group.cols" [style.--map-zoom]="mapZoom / 100">
                 <div id="addressGrid" class="address-grid" [class.search-active]="!!query && countMatches(group) > 0"
                      [style.grid-template-columns]="'repeat(' + group.cols + ', var(--tile-width))'"
                      [style.grid-template-rows]="'repeat(' + group.rows + ', var(--tile-height))'"

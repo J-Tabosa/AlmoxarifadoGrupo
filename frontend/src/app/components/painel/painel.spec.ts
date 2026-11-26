@@ -60,6 +60,31 @@ describe('Painel', () => {
     }
   });
 
+  it('ajusta apenas o zoom do mapa e preserva seleção e coordenadas', () => {
+    fixture.detectChanges();
+    const viewport = fixture.nativeElement.querySelector('.map-viewport') as HTMLElement;
+    const selected = component.selected;
+    const ids = component.group.slots.map(s => s.idlocalizacao);
+    const wheel = (deltaY: number, target: HTMLElement = viewport) => {
+      const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY });
+      target.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    expect(wheel(-100)).toBe(true);
+    expect(component.mapZoom).toBe(110);
+    expect(viewport.style.getPropertyValue('--map-zoom')).toBe('1.1');
+    expect(wheel(-100, fixture.nativeElement.querySelector('.detail-console'))).toBe(false);
+    expect(component.mapZoom).toBe(110);
+    for (let i = 0; i < 30; i++) wheel(-100);
+    expect(component.mapZoom).toBe(250);
+    for (let i = 0; i < 30; i++) wheel(100);
+    expect(component.mapZoom).toBe(50);
+    (fixture.nativeElement.querySelector('.panel-map-zoom') as HTMLButtonElement).click();
+    expect(component.mapZoom).toBe(100);
+    expect(component.selected).toBe(selected);
+    expect(component.group.slots.map(s => s.idlocalizacao)).toEqual(ids);
+  });
+
   it('mostra o nome personalizado como título da ficha lateral', () => {
     const original = component.selected!.descricao;
     try {

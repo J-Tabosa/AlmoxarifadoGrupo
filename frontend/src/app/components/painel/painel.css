@@ -11,12 +11,14 @@
 
 /* Células uniformes de 90 × 60 (proporção 60:40), inclusive nos espaços vazios. */
 #addressGrid {
-    --tile-width: 90px;
-    --tile-height: 60px;
+    --base-tile-height: 60px;
+    --base-tile-position-font: 11px;
+    --tile-height: calc(var(--base-tile-height) * var(--map-zoom, 1));
+    --tile-width: calc(var(--tile-height) * 1.5);
     width: max-content;
     margin: 0 auto;
-    padding: 4px;
-    gap: 6px;
+    padding: calc(4px * var(--map-zoom, 1));
+    gap: calc(6px * var(--map-zoom, 1));
 }
 
 #addressGrid .address-tile {
@@ -25,8 +27,8 @@
     min-width: 0;
     aspect-ratio: 3 / 2;
     grid-template-rows: minmax(0, 1fr) auto auto;
-    gap: 2px;
-    padding: 4px;
+    gap: calc(2px * var(--map-zoom, 1));
+    padding: calc(4px * var(--map-zoom, 1));
     box-sizing: border-box;
 }
 
@@ -40,6 +42,29 @@
     width: 100%;
     text-align: center;
     line-height: 1.1;
+    font-size: calc(var(--base-tile-position-font) * var(--map-zoom, 1));
+}
+
+#addressGrid .tile-id {
+    font-size: calc(9px * var(--map-zoom, 1));
+}
+
+#addressGrid .rack-mini-count {
+    font-size: calc(8px * var(--map-zoom, 1));
+    padding: 0 calc(3px * var(--map-zoom, 1)) calc(2px * var(--map-zoom, 1));
+}
+
+#addressGrid .mini-corner {
+    font-size: calc(9px * var(--map-zoom, 1));
+}
+
+.panel-map-zoom {
+    flex-shrink: 0;
+    min-width: 50px;
+    min-height: 24px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
 }
 
 .console-location .rack-main-name {
@@ -73,7 +98,7 @@
 #addressGrid .address-tile.masked {
     grid-template-rows: auto auto;
     align-content: center;
-    gap: 4px;
+    gap: calc(4px * var(--map-zoom, 1));
     opacity: 1;
     cursor: default;
 }
@@ -197,6 +222,10 @@
     min-width: 0;
     overflow: auto;
     padding: 3px;
+    /* O zoom não aumenta a altura do Painel; a rolagem fica dentro do mapa. */
+    max-height: min(65dvh, calc(var(--map-rows) * 66px + 8px));
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
 }
 
 @media (min-width: 1101px) and (min-height: 600px) {
@@ -271,23 +300,20 @@
         flex: 1 1 0;
         min-height: 0;
         container-type: size;
+        max-height: none;
     }
 
     #addressGrid {
-        --tile-height: max(36px, min(60px,
+        --base-tile-height: max(36px, min(60px,
             calc((100cqh - 8px - (var(--map-rows) - 1) * 6px) / var(--map-rows)),
             calc((100cqw - 8px - (var(--map-cols) - 1) * 6px) / var(--map-cols) / 1.5)));
-        --tile-width: calc(var(--tile-height) * 1.5);
+        --base-tile-position-font: 10px;
         margin: 0 auto;
     }
 
     #addressGrid .address-tile {
         gap: 0;
-        padding: 2px;
-    }
-
-    #addressGrid .tile-position {
-        font-size: 10px;
+        padding: calc(2px * var(--map-zoom, 1));
     }
 
     .detail-console {

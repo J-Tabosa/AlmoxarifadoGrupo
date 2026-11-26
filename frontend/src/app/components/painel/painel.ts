@@ -1,4 +1,4 @@
-import { Component, HostListener, inject, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, inject, OnDestroy } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -16,6 +16,8 @@ import { FichaItem } from '../ficha-item/ficha-item';
 export class Painel implements OnDestroy {
     readonly planta = inject(PlantaService);
     private readonly itensApi = inject(ItensService);
+    private readonly cdr = inject(ChangeDetectorRef);
+    mapZoom = 100;
     group = this.planta.activeGroup;
 
     constructor() { this.planta.refreshStock(); }
@@ -52,6 +54,33 @@ export class Painel implements OnDestroy {
         this.group = g;
         this.planta.selectGroup(g.key);
         this.selected = g.slots.find(s => !s.blocked) ?? null;
+    }
+
+    /** A escala é relativa ao tamanho responsivo normal da planta. */
+    zoomMap(event: WheelEvent): void {
+        if (event.deltaY === 0 || event.ctrlKey || event.metaKey) return;
+        event.preventDefault();
+        const next = Math.max(50, Math.min(250, this.mapZoom + (event.deltaY < 0 ? 10 : -10)));
+        this.setMapZoom(next, event.currentTarget as HTMLElement, event.clientX, event.clientY);
+    }
+
+    resetMapZoom(viewport: HTMLElement): void {
+        const rect = viewport.getBoundingClientRect();
+        this.setMapZoom(100, viewport, rect.left + viewport.clientWidth / 2, rect.top + viewport.clientHeight / 2);
+    }
+
+    private setMapZoom(next: number, viewport: HTMLElement, x: number, y: number): void {
+        if (next === this.mapZoom) return;
+        const grid = viewport.querySelector<HTMLElement>('#addressGrid');
+        if (!grid) return;
+        const before = grid.getBoundingClientRect();
+        const fx = before.width ? (x - before.left) / before.width : 0;
+        const fy = before.height ? (y - before.top) / before.height : 0;
+        this.mapZoom = next;
+        this.cdr.detectChanges();
+        const after = grid.getBoundingClientRect();
+        viewport.scrollLeft += after.left + fx * after.width - x;
+        viewport.scrollTop += after.top + fy * after.height - y;
     }
 
     match(s: Posicao): boolean { return this.planta.matchingRack(s, this.query, this.mode); }
