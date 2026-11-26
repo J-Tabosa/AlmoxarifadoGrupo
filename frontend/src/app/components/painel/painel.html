@@ -11,6 +11,7 @@
 
     <!-- Pesquisa explícita por tipo; o destaque é calculado a partir das estantes. -->
     <form class="map-searchbar" (ngSubmit)="search()">
+        <div class="panel-search-controls">
         <label class="map-search-field">
             <svg class="ico"><use href="assets/icons.svg#i-search"/></svg>
             <input type="search" name="search" [(ngModel)]="searchText"
@@ -22,13 +23,8 @@
         </select>
         <button class="btn primary" type="submit">Buscar</button>
         <button class="btn" type="button" (click)="clearSearch()">Limpar</button>
-        @if (query) {
-            <span class="map-search-status" [class.has-results]="totalMatches > 0" role="status">{{ searchStatus }}</span>
-        }
+        </div>
         <div class="panel-quick-actions">
-            <button type="button" class="btn" (click)="construction('Listar materiais')">
-                <svg class="ico sm"><use href="assets/icons.svg#i-search"/></svg> Listar materiais
-            </button>
             <button type="button" class="btn primary" (click)="construction('Nova entrada')">
                 <svg class="ico sm"><use href="assets/icons.svg#i-plus"/></svg> Nova entrada
             </button>
@@ -55,7 +51,7 @@
 
             <div class="storage-board">
                 <div class="storage-tools">
-                    <span><svg class="ico sm"><use href="assets/icons.svg#i-pin"/></svg> Planta vista de cima · selecione as posições ativas</span>
+                    <span><svg class="ico sm"><use href="assets/icons.svg#i-pin"/></svg> Planta vista de cima · selecione uma estante para consultar seus dados</span>
                     <span>{{ group.rows }} × {{ group.cols }} · {{ activeCount }} posições · {{ group.slots.length - activeCount }} espaços excluídos</span>
                 </div>
 
@@ -115,10 +111,12 @@
                     <small>Localização: {{ rackName(selected) }}</small>
                     <small>Grupo: {{ group.name }}</small>
                     <small class="loc-id-label">idlocalizacao: {{ selected.idlocalizacao }}</small>
-                    <small>Estante com múltiplas prateleiras e posições.</small>
                 </div>
                 <div class="console-field"><label>Itens da estante</label><strong>{{ selected.contents.length }} itens</strong></div>
+                <div class="console-field"><label>Materiais distintos</label><strong>{{ distinctMaterials }}</strong></div>
                 <div class="console-field"><label>Prateleiras</label><strong>{{ planta.shelfCount(selected) }}</strong></div>
+                <div class="console-field"><label>Prateleiras com saldo</label><strong>{{ occupiedLevels }} de {{ planta.shelfCount(selected) }}</strong></div>
+                <div class="console-field"><label>Prateleiras sem saldo</label><strong>{{ planta.shelfCount(selected) - occupiedLevels }}</strong></div>
                 <div class="console-field"><label>Configuração de prateleiras</label><strong>{{ selected.shelfCount == null ? 'Padrão geral' : 'Individual' }}</strong></div>
                 <div class="console-field"><label>Situação</label><span class="tag" [ngClass]="tag(selected)">{{ status(selected) }}</span></div>
             </div>

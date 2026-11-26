@@ -57,10 +57,27 @@ describe('Painel', () => {
   it('mantém as ações operacionais na barra de pesquisa', () => {
     fixture.detectChanges();
     const buttons = fixture.nativeElement.querySelectorAll('.map-searchbar .panel-quick-actions button');
-    expect(buttons.length).toBe(2);
+    expect(buttons.length).toBe(1);
     expect(buttons[0].type).toBe('button');
-    expect(buttons[1].type).toBe('button');
+    expect(buttons[0].textContent).toContain('Nova entrada');
+    expect(fixture.nativeElement.querySelectorAll('.panel-search-controls > .btn').length).toBe(2);
     expect(fixture.nativeElement.querySelector('.desktop-heading')).toBeNull();
+  });
+
+  it('calcula materiais distintos e prateleiras com saldo sem duplicar níveis', () => {
+    const original = component.selected.contents;
+    try {
+      component.selected.contents = [
+        { level: 1, position: 1, itemCode: 'A', qty: 3 },
+        { level: 1, position: 2, itemCode: 'B', qty: 2 },
+        { level: 2, position: 1, itemCode: 'A', qty: 1 },
+        { level: 3, position: 1, itemCode: 'C', qty: 0 }
+      ];
+      expect(component.distinctMaterials).toBe(3);
+      expect(component.occupiedLevels).toBe(2);
+    } finally {
+      component.selected.contents = original;
+    }
   });
 
   it('deve selecionar a estante sem abrir o modal', async () => {
