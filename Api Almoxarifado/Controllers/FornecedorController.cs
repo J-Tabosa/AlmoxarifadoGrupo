@@ -43,7 +43,7 @@ namespace Api_Almoxarifado.Controllers
                     Estado = e.Estado,
                     Pais = e.Pais,
                 }).ToList(),
-            }).FirstOrDefaultAsync();
+            }).ToListAsync();
 
             return Ok(fornecedor);
         } // Fim do método GetFornecedores

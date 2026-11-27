@@ -19,7 +19,7 @@ namespace Api_Almoxarifado.Controllers
         [HttpGet]
         public async Task<ActionResult<CategoriumDTO>> GetCategorias()
         {
-            var categoria = await _context.Categoria.FirstOrDefaultAsync();
+            var categoria = await _context.Categoria.ToListAsync();
 
             return Ok(categoria);
         } // Fim do método GetAll

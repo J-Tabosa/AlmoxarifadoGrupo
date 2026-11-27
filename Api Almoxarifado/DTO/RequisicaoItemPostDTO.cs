@@ -2,9 +2,9 @@
 {
     public class RequisicaoItemPostDTO
     {
-        public int iditem { get; set; }
+        public int idItem { get; set; }
 
-        public int idrequisicao { get; set; }
+        public int idRequisicao { get; set; }
 
         public int quantidadeS { get; set; }
     }

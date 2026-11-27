@@ -4,9 +4,9 @@ namespace Api_Almoxarifado.DTO
 {
     public class RequisicaoDTO
     {
-        public int idrequisicao { get; set; }
+        public int idRequisicao { get; set; }
 
-        public int idfuncionario { get; set; }
+        public int idFuncionario { get; set; }
 
         public DateTime datahoraS { get; set; }
 

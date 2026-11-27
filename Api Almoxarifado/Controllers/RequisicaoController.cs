@@ -23,16 +23,16 @@ namespace Api_Almoxarifado.Controllers
                 .Include(r => r.RequisicaoItems)
                 .Select(r => new RequisicaoDTO
                 {
-                    idrequisicao = r.Idrequisicao,
-                    idfuncionario = r.Idfuncionario,
+                    idRequisicao = r.Idrequisicao,
+                    idFuncionario = r.Idfuncionario,
                     datahoraS = r.DatahoraS,
                     Justificativa = r.Justificativa,
                     tipoS = r.TipoS,
 
                     RequisicaoItems = r.RequisicaoItems.Select(ri => new RequisicaoItemDTO
                     {
-                        iditem = ri.Iditem,
-                        idrequisicao = ri.Idrequisicao,
+                        idItem = ri.Iditem,
+                        idRequisicao = ri.Idrequisicao,
                         quantidadeS = ri.QuantidadeS,
 
                         Item = new ItemPostDTO {
@@ -61,16 +61,16 @@ namespace Api_Almoxarifado.Controllers
                 .Include(r => r.RequisicaoItems)
                 .Select(r => new RequisicaoDTO
                 {
-                    idrequisicao = r.Idrequisicao,
-                    idfuncionario = r.Idfuncionario,
+                    idRequisicao = r.Idrequisicao,
+                    idFuncionario = r.Idfuncionario,
                     datahoraS = r.DatahoraS,
                     Justificativa = r.Justificativa,
                     tipoS = r.TipoS,
 
                     RequisicaoItems = r.RequisicaoItems.Select(ri => new RequisicaoItemDTO
                     {
-                        iditem = ri.Iditem,
-                        idrequisicao = ri.Idrequisicao,
+                        idItem = ri.Iditem,
+                        idRequisicao = ri.Idrequisicao,
                         quantidadeS = ri.QuantidadeS,
 
                         Item = new ItemPostDTO
@@ -97,14 +97,14 @@ namespace Api_Almoxarifado.Controllers
         {
             var requisicao = new Requisicao
             {
-                Idrequisicao = dto.idrequisicao,
-                Idfuncionario = dto.idfuncionario,
+                Idrequisicao = dto.idRequisicao,
+                Idfuncionario = dto.idFuncionario,
                 DatahoraS = dto.datahoraS,
                 Justificativa = dto.Justificativa,
                 TipoS = dto.tipoS,
             };
 
-            if (dto.idfuncionario == 0)
+            if (dto.idFuncionario == 0)
             {
                 return BadRequest($"O funcionário deve ser informado.");
             } 
@@ -135,13 +135,13 @@ namespace Api_Almoxarifado.Controllers
                 return BadRequest($"Requisição não encontrada.");
             }
 
-            requisicao.Idrequisicao = dto.idrequisicao;
-            requisicao.Idfuncionario = dto.idfuncionario;
+            requisicao.Idrequisicao = dto.idRequisicao;
+            requisicao.Idfuncionario = dto.idFuncionario;
             requisicao.DatahoraS = dto.datahoraS;
             requisicao.Justificativa = dto.Justificativa;
             requisicao.TipoS = dto.tipoS;
 
-            if (dto.idfuncionario == 0)
+            if (dto.idFuncionario == 0)
             {
                 return BadRequest($"O funcionário deve ser informado.");
             }

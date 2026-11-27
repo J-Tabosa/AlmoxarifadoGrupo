@@ -20,7 +20,7 @@ namespace Api_Almoxarifado.Controllers
         public async Task<ActionResult<EnderecoDTO>> GetEnderecos()
         {
             var endereco = await _context.Enderecos
-                .FirstOrDefaultAsync();
+                .ToListAsync();
 
             return Ok(endereco);
         } // Fim do método GetEnderecos

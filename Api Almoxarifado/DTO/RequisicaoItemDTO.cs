@@ -4,9 +4,9 @@ namespace Api_Almoxarifado.DTO
 {
     public class RequisicaoItemDTO
     {
-        public int iditem { get; set; }
+        public int idItem { get; set; }
 
-        public int idrequisicao { get; set; }
+        public int idRequisicao { get; set; }
 
         public int quantidadeS { get; set; }
 
