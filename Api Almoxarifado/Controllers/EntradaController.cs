@@ -31,7 +31,7 @@ namespace Api_Almoxarifado.Controllers
                     tipoE = e.TipoE,
                     dataValidade = e.DataValidade,
 
-                    nomeFornecedor = e.Fornecedor != null ? e.Fornecedor.NomeFo : null,
+                    nomeFornecedor = e.Fornecedor.NomeFo,
                     descricaoItem = e.Item.DescricaoItem,
                 }).ToListAsync();
 
@@ -60,7 +60,7 @@ namespace Api_Almoxarifado.Controllers
                     tipoE = e.TipoE,
                     dataValidade = e.DataValidade,
 
-                    nomeFornecedor = e.Fornecedor != null ? e.Fornecedor.NomeFo : null,
+                    nomeFornecedor = e.Fornecedor.NomeFo,
                     descricaoItem = e.Item.DescricaoItem,
                 }).ToListAsync();
 

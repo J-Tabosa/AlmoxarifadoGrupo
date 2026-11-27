@@ -33,7 +33,6 @@ namespace Api_Almoxarifado.Controllers
                         NomeFu = s.NomeFu,
                         Cargo = s.Cargo,
                         StatusFu = s.StatusFu,
-                        Senha = s.Senha,
                     }).ToList()
                 }).ToListAsync();
 
