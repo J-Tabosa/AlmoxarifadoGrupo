@@ -64,6 +64,7 @@ export class Conferencia implements OnInit {
   idsContadores: number[] = [];
   prateleirasSelecionadas: string[] = [];
   divergenciasForm: DivergenciaForm[] = [];
+  private ocorrenciasSalvas = '[]';
   rascunho: DivergenciaForm | null = null;
   indiceEdicao: number | null = null;
   modalMaterialAberto = false;
@@ -483,17 +484,33 @@ export class Conferencia implements OnInit {
     this.fecharMapaSelecao();
     this.inventarioFinalizando = inventario;
     this.cancelarEdicaoDivergencia();
-    this.divergenciasForm = [];
+    this.divergenciasForm = inventario.divergencias.map(d => ({
+      chavePrateleira: d.chavePrateleira,
+      posicao: d.posicao ?? null,
+      idItem: d.idItem,
+      descricaoItem: d.descricaoItem,
+      quantidadeContada: d.quantidadeContada,
+      observacao: d.observacao,
+      justificativa: d.justificativa
+    }));
+    this.ocorrenciasSalvas = JSON.stringify(this.divergenciasForm);
     this.erro = '';
     this.modalFinalizacaoAberto = true;
   }
 
-  fecharFinalizacao(): void {
-    if (this.salvando) return;
+  get ocorrenciasAlteradas(): boolean {
+    return JSON.stringify(this.divergenciasForm) !== this.ocorrenciasSalvas;
+  }
+
+  async fecharFinalizacao(): Promise<void> {
+    if (this.salvando || this.dialogo.estado()) return;
+    if ((this.ocorrenciasAlteradas || this.rascunho) &&
+        !await this.dialogo.confirmar('Há alterações não salvas. Deseja descartá-las e fechar?', 'Fechar ocorrências', 'Descartar')) return;
     this.modalFinalizacaoAberto = false;
     this.cancelarEdicaoDivergencia();
     this.inventarioFinalizando = null;
     this.divergenciasForm = [];
+    this.ocorrenciasSalvas = '[]';
     this.erro = '';
   }
 
@@ -544,12 +561,8 @@ export class Conferencia implements OnInit {
       this.inventarioFinalizando.status === 'em_andamento' && this.divergenciasForm.every(linha => this.linhaValida(linha));
   }
 
-  finalizarInventario(): void {
-    if (!this.podeFinalizar || !this.inventarioFinalizando) {
-      this.dialogo.erro('Confira as divergências: informe a prateleira, o material e uma quantidade diferente do saldo registrado no início.');
-      return;
-    }
-    const payload: InventarioDivergenciaPayload[] = this.divergenciasForm.map(linha => ({
+  private payloadOcorrencias(): InventarioDivergenciaPayload[] {
+    return this.divergenciasForm.map(linha => ({
       chavePrateleira: linha.chavePrateleira,
       posicao: linha.posicao!,
       idItem: linha.idItem,
@@ -558,14 +571,40 @@ export class Conferencia implements OnInit {
       observacao: linha.observacao,
       justificativa: linha.justificativa,
     }));
+  }
+
+  salvarOcorrencias(): void {
+    if (!this.podeFinalizar || !this.inventarioFinalizando || !this.ocorrenciasAlteradas) return;
     this.salvando = true;
-    this.inventariosApi.finalizar(this.inventarioFinalizando.idInventario, payload).subscribe({
+    this.inventariosApi.registrarOcorrencias(this.inventarioFinalizando.idInventario, this.payloadOcorrencias()).subscribe({
+      next: inventario => {
+        this.salvando = false;
+        this.inventarioFinalizando = inventario;
+        this.ocorrenciasSalvas = JSON.stringify(this.divergenciasForm);
+        this.carregar();
+        this.dialogo.sucesso('Ocorrências salvas. O inventário continua em andamento e o estoque permanece bloqueado.');
+      },
+      error: e => {
+        this.salvando = false;
+        this.dialogo.erro(mensagemErro(e), 'Não foi possível salvar as ocorrências');
+      },
+    });
+  }
+
+  finalizarInventario(): void {
+    if (!this.podeFinalizar || !this.inventarioFinalizando) {
+      this.dialogo.erro('Confira as divergências: informe a prateleira, o material e uma quantidade diferente do saldo registrado no início.');
+      return;
+    }
+    this.salvando = true;
+    this.inventariosApi.finalizar(this.inventarioFinalizando.idInventario, this.payloadOcorrencias()).subscribe({
       next: inventario => {
         this.salvando = false;
         this.modalFinalizacaoAberto = false;
         this.fecharMapaSelecao();
         this.inventarioFinalizando = null;
         this.divergenciasForm = [];
+        this.ocorrenciasSalvas = '[]';
         this.dialogo.sucesso(
           'Inventário #' + inventario.idInventario + ' encerrado com ' +
           inventario.quantidadeDivergencias + ' divergência(s), sendo ' +

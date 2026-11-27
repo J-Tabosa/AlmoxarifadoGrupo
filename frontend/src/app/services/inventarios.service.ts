@@ -117,7 +117,16 @@ export class InventariosService {
     }, true);
   }
 
+  registrarOcorrencias(idInventario: number, payload: InventarioDivergenciaPayload[]) {
+    return this.gravarOcorrencias(idInventario, payload, false);
+  }
+
   finalizar(idInventario: number, payload: InventarioDivergenciaPayload[]) {
+    return this.gravarOcorrencias(idInventario, payload, true);
+  }
+
+  // Ambas as operações aplicam as mesmas validações; só a conclusão libera o estoque.
+  private gravarOcorrencias(idInventario: number, payload: InventarioDivergenciaPayload[], concluir: boolean) {
     return this.banco.alterar(d => {
       const inventario = (d.inventarios ?? []).find(i => i.idInventario === idInventario);
       if (!inventario || inventario.status !== 'em_andamento') {
@@ -183,9 +192,11 @@ export class InventariosService {
       inventario.divergencias = divergencias;
       inventario.quantidadeDivergencias = divergencias.length;
       inventario.quantidadeJustificadas = divergencias.filter(dvg => !!dvg.justificativa).length;
-      inventario.dataFim = new Date().toISOString();
-      inventario.status = 'finalizado';
-      sincronizarAlertasInventario(d);
+      if (concluir) {
+        inventario.dataFim = new Date().toISOString();
+        inventario.status = 'finalizado';
+        sincronizarAlertasInventario(d);
+      }
       return inventario;
     }, true);
   }

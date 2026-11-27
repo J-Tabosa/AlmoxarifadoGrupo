@@ -55,8 +55,10 @@
       </div>
       <div class="inventory-active-actions">
         <button class="btn" type="button" (click)="abrirDetalhes(ativo)">Ver dados do inventário</button>
-        <button class="btn primary" type="button" (click)="abrirFinalizacao(ativo)">Registrar resultado e finalizar</button>
-        <button class="btn danger" type="button" (click)="abrirModalCancelamento(ativo)">Cancelar inventário</button>
+        <div class="inventory-active-right">
+          <button class="btn primary" type="button" (click)="abrirFinalizacao(ativo)">Registrar ocorrências</button>
+          <button class="btn danger" type="button" (click)="abrirModalCancelamento(ativo)">Cancelar inventário</button>
+        </div>
       </div>
     </section>
   }
@@ -180,11 +182,11 @@
     <section class="dialog inventory-dialog inventory-finish-dialog" role="dialog" aria-modal="true"
       aria-labelledby="inventory-finish-title" (click)="$event.stopPropagation()">
       <header class="dialog-head">
-        <span id="inventory-finish-title">Finalizar inventário #{{ ativo.idInventario }}</span>
+        <span id="inventory-finish-title">Registrar ocorrências · Inventário #{{ ativo.idInventario }}</span>
         <button type="button" aria-label="Fechar" (click)="fecharFinalizacao()" [disabled]="salvando">×</button>
       </header>
       <div class="dialog-body inventory-dialog-body">
-        <p class="inventory-intro">Registre somente os materiais cuja quantidade física ficou diferente do saldo registrado no início do inventário. O sistema calcula automaticamente o total de divergências e quantas receberam justificativa.</p>
+        <p class="inventory-intro">Registre as divergências durante a contagem e salve as ocorrências para continuar depois. Quando a conferência terminar, conclua o inventário, com ou sem divergências.</p>
         <div class="inventory-count-summary">
           <article><small>Divergências informadas</small><strong>{{ quantidadeDivergenciasForm }}</strong></article>
           <article><small>Com justificativa</small><strong>{{ quantidadeJustificadasForm }}</strong></article>
@@ -207,7 +209,7 @@
               <div class="inventory-group-actions"><button class="btn small" type="button" [disabled]="!!rascunho || !!mapaSelecao" (click)="editarDivergencia(i)">Editar</button><button class="btn small danger" type="button" [disabled]="!!rascunho || !!mapaSelecao" (click)="removerDivergencia(i)">Excluir</button></div>
             </article>
           } @empty {
-            @if (!rascunho) { <div class="inventory-no-divergences"><strong>Nenhuma divergência informada.</strong><p>Finalize sem divergências se todas as quantidades coincidirem.</p></div> }
+            @if (!rascunho) { <div class="inventory-no-divergences"><strong>Nenhuma divergência informada.</strong><p>Se todas as quantidades coincidirem, conclua o inventário sem divergências.</p></div> }
           }
         </div>
         @if (rascunho; as linha) {
@@ -232,10 +234,11 @@
         @if (erro) { <p class="entry-error" role="alert">{{ erro }}</p> }
       </div>
       <footer class="dialog-actions inventory-dialog-actions">
-        <span class="hint">Confirme as quantidades antes de finalizar.</span>
-        <div class="actions">
-          <button class="btn primary" type="button" (click)="finalizarInventario()" [disabled]="!podeFinalizar">{{ salvando ? 'Finalizando…' : 'Finalizar inventário' }}</button>
-          <button class="btn" type="button" (click)="fecharFinalizacao()" [disabled]="salvando">Cancelar</button>
+        <span class="hint">Salvar mantém a contagem aberta. Concluir libera o estoque e envia as divergências aos Alertas.</span>
+        <div class="actions inventory-occurrence-actions">
+          <button class="btn" type="button" (click)="fecharFinalizacao()" [disabled]="salvando">Fechar</button>
+          <button class="btn" type="button" (click)="salvarOcorrencias()" [disabled]="!podeFinalizar || !ocorrenciasAlteradas">Salvar ocorrências</button>
+          <button class="btn primary" type="button" (click)="finalizarInventario()" [disabled]="!podeFinalizar">{{ salvando ? 'Salvando…' : 'Concluir inventário' }}</button>
         </div>
       </footer>
     </section>
@@ -251,7 +254,7 @@
         <button type="button" aria-label="Fechar cancelamento" (click)="fecharCancelamento()" [disabled]="salvando">×</button>
       </header>
       <div class="dialog-body inventory-dialog-body">
-        <p class="inventory-intro">O cancelamento encerra a contagem sem registrar divergências. O inventário continuará no histórico e as movimentações do estoque serão liberadas.</p>
+        <p class="inventory-intro">O cancelamento encerra a contagem sem validá-la. As ocorrências já salvas permanecem no histórico do inventário cancelado, sem gerar alertas. As movimentações do estoque serão liberadas.</p>
         <div class="field">
           <label for="motivoCancelamento">Justificativa do cancelamento <span class="req">*</span></label>
           <textarea id="motivoCancelamento" name="motivoCancelamento" rows="4"

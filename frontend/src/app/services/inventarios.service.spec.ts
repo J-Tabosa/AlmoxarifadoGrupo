@@ -160,6 +160,25 @@ describe('InventariosService', () => {
     service.listar().subscribe(registros => expect(registros[0].status).toBe('em_andamento'));
   });
 
+  it('salva ocorrências sem encerrar e só gera alertas na conclusão', () => {
+    let criado!: InventarioModel;
+    service.iniciar(payload()).subscribe(r => criado = r);
+    const linha = { chavePrateleira: criado.prateleiras[0].chave, posicao: 1, idItem: null,
+      descricaoItem: 'Nenhum material', quantidadeContada: 3 };
+    service.registrarOcorrencias(criado.idInventario, [linha]).subscribe(r => {
+      expect(r.status).toBe('em_andamento');
+      expect(r.dataFim).toBeNull();
+      expect(r.quantidadeDivergencias).toBe(1);
+      expect(() => validarMovimentacaoPermitida({ inventarios: [r] })).toThrow();
+    });
+    TestBed.inject(AlertasService).listar().subscribe(a =>
+      expect(a.filter(x => x.tipo === 'divergencia_inventario').length).toBe(0));
+    service.listar().subscribe(r => expect(r[0].divergencias[0].posicao).toBe(1));
+    service.finalizar(criado.idInventario, [linha]).subscribe(r => expect(r.status).toBe('finalizado'));
+    TestBed.inject(AlertasService).listar().subscribe(a =>
+      expect(a.filter(x => x.tipo === 'divergencia_inventario').length).toBe(1));
+  });
+
   it('não permite cancelar inventário já finalizado', () => {
     let criado!: InventarioModel;
     service.iniciar(payload()).subscribe(registro => criado = registro);

@@ -424,3 +424,17 @@
 .inventory-material-table { min-width: 550px; }
 .inventory-detail-section details summary { cursor: pointer; padding: 8px 0; color: var(--muted); }
 @media(max-width: 650px) { .inventory-divergence-row { grid-template-columns: 1fr 1fr; } }
+
+
+/* Ações da contagem: consulta à esquerda, registro e cancelamento juntos à direita. */
+.inventory-active-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.inventory-occurrence-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 600px) {
+  .inventory-active-right { align-items: stretch; flex-direction: column; }
+}

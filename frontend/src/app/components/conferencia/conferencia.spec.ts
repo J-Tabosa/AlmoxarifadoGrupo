@@ -72,6 +72,27 @@ describe('Conferencia', () => {
     });
   });
 
+  it('reabre as ocorrências já salvas sem exigir conclusão', () => {
+    const api = TestBed.inject(InventariosService);
+    const p = component.opcoesPrateleiras[0];
+    api.iniciar({
+      idResponsavel: component.funcionarios[0].idFuncionario,
+      idsContadores: [component.funcionarios[1].idFuncionario],
+      prateleiras: [{ grupoKey: p.grupoKey, idEstante: p.idEstante, nivel: p.nivel }]
+    }).subscribe(inventario => {
+      api.registrarOcorrencias(inventario.idInventario, [{
+        chavePrateleira: p.chave, posicao: 1, idItem: null,
+        descricaoItem: 'Nenhum material', quantidadeContada: 3
+      }]).subscribe(salvo => {
+        component.abrirFinalizacao(salvo);
+        expect(component.divergenciasForm.length).toBe(1);
+        expect(component.ocorrenciasAlteradas).toBe(false);
+        expect(component.podeFinalizar).toBe(true);
+        expect(component.inventarioFinalizando?.status).toBe('em_andamento');
+      });
+    });
+  });
+
   it('abre o cancelamento e exige uma justificativa antes de confirmar', () => {
     const grupo = component.planta.groups[0];
     const estante = grupo.slots.find(s => !s.blocked)!;
