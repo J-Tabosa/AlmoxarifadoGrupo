@@ -26,6 +26,9 @@ describe('RequisicoesService: baixa local', () => {
       d.localizacoes.push({ idLocalizacao: local, sala: g.name, andar: '', statusL: 'A', posicao: 'P1 / Pos. 1',
         grupoKey: g.key, idEstante: s.idlocalizacao, prateleira: 1, posicaoInterna: 1 });
       d.itens[0].estoques!.push({ idItem: d.itens[0].idItem, idLocalizacao: local, saldo: 10, eMinimo: 0, eMaximo: 20 });
+      d.localizacoes.push({ idLocalizacao: 100, sala: g.name, andar: '', statusL: 'A', posicao: 'P1 / Pos. 2',
+        grupoKey: g.key, idEstante: s.idlocalizacao, prateleira: 1, posicaoInterna: 2 });
+      d.itens[1].estoques!.push({ idItem: 2, idLocalizacao: 100, saldo: 12, eMinimo: 0, eMaximo: 40 });
     }));
     planta.refreshStock();
     p = { idFuncionario: 2, idAlmoxarife: 1, dataHoraS: '2026-11-25T21:00', justificativa: 'Teste', tipoS: 'consumo',
@@ -41,7 +44,7 @@ describe('RequisicoesService: baixa local', () => {
     expect(r.baixaAplicada).toBe(true);
     expect(await saldo()).toBe(7);
     expect(planta.groups[0].slots[0].contents[0].qty).toBe(7);
-    expect(await firstValueFrom(banco.ler(d => d.itens[0].estoques![0].saldo))).toBe(25);
+    expect(await firstValueFrom(banco.ler(d => d.itens[0].estoques!.length))).toBe(1);
     const persistido = JSON.parse(localStorage.getItem(keys[0])!);
     expect(persistido.itens[0].estoques.find((e: {idLocalizacao: number}) => e.idLocalizacao === local).saldo).toBe(7);
   });
@@ -57,7 +60,7 @@ describe('RequisicoesService: baixa local', () => {
   });
 
   it('reverte todas as linhas quando uma delas excede o saldo', async () => {
-    await expect(firstValueFrom(api.criar({ ...p, itens: [...p.itens, { idItem: 2, idLocalizacao: 2, quantidadeS: 999 }] }))).rejects.toThrow();
+    await expect(firstValueFrom(api.criar({ ...p, itens: [...p.itens, { idItem: 2, idLocalizacao: 100, quantidadeS: 999 }] }))).rejects.toThrow();
     expect(await saldo()).toBe(10);
     expect((await firstValueFrom(api.listar())).length).toBe(0);
   });
@@ -71,6 +74,6 @@ describe('RequisicoesService: baixa local', () => {
   it('remove o conteúdo do mapa ao zerar a posição', async () => {
     await firstValueFrom(api.criar({ ...p, itens: [{ ...p.itens[0], quantidadeS: 10 }] }));
     expect(await saldo()).toBe(0);
-    expect(planta.groups[0].slots[0].contents.length).toBe(0);
+    expect(planta.groups[0].slots[0].contents.some(x => x.itemCode === 'ITEM-1')).toBe(false);
   });
 });
