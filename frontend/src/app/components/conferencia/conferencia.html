@@ -81,7 +81,6 @@
           <th>Responsável</th>
           <th>Prateleiras</th>
           <th>Divergências</th>
-          <th>Justificadas</th>
           <th>Situação</th>
           <th></th>
         </tr>
@@ -95,7 +94,6 @@
             <td>{{ inventario.responsavel.nomeFu }}</td>
             <td>{{ inventario.prateleiras.length }}</td>
             <td>{{ inventario.quantidadeDivergencias }}</td>
-            <td>{{ inventario.quantidadeJustificadas }}</td>
             <td><span class="tag" [class.good]="inventario.status === 'finalizado'"
               [class.review]="inventario.status === 'em_andamento'" [class.bad]="inventario.status === 'cancelado'">
               {{ inventario.status === 'finalizado' ? 'Finalizado' : inventario.status === 'cancelado' ? 'Cancelado' : 'Em andamento' }}
@@ -103,7 +101,7 @@
             <td><button type="button" class="btn small" (click)="abrirDetalhes(inventario)">Detalhes</button></td>
           </tr>
         } @empty {
-          <tr><td colspan="9" class="empty-state">Nenhum inventário foi registrado ainda.</td></tr>
+          <tr><td colspan="8" class="empty-state">Nenhum inventário foi registrado ainda.</td></tr>
         }
       </tbody>
     </table>
@@ -189,8 +187,6 @@
         <p class="inventory-intro">Registre as divergências durante a contagem e salve as ocorrências para continuar depois. Quando a conferência terminar, conclua o inventário, com ou sem divergências.</p>
         <div class="inventory-count-summary">
           <article><small>Divergências informadas</small><strong>{{ quantidadeDivergenciasForm }}</strong></article>
-          <article><small>Com justificativa</small><strong>{{ quantidadeJustificadasForm }}</strong></article>
-          <article><small>Sem justificativa</small><strong>{{ quantidadeDivergenciasForm - quantidadeJustificadasForm }}</strong></article>
         </div>
         @if (referenciaIncompleta) {
           <p class="entry-error" role="alert">Não foi possível recuperar todas as posições do inventário antigo com segurança. Cancele o inventário e inicie uma nova contagem.</p>
@@ -224,13 +220,12 @@
               <div class="field"><label for="divergenciaQuantidade">Quantidade física contada *</label><input id="divergenciaQuantidade" type="number" min="0" step="1" [(ngModel)]="linha.quantidadeContada"></div>
               <div class="inventory-reference"><small>Saldo inicial da posição</small><strong>{{ saldoSistemaDivergencia(linha) }} {{ unidadeDivergencia(linha) }}</strong>@if (diferencaDivergencia(linha) !== null) { <span>Diferença: {{ diferencaDivergencia(linha) }}</span> }</div>
               <div class="field full"><label for="divergenciaObservacao">Observação</label><textarea id="divergenciaObservacao" rows="2" maxlength="500" [(ngModel)]="linha.observacao" placeholder="Descreva o ocorrido, inclusive material encontrado em posição vazia."></textarea></div>
-              <div class="field full"><label for="divergenciaJustificativa">Justificativa</label><textarea id="divergenciaJustificativa" rows="2" maxlength="800" [(ngModel)]="linha.justificativa"></textarea></div>
             </div>
             @if (posicaoRascunhoOcupada) { <p class="entry-error" role="alert">Esta posição já possui uma divergência. Escolha outra localização.</p> }
             <div class="inventory-group-actions"><button class="btn primary" type="button" [disabled]="!podeSalvarDivergencia" (click)="salvarDivergencia()">Salvar divergência</button><button class="btn" type="button" (click)="cancelarEdicaoDivergencia()">Cancelar</button></div>
           </section>
         }
-        <p class="inventory-regularization-note">O encerramento registra o resultado e as justificativas, mas não ajusta o saldo automaticamente. Regularizações devem ser analisadas e aprovadas antes de um lançamento de estoque.</p>
+        <p class="inventory-regularization-note">O encerramento registra o resultado da contagem, mas não ajusta o saldo automaticamente. Regularizações devem ser analisadas e aprovadas antes de um lançamento de estoque.</p>
         @if (erro) { <p class="entry-error" role="alert">{{ erro }}</p> }
       </div>
       <footer class="dialog-actions inventory-dialog-actions">
@@ -292,7 +287,6 @@
           <article><small>Contadores</small><strong>{{ detalhe.contadores.length }}</strong><small>{{ nomesContadores(detalhe) }}</small></article>
           <article><small>Prateleiras contadas</small><strong>{{ detalhe.prateleiras.length }}</strong></article>
           <article><small>Divergências</small><strong>{{ detalhe.quantidadeDivergencias }}</strong></article>
-          <article><small>Justificadas</small><strong>{{ detalhe.quantidadeJustificadas }}</strong></article>
           <article><small>Situação</small><strong>{{ detalhe.status === 'finalizado' ? 'Finalizado' : detalhe.status === 'cancelado' ? 'Cancelado' : 'Em andamento' }}</strong></article>
           @if (detalhe.status === 'cancelado') {
             <article class="inventory-cancellation-detail"><small>JUSTIFICATIVA DO CANCELAMENTO</small><strong>{{ detalhe.motivoCancelamento }}</strong></article>
@@ -326,11 +320,11 @@
         </section>
 
         <section class="inventory-detail-section">
-          <h3>Divergências e justificativas</h3>
+          <h3>Divergências</h3>
           @if (detalhe.divergencias.length) {
             <div class="table-scroller">
               <table class="table inventory-detail-table">
-                <thead><tr><th>Prateleira</th><th>Material</th><th>Saldo inicial</th><th>Contado</th><th>Diferença</th><th>Observação</th><th>Justificativa</th></tr></thead>
+                <thead><tr><th>Prateleira</th><th>Material</th><th>Saldo inicial</th><th>Contado</th><th>Diferença</th><th>Observação</th></tr></thead>
                 <tbody>
                   @for (dvg of detalhe.divergencias; track dvg.id) {
                     <tr>
@@ -342,7 +336,6 @@
                         {{ dvg.diferenca > 0 ? '+' : '' }}{{ dvg.diferenca }}
                       </td>
                       <td>{{ dvg.observacao || '—' }}</td>
-                      <td>{{ dvg.justificativa || 'Pendente de justificativa' }}</td>
                     </tr>
                   }
                 </tbody>

@@ -89,7 +89,6 @@ export class InventariosService {
         estoqueCompleto: this.estoqueCompleto(chaves),
         divergencias: [],
         quantidadeDivergencias: 0,
-        quantidadeJustificadas: 0,
       };
       d.inventarios ??= [];
       d.inventarios.push(registro);
@@ -166,9 +165,8 @@ export class InventariosService {
         }
 
         const observacao = (linha.observacao ?? '').trim();
-        const justificativa = (linha.justificativa ?? '').trim();
-        if (observacao.length > 500 || justificativa.length > 800) {
-          throw new Error('A observação aceita até 500 caracteres e a justificativa até 800.');
+        if (observacao.length > 500) {
+          throw new Error('A observação aceita até 500 caracteres.');
         }
         return {
           id: index + 1,
@@ -183,7 +181,6 @@ export class InventariosService {
           quantidadeContada: linha.quantidadeContada,
           diferenca: linha.quantidadeContada - saldoSistema,
           observacao,
-          justificativa,
         };
       });
 
@@ -191,7 +188,6 @@ export class InventariosService {
       inventario.prateleiras = inventario.prateleiras.map(p => ({ ...p, posicoesSistema: this.posicoesReferencia(d, p) }));
       inventario.divergencias = divergencias;
       inventario.quantidadeDivergencias = divergencias.length;
-      inventario.quantidadeJustificadas = divergencias.filter(dvg => !!dvg.justificativa).length;
       if (concluir) {
         inventario.dataFim = new Date().toISOString();
         inventario.status = 'finalizado';

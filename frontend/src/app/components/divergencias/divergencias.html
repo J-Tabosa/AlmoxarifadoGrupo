@@ -73,7 +73,6 @@
             <div><small>SALDO DE REFERÊNCIA</small><strong>{{ a.saldoSistema }} {{ a.unidade }}</strong></div>
             <div><small>QUANTIDADE FÍSICA</small><strong>{{ a.quantidadeContada }} {{ a.unidade }}</strong></div>
             <div><small>DIFERENÇA</small><strong>{{ a.diferenca }} {{ a.unidade }}</strong></div>
-            <div><small>JUSTIFICATIVA</small><strong>{{ a.justificativaInventario || 'Não informada' }}</strong></div>
             <div><small>OBSERVAÇÃO DO INVENTÁRIO</small><strong>{{ a.observacaoInventario || 'Não informada' }}</strong></div>
           }
           @if (a.tipo === 'estoque_minimo') {

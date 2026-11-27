@@ -44,21 +44,20 @@ describe('InventariosService', () => {
     expect(mensagem).toContain('Já existe um inventário em andamento');
   });
 
-  it('calcula total de divergências e justificadas a partir das contagens', () => {
+  it('calcula o total de divergências e preserva as observações', () => {
     let criado: InventarioModel | undefined;
     service.iniciar(payload()).subscribe(registro => criado = registro);
     const chavePrateleira = criado!.prateleiras[0].chave;
     let finalizado: InventarioModel | undefined;
     service.finalizar(criado!.idInventario, [
-      { chavePrateleira, posicao: 1, idItem: null, descricaoItem: 'Nenhum material', quantidadeContada: 3, justificativa: 'Conferido com a nota fiscal.' },
-      { chavePrateleira, posicao: 2, idItem: null, descricaoItem: 'Nenhum material', quantidadeContada: 1, justificativa: '' },
+      { chavePrateleira, posicao: 1, idItem: null, descricaoItem: 'Nenhum material', quantidadeContada: 3, observacao: 'Conferido com a nota fiscal.' },
+      { chavePrateleira, posicao: 2, idItem: null, descricaoItem: 'Nenhum material', quantidadeContada: 1 },
     ]).subscribe(registro => finalizado = registro);
     expect(finalizado?.status).toBe('finalizado');
     expect(finalizado?.dataFim).toBeTruthy();
     expect(finalizado?.quantidadeDivergencias).toBe(2);
-    expect(finalizado?.quantidadeJustificadas).toBe(1);
     expect(finalizado?.divergencias[0].diferenca).toBe(3);
-    expect(finalizado?.divergencias[0].justificativa).toContain('nota fiscal');
+    expect(finalizado?.divergencias[0].observacao).toContain('nota fiscal');
   });
 
   it('integra divergências finalizadas aos alertas sem duplicar ou alterar o saldo', () => {

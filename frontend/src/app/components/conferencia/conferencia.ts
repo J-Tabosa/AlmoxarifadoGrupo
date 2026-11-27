@@ -29,7 +29,6 @@ interface DivergenciaForm {
   descricaoItem: string;
   quantidadeContada: number | null;
   observacao: string;
-  justificativa: string;
 }
 
 @Component({
@@ -214,7 +213,7 @@ export class Conferencia implements OnInit {
     if (!p) return;
     this.indiceEdicao = this.mapaLinha;
     this.rascunho = { chavePrateleira: chave, posicao: null, idItem: null, descricaoItem: '',
-      quantidadeContada: null, observacao: '', justificativa: '' };
+      quantidadeContada: null, observacao: '' };
     this.fecharMapaSelecao();
     this.abrirSeletorMaterial();
   }
@@ -490,8 +489,7 @@ export class Conferencia implements OnInit {
       idItem: d.idItem,
       descricaoItem: d.descricaoItem,
       quantidadeContada: d.quantidadeContada,
-      observacao: d.observacao,
-      justificativa: d.justificativa
+      observacao: d.observacao
     }));
     this.ocorrenciasSalvas = JSON.stringify(this.divergenciasForm);
     this.erro = '';
@@ -554,7 +552,6 @@ export class Conferencia implements OnInit {
   }
 
   get quantidadeDivergenciasForm(): number { return this.divergenciasForm.length; }
-  get quantidadeJustificadasForm(): number { return this.divergenciasForm.filter(linha => !!linha.justificativa.trim()).length; }
 
   get podeFinalizar(): boolean {
     return !!this.inventarioFinalizando && !this.referenciaIncompleta && !this.salvando && !this.rascunho && !this.mapaSelecao &&
@@ -569,7 +566,6 @@ export class Conferencia implements OnInit {
       descricaoItem: linha.descricaoItem,
       quantidadeContada: linha.quantidadeContada!,
       observacao: linha.observacao,
-      justificativa: linha.justificativa,
     }));
   }
 
@@ -607,8 +603,7 @@ export class Conferencia implements OnInit {
         this.ocorrenciasSalvas = '[]';
         this.dialogo.sucesso(
           'Inventário #' + inventario.idInventario + ' encerrado com ' +
-          inventario.quantidadeDivergencias + ' divergência(s), sendo ' +
-          inventario.quantidadeJustificadas + ' justificada(s). Consulte as ocorrências em Alertas (F8). O saldo não foi alterado automaticamente.',
+          inventario.quantidadeDivergencias + ' divergência(s). Consulte as ocorrências em Alertas (F8). O saldo não foi alterado automaticamente.',
           'Inventário finalizado',
         );
         this.carregar();

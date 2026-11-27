@@ -26,7 +26,7 @@ export function sincronizarAlertasInventario(d: BancoLocal): void {
         endereco: divergencia.prateleira, unidade: divergencia.unidade,
         saldoSistema: divergencia.saldoSistema, quantidadeContada: divergencia.quantidadeContada,
         diferenca: divergencia.diferenca, observacaoInventario: divergencia.observacao,
-        justificativaInventario: divergencia.justificativa, contramedidas: []
+        contramedidas: []
       });
       chaves.add(chave);
     }

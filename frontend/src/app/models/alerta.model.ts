@@ -39,7 +39,6 @@ export interface AlertaModel {
   quantidadeContada?: number;
   diferenca?: number;
   observacaoInventario?: string;
-  justificativaInventario?: string;
   contramedidas: ContramedidaAlerta[];
 }
 

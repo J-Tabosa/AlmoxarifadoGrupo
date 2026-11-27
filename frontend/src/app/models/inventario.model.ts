@@ -40,7 +40,6 @@ export interface InventarioDivergencia {
   quantidadeContada: number;
   diferenca: number;
   observacao: string;
-  justificativa: string;
 }
 
 export interface InventarioModel {
@@ -55,7 +54,6 @@ export interface InventarioModel {
   prateleiras: InventarioPrateleira[];
   divergencias: InventarioDivergencia[];
   quantidadeDivergencias: number;
-  quantidadeJustificadas: number;
 }
 
 export interface InventarioInicioPayload {
@@ -75,5 +73,4 @@ export interface InventarioDivergenciaPayload {
   descricaoItem: string;
   quantidadeContada: number;
   observacao?: string;
-  justificativa?: string;
 }
