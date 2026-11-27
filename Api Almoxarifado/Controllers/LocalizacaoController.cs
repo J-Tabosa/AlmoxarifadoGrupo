@@ -90,6 +90,35 @@ namespace Api_Almoxarifado.Controllers
                 response);
         } // Fim do método PostLocalizacao
 
+        [HttpPut("{id}")]
+        public async Task<ActionResult<LocalizacaoDTO>> PutLocalizacao(int id, LocalizacaoDTO dto)
+        {
+            var localizacao = await _context.Localizacaos
+                .FirstOrDefaultAsync(l => l.Idlocalizacao == id);
+
+            if (localizacao == null)
+            {
+                return NotFound($"Localização não encontrada.");
+            }
+
+            localizacao.Idlocalizacao = dto.idLocalizacao;
+            localizacao.Andar = dto.Andar;
+            localizacao.Sala = dto.Sala;
+            localizacao.Posicao = dto.Posicao;
+            localizacao.StatusL = dto.statusL;
+            localizacao.DescricaoL = dto.descricaoL;
+
+
+            if (dto.idLocalizacao == 0 || dto.Andar == null || dto.Sala == null || dto.Posicao == null || dto.statusL == null)
+            {
+                return BadRequest($"Preencha todos os campos ");
+            }
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        } // Fim do método PutLocalizacao
+
         [HttpDelete("{id}")]
         public async Task<ActionResult<LocalizacaoDTO>> DeleteLocalizacao(int id)
         {
