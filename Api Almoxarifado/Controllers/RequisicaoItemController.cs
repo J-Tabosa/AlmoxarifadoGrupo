@@ -17,7 +17,7 @@ namespace Api_Almoxarifado.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<RequisicaoItemDTO>> GetRequisicoes()
+        public async Task<ActionResult<RequisicaoItemDTO>> GetRequisicoesItem()
         {
             var requisicaoitem = await _context.RequisicaoItems
                 .Select(ri => new RequisicaoItemDTO
@@ -45,7 +45,7 @@ namespace Api_Almoxarifado.Controllers
                     }
                 }).ToListAsync();
             
-            if (requisicaoitem != null)
+            if (requisicaoitem == null)
             {
                 return NotFound($"Nenhum item de Requisição encontrado.");
             }
