@@ -14,4 +14,6 @@ public partial class Requisicao
     public string Justificativa { get; set; } = null!;
 
     public string TipoS { get; set; } = null!;
+
+    public List<RequisicaoItem> RequisicaoItems { get; set; } = new();
 }

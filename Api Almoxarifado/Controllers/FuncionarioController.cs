@@ -95,7 +95,6 @@ namespace Api_Almoxarifado.Controllers
                 nomeFu = dto.nomeFu,
                 Cargo = dto.Cargo,
                 statusFu = dto.statusFu,
-                Senha = dto.Senha,
             };
 
             return CreatedAtAction(

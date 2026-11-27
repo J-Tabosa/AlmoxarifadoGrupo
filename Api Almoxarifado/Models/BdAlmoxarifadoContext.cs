@@ -290,9 +290,8 @@ public partial class BdAlmoxarifadoContext : DbContext
 
         modelBuilder.Entity<Requisicao>(entity =>
         {
-            entity.HasKey(e => new { e.Idrequisicao, e.Idfuncionario })
-                .HasName("PRIMARY")
-                .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
+            entity.HasKey(e => e.Idrequisicao)
+                .HasName("PRIMARY");
 
             entity.ToTable("requisicao");
 
@@ -331,6 +330,11 @@ public partial class BdAlmoxarifadoContext : DbContext
                 .HasForeignKey(d => d.Iditem)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_movimentacao_item_item1");
+            entity.HasOne(d => d.Requisicao).WithMany(p => p.RequisicaoItems)
+                .HasForeignKey(d => d.Idrequisicao)
+                .HasPrincipalKey(p => p.Idrequisicao)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_movimentacao_item_movimentacao1");
         });
 
         modelBuilder.Entity<Setor>(entity =>
