@@ -53,5 +53,43 @@ namespace Api_Almoxarifado.Controllers
             return Ok(requisicaoitem);
 
         } // Fim do método GetRequisicoes
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<RequisicaoItemDTO>> GetRequisicaoItem(int id)
+        {
+            var requisicaoitem = await _context.RequisicaoItems
+                .Where(ri => ri.Idrequisicao == id)
+                .Select(ri => new RequisicaoItemDTO
+                {
+                    idrequisicao = ri.Idrequisicao,
+                    iditem = ri.Iditem,
+                    quantidadeS = ri.QuantidadeS,
+
+                    Item = new ItemPostDTO
+                    {
+                        idItem = ri.Iditem,
+                        idCategoria = ri.Item.Idcategoria,
+                        descricaoItem = ri.Item.DescricaoItem,
+                        Unidade = ri.Item.Unidade,
+                        statusIt = ri.Item.StatusIt
+                    },
+
+                    Requisicao = new RequisicaoPostDTO
+                    {
+                        idrequisicao = ri.Idrequisicao,
+                        idfuncionario = ri.Requisicao.Idfuncionario,
+                        datahoraS = ri.Requisicao.DatahoraS,
+                        tipoS = ri.Requisicao.TipoS,
+                        Justificativa = ri.Requisicao.Justificativa,
+                    }
+                }).ToListAsync();
+
+            if (requisicaoitem == null)
+            {
+                return NotFound($"Nenhum item de Requisição encontrado.");
+            }
+
+            return Ok(requisicaoitem);
+        } // fim do método GetRequisicaoItem
     }
 }
