@@ -246,7 +246,7 @@ export class Conferencia implements OnInit {
 
   abrirModalInicio(): void {
     if (this.inventarioAtivo) {
-      this.dialogo.erro('Finalize o inventário #' + this.inventarioAtivo.idInventario + ' antes de iniciar outro.');
+      this.dialogo.erro('Finalize ou cancele o inventário #' + this.inventarioAtivo.idInventario + ' antes de iniciar outro.');
       return;
     }
     this.fecharMapaSelecao();
