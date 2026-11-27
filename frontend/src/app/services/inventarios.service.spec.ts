@@ -85,7 +85,7 @@ describe('InventariosService', () => {
       expect(ocorrencias[0].estado).toBe('resolvido');
       expect(ocorrencias[0].contramedidas.length).toBe(1);
     });
-    banco.ler(d => d.itens[0].estoques![0].saldo).subscribe(s => expect(s).toBe(25));
+    banco.ler(d => d.itens[0].estoques!.reduce((total, e) => total + e.saldo, 0)).subscribe(s => expect(s).toBe(0));
   });
 
   it('congela saldo por posição e permite o mesmo item em posições diferentes', () => {

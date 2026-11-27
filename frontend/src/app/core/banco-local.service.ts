@@ -38,10 +38,7 @@ function clonar<T>(valor: T): T {
 }
 
 function dadosIniciais(): BancoLocal {
-  const localizacoes: LocalizacaoModel[] = [
-    { idLocalizacao: 1, sala: 'Almoxarifado', andar: 'Térreo', statusL: 'A', posicao: 'A-01' },
-    { idLocalizacao: 2, sala: 'Almoxarifado', andar: 'Térreo', statusL: 'A', posicao: 'A-02' },
-  ];
+  const localizacoes: LocalizacaoModel[] = [];
   const setores: SetorModel[] = [
     { idSetor: 1, nomeSetor: 'Administrativo' },
     { idSetor: 2, nomeSetor: 'Manutenção' },
@@ -58,18 +55,55 @@ function dadosIniciais(): BancoLocal {
   const itens: ItemModel[] = [
     {
       idItem: 1, idCategoria: 1, descricaoItem: 'Papel A4', unidade: 'PC', statusIt: 'A',
-      estoques: [
-        { idItem: 1, idLocalizacao: 1, saldo: 25, eMinimo: 5, eMaximo: 100, localizacao: localizacoes[0] },
-      ], saldoTotal: 25,
+      estoques: [], saldoTotal: 0,
     },
     {
       idItem: 2, idCategoria: 2, descricaoItem: 'Detergente neutro', unidade: 'UN', statusIt: 'A',
-      estoques: [
-        { idItem: 2, idLocalizacao: 2, saldo: 12, eMinimo: 3, eMaximo: 40, localizacao: localizacoes[1] },
-      ], saldoTotal: 12,
+      estoques: [], saldoTotal: 0,
     },
   ];
   return { setores, categorias, funcionarios, fornecedores: [], itens, localizacoes, requisicoes: [], entradas: [], inventarios: [], alertas: [] };
+}
+
+/** Remove somente os vínculos demonstrativos originais, sem inferir endereços reais. */
+export function removerEstoquesDemonstrativos(dados: BancoLocal): boolean {
+  let alterado = false;
+  const exemplos = [
+    { id: 1, descricao: 'Papel A4', categoria: 1, unidade: 'PC', posicao: 'A-01', saldo: 25, minimo: 5, maximo: 100 },
+    { id: 2, descricao: 'Detergente neutro', categoria: 2, unidade: 'UN', posicao: 'A-02', saldo: 12, minimo: 3, maximo: 40 }
+  ];
+  for (const exemplo of exemplos) {
+    const local = dados.localizacoes.find(l => l.idLocalizacao === exemplo.id);
+    if (!local || local.sala !== 'Almoxarifado' || local.andar !== 'Térreo' ||
+        local.posicao !== exemplo.posicao || local.statusL !== 'A' || local.grupoKey != null ||
+        local.idEstante != null || local.prateleira != null || local.posicaoInterna != null) continue;
+
+    // Qualquer histórico vinculado impede a limpeza automática.
+    const usado = (dados.entradas ?? []).some(e => e.idLocalizacao === local.idLocalizacao) ||
+      (dados.requisicoes ?? []).some(r => r.itens.some(x =>
+        x.idLocalizacao === local.idLocalizacao || (x.idLocalizacao == null && x.idItem === exemplo.id))) ||
+      (dados.alertas ?? []).some(a => a.idLocalizacao === local.idLocalizacao) ||
+      (dados.inventarios ?? []).some(i =>
+        i.prateleiras.some(p => p.posicoesSistema?.some(x => x.idLocalizacao === local.idLocalizacao)) ||
+        i.divergencias.some(x => x.idLocalizacao === local.idLocalizacao));
+    if (usado) continue;
+
+    const item = dados.itens.find(i => i.idItem === exemplo.id && i.descricaoItem === exemplo.descricao &&
+      i.idCategoria === exemplo.categoria && i.unidade === exemplo.unidade && i.statusIt === 'A');
+    const stock = item?.estoques?.find(e => e.idLocalizacao === local.idLocalizacao &&
+      e.idItem === exemplo.id && e.saldo === exemplo.saldo && e.eMinimo === exemplo.minimo && e.eMaximo === exemplo.maximo);
+    if (item && stock) {
+      item.estoques = item.estoques!.filter(e => e !== stock);
+      item.saldoTotal = item.estoques.reduce((total, e) => total + e.saldo, 0);
+      alterado = true;
+    }
+
+    if (!dados.itens.some(i => i.estoques?.some(e => e.idLocalizacao === local.idLocalizacao))) {
+      dados.localizacoes = dados.localizacoes.filter(l => l !== local);
+      alterado = true;
+    }
+  }
+  return alterado;
 }
 
 /** Armazenamento local para prototipagem. Não faz chamadas HTTP nem acessa MySQL. */
@@ -124,6 +158,14 @@ export class BancoLocalService {
             // Para dados antigos sem o segundo responsável, não inferir cargo/perfil.
             idAlmoxarife: requisicao.idAlmoxarife ?? requisicao.idFuncionario,
           }));
+          if (removerEstoquesDemonstrativos(mesclados)) {
+            // Conserva uma cópia dos dados anteriores à limpeza, sem limpar o LocalStorage.
+            try {
+              const backupKey = CHAVE_STORAGE + '.antes-limpeza-demo';
+              if (localStorage.getItem(backupKey) === null) localStorage.setItem(backupKey, salvo);
+              localStorage.setItem(CHAVE_STORAGE, JSON.stringify(mesclados));
+            } catch { /* A limpeza permanece disponível em memória. */ }
+          }
           return mesclados;
         }
       }

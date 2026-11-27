@@ -71,7 +71,7 @@ describe('Entradas', () => {
     expect(component.itensFiltradosModal().map(i => i.idItem)).toContain(item.idItem);
 
     component.pesquisaItemModal = 'a-01';
-    expect(component.itensFiltradosModal().map(i => i.idItem)).toContain(item.idItem);
+    expect(component.itensFiltradosModal().map(i => i.idItem)).not.toContain(item.idItem);
 
     component.trocarItem(item.idItem);
     component.fecharModalSelecao();

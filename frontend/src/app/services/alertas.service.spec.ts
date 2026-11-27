@@ -12,6 +12,11 @@ describe('AlertasService', () => {
     previous = keys.map(k => localStorage.getItem(k));
     keys.forEach(k => localStorage.removeItem(k));
     banco = TestBed.inject(BancoLocalService);
+    banco.alterar(d => {
+      d.localizacoes.push({ idLocalizacao: 1, sala: 'Depósito de teste', andar: '', posicao: 'P1 / Pos. 1',
+        statusL: 'A', grupoKey: 'central', idEstante: 1, prateleira: 1, posicaoInterna: 1 });
+      d.itens[0].estoques!.push({ idItem: 1, idLocalizacao: 1, saldo: 25, eMinimo: 5, eMaximo: 100 });
+    }).subscribe();
     api = TestBed.inject(AlertasService);
   });
   afterEach(() => keys.forEach((k, i) => previous[i] === null ? localStorage.removeItem(k) : localStorage.setItem(k, previous[i]!)));
