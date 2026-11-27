@@ -2,8 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Api_Almoxarifado.Models;
 using Api_Almoxarifado.DTO;
-using NuGet.Common;
-using System.Security.Cryptography;
 
 namespace Api_Almoxarifado.Controllers
 {

@@ -1,4 +1,6 @@
-﻿namespace Api_Almoxarifado.DTO
+﻿using Api_Almoxarifado.Models;
+
+namespace Api_Almoxarifado.DTO
 {
     public class EstoqueDTO
     {
@@ -11,5 +13,9 @@
         public int eMinimo { get; set;}
 
         public int eMaximo { get; set;}
+
+        public ItemPostDTO Item { get; set; } = new ();
+
+        public LocalizacaoDTO Localizacao { get; set; } = new();
     }
 }
