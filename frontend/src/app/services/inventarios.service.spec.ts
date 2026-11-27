@@ -50,8 +50,8 @@ describe('InventariosService', () => {
     const chavePrateleira = criado!.prateleiras[0].chave;
     let finalizado: InventarioModel | undefined;
     service.finalizar(criado!.idInventario, [
-      { chavePrateleira, idItem: null, descricaoItem: 'Material não cadastrado', quantidadeContada: 3, justificativa: 'Conferido com a nota fiscal.' },
-      { chavePrateleira, idItem: 1, descricaoItem: '', quantidadeContada: 1, justificativa: '' },
+      { chavePrateleira, posicao: 1, idItem: null, descricaoItem: 'Nenhum material', quantidadeContada: 3, justificativa: 'Conferido com a nota fiscal.' },
+      { chavePrateleira, posicao: 2, idItem: null, descricaoItem: 'Nenhum material', quantidadeContada: 1, justificativa: '' },
     ]).subscribe(registro => finalizado = registro);
     expect(finalizado?.status).toBe('finalizado');
     expect(finalizado?.dataFim).toBeTruthy();
@@ -68,7 +68,7 @@ describe('InventariosService', () => {
     service.iniciar(payload()).subscribe(r => criado = r);
     alertas.listar().subscribe(a => expect(a.filter(x => x.tipo === 'divergencia_inventario').length).toBe(0));
     service.finalizar(criado.idInventario, [{
-      chavePrateleira: criado.prateleiras[0].chave, idItem: 1, descricaoItem: '', quantidadeContada: 3
+      chavePrateleira: criado.prateleiras[0].chave, posicao: 1, idItem: null, descricaoItem: 'Nenhum material', quantidadeContada: 3
     }]).subscribe();
     let id = 0;
     banco.ler(d => d.alertas ?? []).subscribe(a => {
@@ -89,12 +89,45 @@ describe('InventariosService', () => {
     banco.ler(d => d.itens[0].estoques![0].saldo).subscribe(s => expect(s).toBe(25));
   });
 
+  it('congela saldo por posição e permite o mesmo item em posições diferentes', () => {
+    const banco = TestBed.inject(BancoLocalService);
+    const selecao = payload();
+    const p = selecao.prateleiras[0];
+    banco.alterar(d => {
+      for (const [posicao, saldo] of [[1, 5], [2, 8]]) {
+        const idLocalizacao = 100 + posicao;
+        d.localizacoes.push({ idLocalizacao, sala: 'Depósito', andar: '', statusL: 'A', posicao: 'Pos. ' + posicao,
+          grupoKey: p.grupoKey, idEstante: p.idEstante, prateleira: p.nivel, posicaoInterna: posicao });
+        d.itens[0].estoques!.push({ idItem: 1, idLocalizacao, saldo, eMinimo: 0, eMaximo: 0 });
+      }
+    }).subscribe();
+    let criado!: InventarioModel;
+    service.iniciar(selecao).subscribe(r => criado = r);
+    expect(criado.prateleiras[0].posicoesSistema?.map(x => x.saldo)).toEqual([5, 8]);
+    const chavePrateleira = criado.prateleiras[0].chave;
+    service.finalizar(criado.idInventario, [
+      { chavePrateleira, posicao: 1, idItem: 1, descricaoItem: '', quantidadeContada: 4 },
+      { chavePrateleira, posicao: 2, idItem: 1, descricaoItem: '', quantidadeContada: 10 }
+    ]).subscribe(r => expect(r.divergencias.map(x => x.diferenca)).toEqual([-1, 2]));
+  });
+
+  it('rejeita itens fora da posição e duplicação de endereços', () => {
+    let criado!: InventarioModel;
+    service.iniciar(payload()).subscribe(r => criado = r);
+    const linha = { chavePrateleira: criado.prateleiras[0].chave, posicao: 1, idItem: null, descricaoItem: 'Nenhum material', quantidadeContada: 3 };
+    let erro = '';
+    service.finalizar(criado.idInventario, [{ ...linha, idItem: 1 }]).subscribe({ error: e => erro = e.message });
+    expect(erro).toContain('não pertence');
+    service.finalizar(criado.idInventario, [linha, linha]).subscribe({ error: e => erro = e.message });
+    expect(erro).toContain('já possui uma divergência');
+  });
+
   it('não permite registrar como divergência uma quantidade igual ao saldo de referência', () => {
     let criado: InventarioModel | undefined;
     service.iniciar(payload()).subscribe(registro => criado = registro);
     let mensagem = '';
     service.finalizar(criado!.idInventario, [
-      { chavePrateleira: criado!.prateleiras[0].chave, idItem: null, descricaoItem: 'Material', quantidadeContada: 0 },
+      { chavePrateleira: criado!.prateleiras[0].chave, posicao: 1, idItem: null, descricaoItem: 'Nenhum material', quantidadeContada: 0 },
     ]).subscribe({ error: erro => mensagem = erro.message });
     expect(mensagem).toContain('igual ao saldo de referência');
   });

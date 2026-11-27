@@ -11,6 +11,11 @@ export interface InventarioItemSnapshot {
   saldo: number;
 }
 
+export interface InventarioPosicaoSnapshot extends InventarioItemSnapshot {
+  posicao: number;
+  idLocalizacao: number;
+}
+
 export interface InventarioPrateleira {
   chave: string;
   grupoKey: string;
@@ -19,12 +24,15 @@ export interface InventarioPrateleira {
   nomeEstante: string;
   nivel: number;
   itensSistema: InventarioItemSnapshot[];
+  posicoesSistema?: InventarioPosicaoSnapshot[];
 }
 
 export interface InventarioDivergencia {
   id: number;
   chavePrateleira: string;
   prateleira: string;
+  posicao?: number;
+  idLocalizacao?: number;
   idItem: number | null;
   descricaoItem: string;
   unidade: string;
@@ -41,6 +49,7 @@ export interface InventarioModel {
   dataFim: string | null;
   status: 'em_andamento' | 'finalizado' | 'cancelado';
   motivoCancelamento?: string;
+  estoqueCompleto?: boolean;
   responsavel: InventarioFuncionario;
   contadores: InventarioFuncionario[];
   prateleiras: InventarioPrateleira[];
@@ -61,6 +70,7 @@ export interface InventarioInicioPayload {
 
 export interface InventarioDivergenciaPayload {
   chavePrateleira: string;
+  posicao: number;
   idItem: number | null;
   descricaoItem: string;
   quantidadeContada: number;

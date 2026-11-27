@@ -1,11 +1,12 @@
 import { Injectable, inject } from '@angular/core';
-import { BancoLocalService } from '../core/banco-local.service';
+import { BancoLocal, BancoLocalService } from '../core/banco-local.service';
 import { sincronizarAlertasInventario } from '../core/alertas-inventario';
 import {
   InventarioDivergenciaPayload,
   InventarioFuncionario,
   InventarioModel,
   InventarioPrateleira,
+  InventarioPosicaoSnapshot,
   InventarioInicioPayload,
 } from '../models/inventario.model';
 import { PlantaService } from './planta';
@@ -16,8 +17,9 @@ export class InventariosService {
   private readonly planta = inject(PlantaService);
 
   listar() {
-    return this.banco.ler(d => [...(d.inventarios ?? [])]
-      .sort((a, b) => b.idInventario - a.idInventario));
+    return this.banco.ler(d => (d.inventarios ?? []).map(i => i.status === 'em_andamento'
+      ? { ...i, prateleiras: i.prateleiras.map(p => ({ ...p, posicoesSistema: this.posicoesReferencia(d, p) })) }
+      : i).sort((a, b) => b.idInventario - a.idInventario));
   }
 
   iniciar(payload: InventarioInicioPayload) {
@@ -62,7 +64,7 @@ export class InventariosService {
         }).sort((a, b) => a.descricaoItem.localeCompare(b.descricaoItem, 'pt-BR'));
 
         const coordenada = String(estante.r).padStart(2, '0') + '-' + String(estante.c).padStart(2, '0');
-        return {
+        const referencia: InventarioPrateleira = {
           chave,
           grupoKey: grupo.key,
           grupoNome: grupo.name,
@@ -71,6 +73,9 @@ export class InventariosService {
           nivel: selecao.nivel,
           itensSistema,
         };
+        const posicoes = this.posicoesReferencia(d, referencia);
+        if (!posicoes) throw new Error('Há materiais sem posição física válida na prateleira selecionada. Confira o cadastro.');
+        return { ...referencia, posicoesSistema: posicoes };
       });
 
       const registro: InventarioModel = {
@@ -81,6 +86,7 @@ export class InventariosService {
         responsavel: this.resumo(responsavel),
         contadores: contadores.map(f => this.resumo(f)),
         prateleiras,
+        estoqueCompleto: this.estoqueCompleto(chaves),
         divergencias: [],
         quantidadeDivergencias: 0,
         quantidadeJustificadas: 0,
@@ -103,6 +109,7 @@ export class InventariosService {
         throw new Error('Informe uma justificativa com pelo menos 5 e no máximo 600 caracteres.');
       }
 
+      inventario.estoqueCompleto ??= this.estoqueCompleto(new Set(inventario.prateleiras.map(p => p.chave)));
       inventario.status = 'cancelado';
       inventario.dataFim = new Date().toISOString();
       inventario.motivoCancelamento = justificativa;
@@ -118,6 +125,9 @@ export class InventariosService {
       }
 
       const chavesPermitidas = new Set(inventario.prateleiras.map(p => p.chave));
+      if (inventario.prateleiras.some(p => this.posicoesReferencia(d, p) === undefined)) {
+        throw new Error('Não foi possível reconstruir todas as posições do inventário antigo. Cancele e inicie uma nova contagem.');
+      }
       const duplicadas = new Set<string>();
       const divergencias = (payload ?? []).map((linha, index) => {
         const prateleira = inventario.prateleiras.find(p => p.chave === linha.chavePrateleira);
@@ -128,26 +138,19 @@ export class InventariosService {
           throw new Error('Informe uma quantidade física inteira e não negativa para cada divergência.');
         }
 
-        const item = linha.idItem === null ? null : d.itens.find(i => i.idItem === linha.idItem);
-        if (linha.idItem !== null && !item) throw new Error('Um dos materiais da divergência não existe mais no catálogo.');
-        const descricaoItem = item?.descricaoItem.trim() || (linha.descricaoItem ?? '').trim();
-        if (!descricaoItem || descricaoItem.length > 120) {
-          throw new Error('Informe o material da divergência (até 120 caracteres).');
-        }
-
-        if (linha.idItem === null && d.itens.some(i => this.normalizar(i.descricaoItem) === this.normalizar(descricaoItem))) {
-          throw new Error('Este material já existe no catálogo. Selecione-o pelo cadastro para usar o saldo de referência correto.');
-        }
-
-        const chaveItem = linha.idItem !== null
-          ? prateleira.chave + '|item:' + linha.idItem
-          : prateleira.chave + '|manual:' + this.normalizar(descricaoItem);
-        if (duplicadas.has(chaveItem)) throw new Error('O mesmo material foi registrado mais de uma vez na mesma prateleira.');
-        duplicadas.add(chaveItem);
-
-        const snapshot = linha.idItem === null
-          ? undefined
-          : prateleira.itensSistema.find(i => i.idItem === linha.idItem);
+        if (!Number.isSafeInteger(linha.posicao) || linha.posicao < 1)
+          throw new Error('Informe uma posição física inteira e positiva.');
+        const chaveLocal = prateleira.chave + '|pos:' + linha.posicao;
+        if (duplicadas.has(chaveLocal)) throw new Error('Esta localização já possui uma divergência.');
+        duplicadas.add(chaveLocal);
+        const posicoes = this.posicoesReferencia(d, prateleira);
+        if (!posicoes) throw new Error('Não foi possível reconstruir a referência por posição deste inventário antigo. Cancele e inicie uma nova contagem.');
+        const snapshot = posicoes.find(p => p.posicao === linha.posicao && p.idItem === linha.idItem);
+        if (linha.idItem !== null && !snapshot)
+          throw new Error('O material não pertence à posição auditada no início.');
+        if (linha.idItem === null && (posicoes.length > 0))
+          throw new Error('Selecione um material vinculado a esta prateleira. Nenhum material só é permitido em prateleira sem vínculos.');
+        const descricaoItem = snapshot?.descricaoItem ?? 'Nenhum material';
         const saldoSistema = snapshot?.saldo ?? 0;
         if (linha.quantidadeContada === saldoSistema) {
           throw new Error('A quantidade contada é igual ao saldo de referência. Remova essa linha: ela não é uma divergência.');
@@ -161,10 +164,12 @@ export class InventariosService {
         return {
           id: index + 1,
           chavePrateleira: prateleira.chave,
-          prateleira: this.rotuloPrateleira(prateleira),
-          idItem: item?.idItem ?? null,
+          prateleira: this.rotuloPrateleira(prateleira) + ' / Pos. ' + linha.posicao,
+          posicao: linha.posicao,
+          idLocalizacao: snapshot?.idLocalizacao,
+          idItem: snapshot?.idItem ?? null,
           descricaoItem,
-          unidade: snapshot?.unidade ?? item?.unidade ?? '',
+          unidade: snapshot?.unidade ?? '',
           saldoSistema,
           quantidadeContada: linha.quantidadeContada,
           diferenca: linha.quantidadeContada - saldoSistema,
@@ -173,6 +178,8 @@ export class InventariosService {
         };
       });
 
+      inventario.estoqueCompleto ??= this.estoqueCompleto(chavesPermitidas);
+      inventario.prateleiras = inventario.prateleiras.map(p => ({ ...p, posicoesSistema: this.posicoesReferencia(d, p) }));
       inventario.divergencias = divergencias;
       inventario.quantidadeDivergencias = divergencias.length;
       inventario.quantidadeJustificadas = divergencias.filter(dvg => !!dvg.justificativa).length;
@@ -201,8 +208,34 @@ export class InventariosService {
     };
   }
 
-  private normalizar(valor: string): string {
-    return valor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').trim();
+  private estoqueCompleto(chaves: Set<string>): boolean {
+    const ativas = this.planta.groups.flatMap(g => g.slots.filter(s => !s.blocked).flatMap(s =>
+      Array.from({ length: this.planta.shelfCount(s) }, (_, i) => this.chavePrateleira(g.key, s.idlocalizacao, i + 1))));
+    return ativas.length > 0 && chaves.size === ativas.length && ativas.every(chave => chaves.has(chave));
+  }
+
+  private posicoesAtuais(d: BancoLocal, grupoKey: string, idEstante: number, nivel: number): InventarioPosicaoSnapshot[] {
+    const locais = d.localizacoes.filter(l => l.statusL === 'A' && l.grupoKey === grupoKey &&
+      l.idEstante === idEstante && l.prateleira === nivel && Number.isSafeInteger(l.posicaoInterna) && l.posicaoInterna! > 0);
+    return locais.flatMap(l => d.itens.flatMap(item => (item.estoques ?? [])
+      .filter(e => e.idLocalizacao === l.idLocalizacao)
+      .map(e => ({ posicao: l.posicaoInterna!, idLocalizacao: l.idLocalizacao, idItem: item.idItem,
+        descricaoItem: item.descricaoItem, unidade: item.unidade, saldo: e.saldo }))))
+      .sort((a, b) => a.posicao - b.posicao || a.idItem - b.idItem);
+  }
+
+  // Inventários anteriores congelavam apenas o total por prateleira. Enquanto o
+  // estoque estiver bloqueado, recupera as posições somente se os totais conferirem.
+  private posicoesReferencia(d: BancoLocal, p: InventarioPrateleira): InventarioPosicaoSnapshot[] | undefined {
+    if (p.posicoesSistema !== undefined) return p.posicoesSistema;
+    const atuais = this.posicoesAtuais(d, p.grupoKey, p.idEstante, p.nivel);
+    const totais = new Map<number, number>();
+    atuais.forEach(a => totais.set(a.idItem, (totais.get(a.idItem) ?? 0) + a.saldo));
+    if (totais.size !== p.itensSistema.length || !p.itensSistema.every(i => totais.get(i.idItem) === i.saldo)) return undefined;
+    return atuais.map(a => {
+      const anterior = p.itensSistema.find(i => i.idItem === a.idItem)!;
+      return { ...a, descricaoItem: anterior.descricaoItem, unidade: anterior.unidade };
+    });
   }
 
   private rotuloPrateleira(p: InventarioPrateleira): string {

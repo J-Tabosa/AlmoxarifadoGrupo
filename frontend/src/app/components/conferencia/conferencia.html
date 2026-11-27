@@ -45,8 +45,12 @@
         <span><b>Contadores:</b> {{ ativo.contadores.length }}</span>
       </div>
       <div class="inventory-shelf-chips">
-        @for (prateleira of ativo.prateleiras; track prateleira.chave) {
-          <span class="inventory-shelf-chip">{{ rotuloPrateleiraRegistro(prateleira) }}</span>
+        @if (estoqueCompleto(ativo)) {
+          <span class="inventory-shelf-chip inventory-full-stock">Todo o Estoque</span>
+        } @else {
+          @for (prateleira of ativo.prateleiras; track prateleira.chave) {
+            <span class="inventory-shelf-chip">{{ rotuloPrateleiraRegistro(prateleira) }}</span>
+          }
         }
       </div>
       <div class="inventory-active-actions">
@@ -186,70 +190,43 @@
           <article><small>Com justificativa</small><strong>{{ quantidadeJustificadasForm }}</strong></article>
           <article><small>Sem justificativa</small><strong>{{ quantidadeDivergenciasForm - quantidadeJustificadasForm }}</strong></article>
         </div>
+        @if (referenciaIncompleta) {
+          <p class="entry-error" role="alert">Não foi possível recuperar todas as posições do inventário antigo com segurança. Cancele o inventário e inicie uma nova contagem.</p>
+        }
         <div class="inventory-divergence-heading">
-          <div><h3>Divergências encontradas</h3><p>Uma linha para cada material divergente em uma prateleira.</p></div>
-          <button class="btn small" type="button" (click)="adicionarDivergencia()">＋ Adicionar divergência</button>
+          <div><h3>Divergências encontradas</h3><p>Uma ocorrência por localização física (estante, prateleira e posição).</p></div>
+          <button class="btn small" type="button" [disabled]="referenciaIncompleta || !!rascunho || !!mapaSelecao" (click)="adicionarDivergencia()">＋ Adicionar divergência</button>
         </div>
-        @if (mapaSelecao === 'divergencia' && mapaLinha === null) { <ng-container *ngTemplateOutlet="seletorMapa"></ng-container> }
-        @for (linha of divergenciasForm; track $index; let i = $index) {
+        @if (mapaSelecao === 'divergencia') { <ng-container *ngTemplateOutlet="seletorMapa"></ng-container> }
+        <div class="inventory-divergence-list">
+          @for (linha of divergenciasForm; track $index; let i = $index) {
+            <article class="inventory-divergence-row">
+              <div><strong>{{ linha.descricaoItem }}</strong><small>{{ rotuloDivergencia(linha.chavePrateleira) }} / Pos. {{ linha.posicao }}</small></div>
+              <div><small>Contado / sistema</small><b>{{ linha.quantidadeContada }} / {{ saldoSistemaDivergencia(linha) }}</b></div>
+              <div [class.negative]="(diferencaDivergencia(linha) ?? 0) < 0" [class.positive]="(diferencaDivergencia(linha) ?? 0) > 0">{{ (diferencaDivergencia(linha) ?? 0) > 0 ? '+' : '' }}{{ diferencaDivergencia(linha) }}</div>
+              <div class="inventory-group-actions"><button class="btn small" type="button" [disabled]="!!rascunho || !!mapaSelecao" (click)="editarDivergencia(i)">Editar</button><button class="btn small danger" type="button" [disabled]="!!rascunho || !!mapaSelecao" (click)="removerDivergencia(i)">Excluir</button></div>
+            </article>
+          } @empty {
+            @if (!rascunho) { <div class="inventory-no-divergences"><strong>Nenhuma divergência informada.</strong><p>Finalize sem divergências se todas as quantidades coincidirem.</p></div> }
+          }
+        </div>
+        @if (rascunho; as linha) {
           <section class="inventory-divergence-card">
-            <header><b>Divergência {{ i + 1 }}</b><button class="btn small" type="button" (click)="removerDivergencia(i)">Remover</button></header>
+            <header><b>{{ indiceEdicao === null ? 'Nova divergência' : 'Editar divergência' }}</b><button class="btn small" type="button" (click)="cancelarEdicaoDivergencia()">Cancelar</button></header>
             <div class="inventory-divergence-grid">
-              <div class="field">
-                <label [for]="'divergenciaPrateleira-' + i">Prateleira <span class="req">*</span></label>
-                <button class="btn inventory-location-button" type="button" [id]="'divergenciaPrateleira-' + i"
-                  (click)="abrirMapaSelecao('divergencia', i)">{{ rotuloDivergencia(linha.chavePrateleira) }} · Alterar</button>
-                @if (mapaSelecao === 'divergencia' && mapaLinha === i) { <ng-container *ngTemplateOutlet="seletorMapa"></ng-container> }
-              </div>
-              <div class="field">
-                <label [for]="'divergenciaMaterial-' + i">Material do catálogo</label>
-                <select [id]="'divergenciaMaterial-' + i" [name]="'divergenciaMaterial-' + i"
-                  [ngModel]="linha.idItem" (ngModelChange)="selecionarMaterialDivergencia(linha, $event)">
-                  <option [ngValue]="null">Material não cadastrado / informar abaixo</option>
-                  @for (item of itens; track item.idItem) {
-                    <option [ngValue]="item.idItem">#{{ item.idItem }} · {{ item.descricaoItem }}{{ item.statusIt === 'A' ? '' : ' (inativo)' }}</option>
-                  }
-                </select>
-              </div>
-              @if (linha.idItem === null) {
-                <div class="field">
-                  <label [for]="'divergenciaDescricao-' + i">Descrição do material <span class="req">*</span></label>
-                  <input [id]="'divergenciaDescricao-' + i" [name]="'divergenciaDescricao-' + i"
-                    [(ngModel)]="linha.descricaoItem" maxlength="120" placeholder="Informe o material encontrado">
-                </div>
+              <div class="field"><label>Localização auditada</label><div class="inventory-reference">{{ rotuloDivergencia(linha.chavePrateleira) }} @if (linha.posicao !== null) { / Pos. {{ linha.posicao }} }</div></div>
+              <div class="field"><label>Material e posição *</label><button class="btn inventory-location-button" type="button" (click)="abrirSeletorMaterial()">{{ linha.descricaoItem || 'Selecionar material' }} · Selecionar</button></div>
+              @if (linha.descricaoItem === 'Nenhum material' && linha.idItem === null) {
+                <div class="field"><label for="divergenciaPosicao">Posição encontrada *</label><input id="divergenciaPosicao" type="number" min="1" step="1" [(ngModel)]="linha.posicao"></div>
               }
-              <div class="field">
-                <label [for]="'divergenciaQuantidade-' + i">Quantidade física contada <span class="req">*</span></label>
-                <input [id]="'divergenciaQuantidade-' + i" [name]="'divergenciaQuantidade-' + i"
-                  type="number" min="0" step="1" [(ngModel)]="linha.quantidadeContada">
-              </div>
-              <div class="inventory-reference">
-                <small>Saldo registrado no início</small>
-                <strong>{{ saldoSistemaDivergencia(linha) }} {{ unidadeDivergencia(linha) }}</strong>
-                @if (diferencaDivergencia(linha) !== null) {
-                  <span [class.negative]="(diferencaDivergencia(linha) ?? 0) < 0" [class.positive]="(diferencaDivergencia(linha) ?? 0) > 0">
-                    {{ (diferencaDivergencia(linha) ?? 0) > 0 ? '+' : '' }}{{ diferencaDivergencia(linha) }}
-                    · {{ (diferencaDivergencia(linha) ?? 0) < 0 ? 'Falta' : 'Sobra' }}
-                  </span>
-                }
-              </div>
-              <div class="field full">
-                <label [for]="'divergenciaObservacao-' + i">Observação</label>
-                <textarea [id]="'divergenciaObservacao-' + i" [name]="'divergenciaObservacao-' + i"
-                  rows="2" maxlength="500" [(ngModel)]="linha.observacao" placeholder="Descreva a ocorrência, se necessário"></textarea>
-              </div>
-              <div class="field full">
-                <label [for]="'divergenciaJustificativa-' + i">Justificativa da divergência</label>
-                <textarea [id]="'divergenciaJustificativa-' + i" [name]="'divergenciaJustificativa-' + i"
-                  rows="2" maxlength="800" [(ngModel)]="linha.justificativa" placeholder="Deixe em branco enquanto a divergência não estiver justificada"></textarea>
-              </div>
+              <div class="field"><label for="divergenciaQuantidade">Quantidade física contada *</label><input id="divergenciaQuantidade" type="number" min="0" step="1" [(ngModel)]="linha.quantidadeContada"></div>
+              <div class="inventory-reference"><small>Saldo inicial da posição</small><strong>{{ saldoSistemaDivergencia(linha) }} {{ unidadeDivergencia(linha) }}</strong>@if (diferencaDivergencia(linha) !== null) { <span>Diferença: {{ diferencaDivergencia(linha) }}</span> }</div>
+              <div class="field full"><label for="divergenciaObservacao">Observação</label><textarea id="divergenciaObservacao" rows="2" maxlength="500" [(ngModel)]="linha.observacao" placeholder="Descreva o ocorrido, inclusive material encontrado em posição vazia."></textarea></div>
+              <div class="field full"><label for="divergenciaJustificativa">Justificativa</label><textarea id="divergenciaJustificativa" rows="2" maxlength="800" [(ngModel)]="linha.justificativa"></textarea></div>
             </div>
+            @if (posicaoRascunhoOcupada) { <p class="entry-error" role="alert">Esta posição já possui uma divergência. Escolha outra localização.</p> }
+            <div class="inventory-group-actions"><button class="btn primary" type="button" [disabled]="!podeSalvarDivergencia" (click)="salvarDivergencia()">Salvar divergência</button><button class="btn" type="button" (click)="cancelarEdicaoDivergencia()">Cancelar</button></div>
           </section>
-        } @empty {
-          <div class="inventory-no-divergences">
-            <strong>Nenhuma divergência informada.</strong>
-            <p>Se todas as quantidades físicas coincidirem com o saldo de referência, finalize sem adicionar linhas.</p>
-          </div>
         }
         <p class="inventory-regularization-note">O encerramento registra o resultado e as justificativas, mas não ajusta o saldo automaticamente. Regularizações devem ser analisadas e aprovadas antes de um lançamento de estoque.</p>
         @if (erro) { <p class="entry-error" role="alert">{{ erro }}</p> }
@@ -321,6 +298,8 @@
 
         <section class="inventory-detail-section">
           <h3>Prateleiras selecionadas para contagem</h3>
+          @if (estoqueCompleto(detalhe)) { <span class="inventory-shelf-chip inventory-full-stock">Todo o Estoque</span> }
+          <details [open]="!estoqueCompleto(detalhe)"><summary>Consultar níveis auditados ({{ detalhe.prateleiras.length }})</summary>
           <div class="inventory-detail-shelves">
             @for (prateleira of detalhe.prateleiras; track prateleira.chave) {
               <article>
@@ -340,6 +319,7 @@
               </article>
             }
           </div>
+          </details>
         </section>
 
         <section class="inventory-detail-section">
@@ -450,3 +430,29 @@
     <p class="hint">{{ mapaSelecao === 'inicio' ? 'Verde: selecionada · parcial: alguns níveis · cinza: não selecionada.' : 'Somente as prateleiras incluídas no inventário podem receber divergências.' }}</p>
   </section>
 </ng-template>
+
+
+@if (modalMaterialAberto && rascunho) {
+  <div class="drawer-overlay open inventory-material-overlay" (click)="modalMaterialAberto = false">
+    <section class="dialog inventory-dialog inventory-material-dialog" role="dialog" aria-modal="true" aria-labelledby="materialDivergenciaTitulo" (click)="$event.stopPropagation()">
+      <header class="dialog-head"><span id="materialDivergenciaTitulo">Selecionar material da divergência</span><button type="button" aria-label="Fechar" (click)="modalMaterialAberto = false">×</button></header>
+      <div class="dialog-body inventory-dialog-body">
+        <p class="hint">{{ rotuloDivergencia(rascunho.chavePrateleira) }} · Somente materiais vinculados no início da contagem. Posições já registradas ficam indisponíveis.</p>
+        @if (prateleiraRascunho?.posicoesSistema?.length === 0) {
+          <button type="button" class="btn primary" (click)="escolherMaterial(null)">Nenhum material</button>
+        } @else {
+          <div class="field"><label for="pesquisaMaterialDivergencia">Pesquisar material</label><input id="pesquisaMaterialDivergencia" type="search" [(ngModel)]="pesquisaMaterial" placeholder="ID, descrição, posição..."></div>
+          <div class="table-scroller"><table class="table inventory-material-table">
+            <thead><tr><th>ID</th><th>Material</th><th>Posição</th><th>Saldo de referência</th><th>Ação</th></tr></thead>
+            <tbody>
+              @for (p of materiaisFiltrados; track p.idLocalizacao + ':' + p.idItem) {
+                <tr><td>#{{ p.idItem }}</td><td>{{ p.descricaoItem }}</td><td>{{ p.posicao }}</td><td>{{ p.saldo }} {{ p.unidade }}</td><td><button type="button" class="btn small primary" (click)="escolherMaterial(p)">Selecionar</button></td></tr>
+              } @empty { <tr><td colspan="5" class="empty-state">Nenhum material disponível para esta seleção.</td></tr> }
+            </tbody>
+          </table></div>
+        }
+      </div>
+      <footer class="dialog-actions"><button type="button" class="btn" (click)="modalMaterialAberto = false">Cancelar</button></footer>
+    </section>
+  </div>
+}

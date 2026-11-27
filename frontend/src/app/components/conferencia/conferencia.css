@@ -413,3 +413,14 @@
 .inventory-cancellation-detail { grid-column: 1 / -1; }
 .inventory-cancellation-detail strong { white-space: pre-wrap; line-height: 1.5; }
 .inventory-table .tag.bad { color: var(--red); }
+
+
+.inventory-full-stock { color: var(--wine); font-weight: 800; padding: 8px 12px; }
+.inventory-divergence-list { display: grid; gap: 6px; }
+.inventory-divergence-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(100px, 1fr) 50px auto; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--line); background: var(--paper2); }
+.inventory-divergence-row small { display: block; color: var(--muted); margin-top: 3px; overflow-wrap: anywhere; }
+.inventory-material-overlay { z-index: 145; }
+.inventory-material-dialog { width: min(780px, calc(100vw - 24px)); }
+.inventory-material-table { min-width: 550px; }
+.inventory-detail-section details summary { cursor: pointer; padding: 8px 0; color: var(--muted); }
+@media(max-width: 650px) { .inventory-divergence-row { grid-template-columns: 1fr 1fr; } }

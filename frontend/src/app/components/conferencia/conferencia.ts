@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { mensagemErro } from '../../core/app-error';
 import { DialogoService } from '../../core/dialogo.service';
 import { FuncionarioModel } from '../../models/funcionario.model';
-import { InventarioDivergenciaPayload, InventarioModel } from '../../models/inventario.model';
+import { InventarioDivergenciaPayload, InventarioModel, InventarioPosicaoSnapshot } from '../../models/inventario.model';
 import { ItemModel } from '../../models/item.model';
 import { FuncionariosService } from '../../services/funcionarios.service';
 import { InventariosService } from '../../services/inventarios.service';
@@ -24,6 +24,7 @@ interface PrateleiraOpcao {
 
 interface DivergenciaForm {
   chavePrateleira: string;
+  posicao: number | null;
   idItem: number | null;
   descricaoItem: string;
   quantidadeContada: number | null;
@@ -63,6 +64,10 @@ export class Conferencia implements OnInit {
   idsContadores: number[] = [];
   prateleirasSelecionadas: string[] = [];
   divergenciasForm: DivergenciaForm[] = [];
+  rascunho: DivergenciaForm | null = null;
+  indiceEdicao: number | null = null;
+  modalMaterialAberto = false;
+  pesquisaMaterial = '';
   mapaSelecao: 'inicio' | 'divergencia' | null = null;
   mapaGrupoKey = '';
   mapaEstanteId: number | null = null;
@@ -75,7 +80,10 @@ export class Conferencia implements OnInit {
 
   @HostListener('document:keydown.escape')
   fecharComEscape(): void {
+    if (this.dialogo.estado()) return;
+    if (this.modalMaterialAberto) { this.modalMaterialAberto = false; return; }
     if (this.mapaSelecao) { this.fecharMapaSelecao(); return; }
+    if (this.rascunho) { this.cancelarEdicaoDivergencia(); return; }
     if (this.modalCancelamentoAberto && !this.salvando) { this.fecharCancelamento(); return; }
     if (this.inventarioDetalhe) {
       this.inventarioDetalhe = null;
@@ -169,7 +177,7 @@ export class Conferencia implements OnInit {
   niveisMapa(g: Grupo, s: Posicao): { chave: string; nivel: number }[] {
     if (s.blocked) return [];
     if (this.mapaSelecao === 'divergencia') return (this.inventarioFinalizando?.prateleiras ?? [])
-      .filter(p => p.grupoKey === g.key && p.idEstante === s.idlocalizacao)
+      .filter(p => p.grupoKey === g.key && p.idEstante === s.idlocalizacao && this.prateleiraDisponivel(p.chave))
       .map(p => ({ chave: p.chave, nivel: p.nivel })).sort((a, b) => a.nivel - b.nivel);
     return Array.from({ length: this.planta.shelfCount(s) }, (_, i) => ({
       chave: this.inventariosApi.chavePrateleira(g.key, s.idlocalizacao, i + 1), nivel: i + 1
@@ -200,17 +208,91 @@ export class Conferencia implements OnInit {
   }
 
   escolherLocalDivergencia(chave: string): void {
-    if (!this.inventarioFinalizando?.prateleiras.some(p => p.chave === chave)) return;
-    if (this.mapaLinha !== null && this.divergenciasForm[this.mapaLinha]) {
-      this.divergenciasForm[this.mapaLinha].chavePrateleira = chave;
-      this.divergenciasForm[this.mapaLinha].quantidadeContada = null;
-    } else {
-      this.divergenciasForm = [...this.divergenciasForm, {
-        chavePrateleira: chave, idItem: null, descricaoItem: '', quantidadeContada: null,
-        observacao: '', justificativa: ''
-      }];
-    }
+    if (!this.prateleiraDisponivel(chave)) return;
+    const p = this.inventarioFinalizando?.prateleiras.find(p => p.chave === chave);
+    if (!p) return;
+    this.indiceEdicao = this.mapaLinha;
+    this.rascunho = { chavePrateleira: chave, posicao: null, idItem: null, descricaoItem: '',
+      quantidadeContada: null, observacao: '', justificativa: '' };
     this.fecharMapaSelecao();
+    this.abrirSeletorMaterial();
+  }
+
+  private posicaoUsada(chave: string, posicao: number): boolean {
+    return this.divergenciasForm.some((linha, i) => i !== this.indiceEdicao &&
+      linha.chavePrateleira === chave && linha.posicao === posicao);
+  }
+
+  prateleiraDisponivel(chave: string): boolean {
+    const p = this.inventarioFinalizando?.prateleiras.find(p => p.chave === chave);
+    return !!p && p.posicoesSistema !== undefined &&
+      (!p.posicoesSistema.length || p.posicoesSistema.some(x => !this.posicaoUsada(chave, x.posicao)));
+  }
+
+  get prateleiraRascunho() {
+    return this.inventarioFinalizando?.prateleiras.find(p => p.chave === this.rascunho?.chavePrateleira);
+  }
+
+  get materiaisDisponiveis(): InventarioPosicaoSnapshot[] {
+    const p = this.prateleiraRascunho;
+    return (p?.posicoesSistema ?? []).filter(x => !this.posicaoUsada(p!.chave, x.posicao));
+  }
+
+  get materiaisFiltrados(): InventarioPosicaoSnapshot[] {
+    const q = this.planta.normalize(this.pesquisaMaterial);
+    return this.materiaisDisponiveis.filter(x => this.planta.normalize([x.idItem, x.descricaoItem, x.posicao, x.unidade].join(' ')).includes(q));
+  }
+
+  abrirSeletorMaterial(): void {
+    if (!this.rascunho) return;
+    this.pesquisaMaterial = '';
+    this.modalMaterialAberto = true;
+  }
+
+  escolherMaterial(item: InventarioPosicaoSnapshot | null): void {
+    if (!this.rascunho) return;
+    if (item && !this.materiaisDisponiveis.some(x => x.posicao === item.posicao && x.idItem === item.idItem)) return;
+    if (!item && this.prateleiraRascunho?.posicoesSistema?.length !== 0) return;
+    this.rascunho.idItem = item?.idItem ?? null;
+    this.rascunho.descricaoItem = item?.descricaoItem ?? 'Nenhum material';
+    this.rascunho.posicao = item?.posicao ?? null;
+    this.rascunho.quantidadeContada = null;
+    this.modalMaterialAberto = false;
+  }
+
+  editarDivergencia(indice: number): void {
+    if (this.rascunho || this.mapaSelecao || !this.divergenciasForm[indice]) return;
+    this.indiceEdicao = indice;
+    this.rascunho = { ...this.divergenciasForm[indice] };
+  }
+
+  cancelarEdicaoDivergencia(): void {
+    this.fecharMapaSelecao();
+    this.rascunho = null;
+    this.indiceEdicao = null;
+    this.modalMaterialAberto = false;
+    this.erro = '';
+  }
+
+  get posicaoRascunhoOcupada(): boolean {
+    const linha = this.rascunho;
+    return !!linha && linha.posicao !== null && this.posicaoUsada(linha.chavePrateleira, linha.posicao);
+  }
+
+  get referenciaIncompleta(): boolean {
+    return !!this.inventarioFinalizando?.prateleiras.some(p => p.posicoesSistema === undefined);
+  }
+
+  get podeSalvarDivergencia(): boolean {
+    return !!this.rascunho && this.linhaValida(this.rascunho) && !this.modalMaterialAberto;
+  }
+
+  salvarDivergencia(): void {
+    if (!this.rascunho || !this.podeSalvarDivergencia) return;
+    const linha = { ...this.rascunho };
+    if (this.indiceEdicao === null) this.divergenciasForm = [...this.divergenciasForm, linha];
+    else this.divergenciasForm = this.divergenciasForm.map((x, i) => i === this.indiceEdicao ? linha : x);
+    this.cancelarEdicaoDivergencia();
   }
 
   // Mesmo que uma planta antiga não exista mais, a referência congelada continua acessível.
@@ -218,7 +300,7 @@ export class Conferencia implements OnInit {
     if (this.mapaSelecao !== 'divergencia') return [];
     return (this.inventarioFinalizando?.prateleiras ?? []).filter(p => {
       const g = this.planta.groups.find(g => g.key === p.grupoKey);
-      return !g?.slots.some(s => !s.blocked && s.idlocalizacao === p.idEstante);
+      return this.prateleiraDisponivel(p.chave) && !g?.slots.some(s => !s.blocked && s.idlocalizacao === p.idEstante);
     });
   }
 
@@ -238,6 +320,14 @@ export class Conferencia implements OnInit {
 
   rotuloPrateleiraRegistro(prateleira: InventarioModel['prateleiras'][number]): string {
     return prateleira.grupoNome + ' / Estante ' + prateleira.nomeEstante + ' / Prateleira ' + prateleira.nivel;
+  }
+
+  estoqueCompleto(inventario: InventarioModel): boolean {
+    if (inventario.estoqueCompleto !== undefined) return inventario.estoqueCompleto;
+    if (inventario.status !== 'em_andamento') return false;
+    const chaves = new Set(inventario.prateleiras.map(p => p.chave));
+    const atuais = this.opcoesPrateleiras;
+    return atuais.length > 0 && atuais.length === chaves.size && atuais.every(p => chaves.has(p.chave));
   }
 
   nomesContadores(inventario: InventarioModel): string {
@@ -392,6 +482,7 @@ export class Conferencia implements OnInit {
     if (inventario.status !== 'em_andamento') return;
     this.fecharMapaSelecao();
     this.inventarioFinalizando = inventario;
+    this.cancelarEdicaoDivergencia();
     this.divergenciasForm = [];
     this.erro = '';
     this.modalFinalizacaoAberto = true;
@@ -400,40 +491,34 @@ export class Conferencia implements OnInit {
   fecharFinalizacao(): void {
     if (this.salvando) return;
     this.modalFinalizacaoAberto = false;
-    this.fecharMapaSelecao();
+    this.cancelarEdicaoDivergencia();
     this.inventarioFinalizando = null;
     this.divergenciasForm = [];
     this.erro = '';
   }
 
   adicionarDivergencia(): void {
+    if (this.rascunho || this.mapaSelecao) return;
+    this.indiceEdicao = null;
     this.abrirMapaSelecao('divergencia');
   }
 
-  removerDivergencia(indice: number): void {
-    this.fecharMapaSelecao();
-    this.divergenciasForm = this.divergenciasForm.filter((_, i) => i !== indice);
-  }
-
-  selecionarMaterialDivergencia(linha: DivergenciaForm, id: number | null): void {
-    linha.idItem = id;
-    linha.descricaoItem = id === null ? '' : this.itens.find(item => item.idItem === id)?.descricaoItem ?? '';
+  async removerDivergencia(indice: number): Promise<void> {
+    if (this.rascunho || this.mapaSelecao || !this.divergenciasForm[indice]) return;
+    const linha = this.divergenciasForm[indice];
+    if (await this.dialogo.confirmar('Excluir esta divergência de ' + linha.descricaoItem + '? A posição ficará disponível novamente.')) {
+      this.divergenciasForm = this.divergenciasForm.filter(x => x !== linha);
+    }
   }
 
   saldoSistemaDivergencia(linha: DivergenciaForm): number {
-    if (!this.inventarioFinalizando || linha.idItem === null) return 0;
-    const prateleira = this.inventarioFinalizando.prateleiras.find(p => p.chave === linha.chavePrateleira);
-    return prateleira?.itensSistema.find(item => item.idItem === linha.idItem)?.saldo ?? 0;
+    return this.inventarioFinalizando?.prateleiras.find(p => p.chave === linha.chavePrateleira)
+      ?.posicoesSistema?.find(p => p.posicao === linha.posicao && p.idItem === linha.idItem)?.saldo ?? 0;
   }
 
   unidadeDivergencia(linha: DivergenciaForm): string {
-    if (linha.idItem === null) return '';
-    const item = this.itens.find(i => i.idItem === linha.idItem);
-    if (item) return item.unidade;
-    const snapshot = this.inventarioFinalizando?.prateleiras
-      .find(p => p.chave === linha.chavePrateleira)?.itensSistema
-      .find(i => i.idItem === linha.idItem);
-    return snapshot?.unidade ?? '';
+    return this.inventarioFinalizando?.prateleiras.find(p => p.chave === linha.chavePrateleira)
+      ?.posicoesSistema?.find(p => p.posicao === linha.posicao && p.idItem === linha.idItem)?.unidade ?? '';
   }
 
   diferencaDivergencia(linha: DivergenciaForm): number | null {
@@ -441,37 +526,22 @@ export class Conferencia implements OnInit {
   }
 
   private linhaValida(linha: DivergenciaForm): boolean {
-    const itemDescrito = linha.idItem !== null || !!linha.descricaoItem.trim();
-    return !!this.inventarioFinalizando?.prateleiras.some(p => p.chave === linha.chavePrateleira) &&
-      itemDescrito &&
-      linha.quantidadeContada !== null &&
-      Number.isSafeInteger(linha.quantidadeContada) &&
-      linha.quantidadeContada >= 0 &&
-      linha.quantidadeContada !== this.saldoSistemaDivergencia(linha);
+    const p = this.inventarioFinalizando?.prateleiras.find(p => p.chave === linha.chavePrateleira);
+    if (!p?.posicoesSistema || linha.posicao === null || !Number.isSafeInteger(linha.posicao) || linha.posicao < 1 ||
+        !linha.descricaoItem || linha.quantidadeContada === null || !Number.isSafeInteger(linha.quantidadeContada) ||
+        linha.quantidadeContada < 0 || linha.quantidadeContada === this.saldoSistemaDivergencia(linha)) return false;
+    if (linha.idItem === null ? p.posicoesSistema.length !== 0 :
+        !p.posicoesSistema.some(x => x.posicao === linha.posicao && x.idItem === linha.idItem)) return false;
+    return !this.divergenciasForm.some((x, i) => x !== linha && i !== this.indiceEdicao &&
+      x.chavePrateleira === linha.chavePrateleira && x.posicao === linha.posicao);
   }
 
-  get quantidadeDivergenciasForm(): number {
-    return this.divergenciasForm.filter(linha => this.linhaValida(linha)).length;
-  }
-
-  get quantidadeJustificadasForm(): number {
-    return this.divergenciasForm.filter(linha => this.linhaValida(linha) && !!linha.justificativa.trim()).length;
-  }
+  get quantidadeDivergenciasForm(): number { return this.divergenciasForm.length; }
+  get quantidadeJustificadasForm(): number { return this.divergenciasForm.filter(linha => !!linha.justificativa.trim()).length; }
 
   get podeFinalizar(): boolean {
-    if (!this.inventarioFinalizando || this.salvando || this.mapaSelecao === 'divergencia' ||
-        this.inventarioFinalizando.status !== 'em_andamento' ||
-        !this.divergenciasForm.every(linha => this.linhaValida(linha))) return false;
-    const chaves = new Set<string>();
-    for (const linha of this.divergenciasForm) {
-      const material = linha.idItem === null
-        ? 'manual:' + linha.descricaoItem.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
-        : 'item:' + linha.idItem;
-      const chave = linha.chavePrateleira + '|' + material;
-      if (chaves.has(chave)) return false;
-      chaves.add(chave);
-    }
-    return true;
+    return !!this.inventarioFinalizando && !this.referenciaIncompleta && !this.salvando && !this.rascunho && !this.mapaSelecao &&
+      this.inventarioFinalizando.status === 'em_andamento' && this.divergenciasForm.every(linha => this.linhaValida(linha));
   }
 
   finalizarInventario(): void {
@@ -481,6 +551,7 @@ export class Conferencia implements OnInit {
     }
     const payload: InventarioDivergenciaPayload[] = this.divergenciasForm.map(linha => ({
       chavePrateleira: linha.chavePrateleira,
+      posicao: linha.posicao!,
       idItem: linha.idItem,
       descricaoItem: linha.descricaoItem,
       quantidadeContada: linha.quantidadeContada!,

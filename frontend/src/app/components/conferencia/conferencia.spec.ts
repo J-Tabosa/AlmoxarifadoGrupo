@@ -54,10 +54,21 @@ describe('Conferencia', () => {
       component.clicarEstanteMapa(g, slots[1]);
       expect(component.divergenciasForm.length).toBe(0);
       component.clicarEstanteMapa(g, slots[0]);
+      expect(component.rascunho?.chavePrateleira).toBe(inventario.prateleiras[0].chave);
+      expect(component.modalMaterialAberto).toBe(true);
+      component.escolherMaterial(null);
+      component.rascunho!.posicao = 1;
+      component.rascunho!.quantidadeContada = 3;
+      component.salvarDivergencia();
       expect(component.divergenciasForm.length).toBe(1);
-      expect(component.divergenciasForm[0].chavePrateleira).toBe(inventario.prateleiras[0].chave);
-      expect(component.mapaSelecao).toBeNull();
-      expect(component.podeFinalizar).toBe(false);
+      expect(component.rascunho).toBeNull();
+      expect(component.podeFinalizar).toBe(true);
+      component.adicionarDivergencia();
+      component.clicarEstanteMapa(g, slots[0]);
+      component.escolherMaterial(null);
+      component.rascunho!.posicao = 1;
+      component.rascunho!.quantidadeContada = 2;
+      expect(component.podeSalvarDivergencia).toBe(false);
     });
   });
 

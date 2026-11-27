@@ -22,7 +22,8 @@ export function sincronizarAlertasInventario(d: BancoLocal): void {
           ' · Sistema: ' + divergencia.saldoSistema + ' / Físico: ' + divergencia.quantidadeContada,
         idInventario: inventario.idInventario, idDivergencia: divergencia.id,
         idItem: divergencia.idItem ?? undefined, grupoKey: p?.grupoKey, idEstante: p?.idEstante,
-        prateleira: p?.nivel, endereco: divergencia.prateleira, unidade: divergencia.unidade,
+        prateleira: p?.nivel, posicao: divergencia.posicao, idLocalizacao: divergencia.idLocalizacao,
+        endereco: divergencia.prateleira, unidade: divergencia.unidade,
         saldoSistema: divergencia.saldoSistema, quantidadeContada: divergencia.quantidadeContada,
         diferenca: divergencia.diferenca, observacaoInventario: divergencia.observacao,
         justificativaInventario: divergencia.justificativa, contramedidas: []
