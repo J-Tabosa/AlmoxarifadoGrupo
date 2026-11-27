@@ -91,7 +91,7 @@
                                     [attr.data-rack-id]="slot.idlocalizacao"
                                     [style.grid-row]="slot.r" [style.grid-column]="slot.c"
                                     [attr.aria-label]="'Estante ' + displayName(slot) + ', ' + rackName(slot) + ', ID ' + slot.idlocalizacao"
-                                    [title]="displayName(slot) + ' · ' + rackName(slot) + ' · #' + slot.idlocalizacao"
+                                    [title]="displayName(slot) + ' · ' + rackName(slot) + ' · #' + slot.idlocalizacao + ' · ' + status(slot)"
                                     [attr.aria-pressed]="slot.idlocalizacao === selected?.idlocalizacao"
                                     (click)="selectPosition(slot)">
                                 @if (planta.numeracaoEstantes) {
@@ -119,7 +119,7 @@
                 </div>
                 <div class="storage-legend">
                     <span><i class="led good"></i> Com saldo</span><span><i class="led low"></i> Abaixo do mínimo</span>
-                    <span><i class="led empty"></i> Sem saldo / vazio</span><span><i class="led review"></i> Em conferência</span>
+                    <span><i class="led empty"></i> Sem saldo / vazio</span><span><i class="led review"></i> Em inventário</span>
                     <span><i class="map-legend-mask"></i> Sem posição (corredor / parede)</span>
                 </div>
             </div>
