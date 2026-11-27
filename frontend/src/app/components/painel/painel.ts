@@ -322,7 +322,7 @@ export class Painel implements OnDestroy {
     }
 
     status(slot: Posicao): string {
-        return { good: 'Em dia', low: 'Requer atenção', empty: 'Sem saldo / vazia', review: 'Conferência' }[this.planta.situacao(slot)];
+        return { good: 'Em dia', low: 'Requer atenção', empty: 'Sem saldo / vazia', review: 'Em inventário' }[this.planta.situacao(slot)];
     }
 
     tag(slot: Posicao): string {

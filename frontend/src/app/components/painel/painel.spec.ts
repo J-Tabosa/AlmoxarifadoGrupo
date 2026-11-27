@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Painel } from './painel';
 import { provideRouter } from '@angular/router';
+import { BancoLocalService } from '../../core/banco-local.service';
+import { InventariosService } from '../../services/inventarios.service';
 
 describe('Painel', () => {
   let component: Painel;
@@ -15,6 +17,38 @@ describe('Painel', () => {
     fixture = TestBed.createComponent(Painel);
     component = fixture.componentInstance;
     await fixture.whenStable();
+  });
+
+  it('destaca apenas as estantes auditadas e restaura a cor ao concluir ou cancelar', () => {
+    const banco = TestBed.inject(BancoLocalService);
+    const api = TestBed.inject(InventariosService);
+    const g = component.group;
+    const [alvo, outra] = g.slots.filter(x => !x.blocked);
+    const anterior = component.planta.situacao(alvo);
+    const tile = (id: number) => fixture.nativeElement.querySelector('[data-rack-id="' + id + '"]') as HTMLElement;
+    let id = 0;
+    let originais!: import('../../models/inventario.model').InventarioModel[];
+    banco.ler(d => d.inventarios).subscribe(i => originais = i);
+    try {
+      banco.alterar(d => { d.inventarios = []; }).subscribe();
+      const payload = { idResponsavel: 1, idsContadores: [2],
+        prateleiras: [{ grupoKey: g.key, idEstante: alvo.idlocalizacao, nivel: 1 }] };
+      api.iniciar(payload).subscribe(i => id = i.idInventario);
+      fixture.detectChanges();
+      expect(tile(alvo.idlocalizacao).classList.contains('review')).toBe(true);
+      expect(tile(outra.idlocalizacao).classList.contains('review')).toBe(false);
+      expect(component.status(alvo)).toBe('Em inventário');
+      api.finalizar(id, []).subscribe();
+      fixture.detectChanges();
+      expect(tile(alvo.idlocalizacao).classList.contains('review')).toBe(false);
+      api.iniciar(payload).subscribe(i => id = i.idInventario);
+      api.cancelar(id, 'Contagem cancelada para teste').subscribe();
+      fixture.detectChanges();
+      expect(tile(alvo.idlocalizacao).classList.contains('review')).toBe(false);
+    } finally {
+      banco.alterar(d => { d.inventarios = originais; }).subscribe();
+      expect(component.planta.situacao(alvo)).toBe(anterior);
+    }
   });
 
   it('should create', () => {

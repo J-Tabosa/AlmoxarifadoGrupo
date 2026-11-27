@@ -250,7 +250,7 @@ export class PlantaService {
     }
 
     situacao(slot: Posicao): Situacao {
-        if (slot.review) return 'review';
+        if (!slot.blocked && this.banco.estanteEmInventario(slot.idlocalizacao)) return 'review';
         if (slot.contents.some(p => p.qty > 0 && (this.material(p.itemCode)?.stock ?? 0) < (this.material(p.itemCode)?.min ?? 0))) return 'low';
         return slot.contents.some(p => p.qty > 0) ? 'good' : 'empty';
     }

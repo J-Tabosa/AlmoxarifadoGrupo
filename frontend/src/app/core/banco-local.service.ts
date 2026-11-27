@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { AlertaModel } from '../models/alerta.model';
 import { CategoriaModel } from '../models/categoria.model';
@@ -76,6 +76,16 @@ function dadosIniciais(): BancoLocal {
 @Injectable({ providedIn: 'root' })
 export class BancoLocalService {
   private dados: BancoLocal = this.carregarDoNavegador();
+  private readonly estantesEmContagem = signal(this.idsEmContagem());
+
+  private idsEmContagem(): Set<number> {
+    return new Set((this.dados.inventarios ?? []).filter(i => i.status === 'em_andamento')
+      .flatMap(i => i.prateleiras.map(p => p.idEstante)));
+  }
+
+  estanteEmInventario(idEstante: number): boolean {
+    return this.estantesEmContagem().has(idEstante);
+  }
 
   ler<T>(seletor: (dados: BancoLocal) => T): Observable<T> {
     try {
@@ -90,7 +100,9 @@ export class BancoLocalService {
     try {
       const resultado = operacao(this.dados);
       this.salvarNoNavegador(exigirPersistencia);
-      return of(clonar(resultado));
+      const copia = clonar(resultado);
+      this.estantesEmContagem.set(this.idsEmContagem());
+      return of(copia);
     } catch (erro) {
       this.dados = anterior;
       return throwError(() => erro instanceof Error ? erro : new Error('Não foi possível alterar os dados locais.'));

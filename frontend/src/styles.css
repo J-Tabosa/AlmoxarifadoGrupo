@@ -2430,7 +2430,9 @@ body.dark .legacy-info {
 }
 
 .address-tile.review {
-    background: linear-gradient(180deg,#cda461,#ab7938);
+    background: linear-gradient(180deg,#e9c75d,#d3a52e);
+    border-color: #a47b20;
+    color: #352b14;
 }
 
 .address-tile .mini-corner {
@@ -2480,7 +2482,7 @@ body.dark .legacy-info {
 }
 
 .led.review {
-    background: #bf934d;
+    background: #d3a52e;
 }
 
 .console-body {
@@ -3330,7 +3332,8 @@ body.dark .shelf-badge {
 }
 
 .preview-slot.review {
-    background: #b48543;
+    background: #d3a52e;
+    color: #352b14;
 }
 
 .manager-actions {
