@@ -25,6 +25,7 @@ export class Divergencias implements OnInit {
   salvando = false;
   editandoMedida = false;
   mensagem = '';
+  motivoDivergencia = '';
   medida: ContramedidaPayload = this.medidaVazia();
 
   ngOnInit(): void { this.carregar(); }
@@ -55,7 +56,7 @@ export class Divergencias implements OnInit {
       (this.filtroEstado === 'todos' || a.estado === this.filtroEstado) &&
       (this.filtroTipo === 'todos' || a.tipo === this.filtroTipo) &&
       (this.filtroGravidade === 'todas' || a.gravidade === this.filtroGravidade) &&
-      (!q || this.normalizar([a.id, a.idItem, a.idLocalizacao, a.idEstante, a.titulo, a.descricao, a.endereco, this.tipoNome(a.tipo)].join(' ')).includes(q)));
+      (!q || this.normalizar([a.id, a.idItem, a.idLocalizacao, a.idEstante, a.idInventario, a.titulo, a.descricao, a.endereco, this.tipoNome(a.tipo)].join(' ')).includes(q)));
   }
 
   carregar(): void {
@@ -79,6 +80,7 @@ export class Divergencias implements OnInit {
 
   abrir(a: AlertaModel): void {
     this.selecionado = a;
+    this.motivoDivergencia = '';
     this.editandoMedida = false;
     this.medida = this.medidaVazia();
     this.mensagem = '';
@@ -112,6 +114,28 @@ export class Divergencias implements OnInit {
         Math.max(0, (a.minimo ?? 0) - (a.saldo ?? 0)) + ' ' + (a.unidade ?? '') +
         ' na localização indicada; registrar a entrada após o recebimento.'
       : 'Conferir a documentação e o saldo físico, identificar a causa e registrar a correção autorizada.';
+  }
+
+  get podeEncerrarDivergencia(): boolean {
+    return this.selecionado?.tipo === 'divergencia_inventario' &&
+      this.selecionado.estado === 'aberto' &&
+      this.selecionado.contramedidas.some(m => m.situacao === 'executada');
+  }
+
+  encerrarDivergencia(): void {
+    if (!this.selecionado || !this.podeEncerrarDivergencia || this.salvando || !this.motivoDivergencia.trim()) return;
+    this.salvando = true;
+    this.erro = '';
+    this.api.encerrarDivergencia(this.selecionado.id, this.motivoDivergencia).subscribe({
+      next: dados => {
+        this.alertas = dados;
+        this.selecionado = dados.find(a => a.id === this.selecionado?.id) ?? null;
+        this.salvando = false;
+        this.motivoDivergencia = '';
+        this.mensagem = 'Divergência encerrada. O histórico do inventário foi preservado.';
+      },
+      error: e => { this.erro = mensagemErro(e); this.salvando = false; }
+    });
   }
 
   iniciarMedida(): void {

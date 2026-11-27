@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { BancoLocalService } from '../core/banco-local.service';
+import { sincronizarAlertasInventario } from '../core/alertas-inventario';
 import {
   InventarioDivergenciaPayload,
   InventarioFuncionario,
@@ -115,6 +116,10 @@ export class InventariosService {
           throw new Error('Informe o material da divergência (até 120 caracteres).');
         }
 
+        if (linha.idItem === null && d.itens.some(i => this.normalizar(i.descricaoItem) === this.normalizar(descricaoItem))) {
+          throw new Error('Este material já existe no catálogo. Selecione-o pelo cadastro para usar o saldo de referência correto.');
+        }
+
         const chaveItem = linha.idItem !== null
           ? prateleira.chave + '|item:' + linha.idItem
           : prateleira.chave + '|manual:' + this.normalizar(descricaoItem);
@@ -154,6 +159,7 @@ export class InventariosService {
       inventario.quantidadeJustificadas = divergencias.filter(dvg => !!dvg.justificativa).length;
       inventario.dataFim = new Date().toISOString();
       inventario.status = 'finalizado';
+      sincronizarAlertasInventario(d);
       return inventario;
     }, true);
   }

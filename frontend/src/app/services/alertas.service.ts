@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { BancoLocal, BancoLocalService } from '../core/banco-local.service';
 import { AlertaModel, ContramedidaPayload } from '../models/alerta.model';
 import { PlantaService } from './planta';
+import { sincronizarAlertasInventario } from '../core/alertas-inventario';
 
 @Injectable({ providedIn: 'root' })
 export class AlertasService {
@@ -33,9 +34,27 @@ export class AlertasService {
     }, true);
   }
 
+  encerrarDivergencia(id: number, motivo: string) {
+    return this.banco.alterar(d => {
+      const alertas = this.sincronizar(d);
+      const a = alertas.find(a => a.id === id);
+      if (!a || a.tipo !== 'divergencia_inventario' || a.estado !== 'aberto')
+        throw new Error('Selecione uma divergência de inventário aberta.');
+      if (!a.contramedidas.some(m => m.situacao === 'executada'))
+        throw new Error('Registre uma contramedida executada antes de encerrar.');
+      const texto = motivo.trim();
+      if (!texto || texto.length > 600) throw new Error('Informe o resultado da conferência (até 600 caracteres).');
+      a.estado = 'resolvido';
+      a.resolvidoEm = new Date().toISOString();
+      a.motivoEncerramento = texto;
+      return alertas;
+    }, true);
+  }
+
   // A fonte do alerta é o saldo real de cada vínculo, inclusive posições zeradas.
-  // O inventário poderá fornecer outras categorias sem modificar o fluxo abaixo.
+  // Importa também divergências de inventários finalizados em versões anteriores.
   private sincronizar(d: BancoLocal): AlertaModel[] {
+    sincronizarAlertasInventario(d);
     const alertas = d.alertas ?? (d.alertas = []);
     const agora = new Date().toISOString();
     const atuais = new Set<string>();

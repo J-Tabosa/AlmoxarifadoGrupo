@@ -33,6 +33,13 @@ export interface AlertaModel {
   saldo?: number;
   minimo?: number;
   maximo?: number;
+  idInventario?: number;
+  idDivergencia?: number;
+  saldoSistema?: number;
+  quantidadeContada?: number;
+  diferenca?: number;
+  observacaoInventario?: string;
+  justificativaInventario?: string;
   contramedidas: ContramedidaAlerta[];
 }
 

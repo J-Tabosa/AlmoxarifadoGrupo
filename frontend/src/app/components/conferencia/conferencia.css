@@ -384,3 +384,24 @@
   .inventory-dialog-actions .actions { display: flex; flex-direction: column; }
   .inventory-dialog-actions .hint { max-width: none; }
 }
+
+
+/* Mapa compacto não modal: permanece no fluxo do formulário e tem rolagem própria. */
+.inventory-map-trigger, .inventory-map-head, .inventory-map-bulk { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.inventory-map-trigger .btn { flex-shrink: 0; }
+.inventory-map-popover { width: min(100%, 650px); min-width: 0; box-sizing: border-box; display: grid; gap: 9px; padding: 10px; border: 1px solid var(--line); background: var(--paper); box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+.inventory-map-head { justify-content: space-between; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.inventory-map-groups, .inventory-map-level-buttons { display: flex; gap: 5px; flex-wrap: wrap; }
+.inventory-map-viewport { max-height: 270px; overflow: auto; background: var(--paper2); padding: 8px; border: 1px solid var(--line); }
+.inventory-map-grid { display: grid; gap: 4px; width: max-content; }
+.inventory-map-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; overflow: hidden; padding: 2px; border: 1px solid #667784; background: #89979f; color: white; font-size: 10px; line-height: 1.1; gap: 1px; }
+.inventory-map-tile strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inventory-map-tile small { font-size: 8px; }
+.inventory-map-tile.audited { background: #368460; border-color: #27674a; }
+.inventory-map-tile.partial { background: #31778c; border-color: #245b6d; }
+.inventory-map-tile.current { outline: 2px solid var(--wine); outline-offset: 1px; }
+.inventory-map-tile:disabled { opacity: .35; cursor: not-allowed; }
+.inventory-map-blocked { display: grid; place-items: center; border: 1px dashed var(--line); color: var(--muted); font-size: 9px; }
+.inventory-map-levels { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); background: var(--paper2); }
+.inventory-map-popover > p { margin: 0; }
+.inventory-location-button { width: 100%; height: auto; min-height: 36px; text-align: left; white-space: normal; }

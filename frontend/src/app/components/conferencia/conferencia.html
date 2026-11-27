@@ -144,29 +144,12 @@
 
           <section class="inventory-form-section">
             <div class="inventory-section-heading"><span>02</span><div><h3>Prateleiras que serão contadas</h3><p>Selecione os níveis físicos individualmente. Estantes bloqueadas não aparecem.</p></div></div>
-            @for (grupo of planta.groups; track grupo.key) {
-              <div class="inventory-group">
-                <div class="inventory-group-heading">
-                  <h4>{{ grupo.name }}</h4>
-                  <div class="inventory-group-actions">
-                    <button class="btn small" type="button" (click)="selecionarPrateleirasDoGrupo(grupo, true)">Marcar grupo</button>
-                    <button class="btn small" type="button" (click)="selecionarPrateleirasDoGrupo(grupo, false)">Limpar grupo</button>
-                  </div>
-                </div>
-                <div class="inventory-shelf-grid">
-                  @for (opcao of prateleirasDoGrupo(grupo); track opcao.chave) {
-                    <label class="inventory-shelf-option" [class.selected]="prateleirasSelecionadas.includes(opcao.chave)">
-                      <input type="checkbox" [checked]="prateleirasSelecionadas.includes(opcao.chave)"
-                        (change)="alternarPrateleira(opcao.chave, $any($event.target).checked)">
-                      <span class="inventory-shelf-option-main"><b>Estante {{ opcao.nomeEstante }}</b><strong>Prateleira {{ opcao.nivel }}</strong></span>
-                      <small>Contagem física desta prateleira</small>
-                    </label>
-                  } @empty {
-                    <p class="hint">Este grupo não possui prateleiras ativas.</p>
-                  }
-                </div>
-              </div>
-            }
+            <div class="inventory-map-trigger">
+              <button class="btn primary" type="button" [attr.aria-expanded]="mapaSelecao === 'inicio'"
+                (click)="mapaSelecao === 'inicio' ? fecharMapaSelecao() : abrirMapaSelecao('inicio')">Selecionar estantes no mapa</button>
+              <span class="hint">Clique em uma estante para marcar todas as suas prateleiras; ajuste os níveis individualmente, se necessário.</span>
+            </div>
+            @if (mapaSelecao === 'inicio') { <ng-container *ngTemplateOutlet="seletorMapa"></ng-container> }
             <div class="inventory-selection-summary">
               <b>{{ prateleirasSelecionadas.length }}</b> prateleira(s) selecionada(s)
             </div>
@@ -205,17 +188,16 @@
           <div><h3>Divergências encontradas</h3><p>Uma linha para cada material divergente em uma prateleira.</p></div>
           <button class="btn small" type="button" (click)="adicionarDivergencia()">＋ Adicionar divergência</button>
         </div>
+        @if (mapaSelecao === 'divergencia' && mapaLinha === null) { <ng-container *ngTemplateOutlet="seletorMapa"></ng-container> }
         @for (linha of divergenciasForm; track $index; let i = $index) {
           <section class="inventory-divergence-card">
             <header><b>Divergência {{ i + 1 }}</b><button class="btn small" type="button" (click)="removerDivergencia(i)">Remover</button></header>
             <div class="inventory-divergence-grid">
               <div class="field">
                 <label [for]="'divergenciaPrateleira-' + i">Prateleira <span class="req">*</span></label>
-                <select [id]="'divergenciaPrateleira-' + i" [name]="'divergenciaPrateleira-' + i" [(ngModel)]="linha.chavePrateleira">
-                  @for (prateleira of ativo.prateleiras; track prateleira.chave) {
-                    <option [ngValue]="prateleira.chave">{{ rotuloPrateleiraRegistro(prateleira) }}</option>
-                  }
-                </select>
+                <button class="btn inventory-location-button" type="button" [id]="'divergenciaPrateleira-' + i"
+                  (click)="abrirMapaSelecao('divergencia', i)">{{ rotuloDivergencia(linha.chavePrateleira) }} · Alterar</button>
+                @if (mapaSelecao === 'divergencia' && mapaLinha === i) { <ng-container *ngTemplateOutlet="seletorMapa"></ng-container> }
               </div>
               <div class="field">
                 <label [for]="'divergenciaMaterial-' + i">Material do catálogo</label>
@@ -223,7 +205,7 @@
                   [ngModel]="linha.idItem" (ngModelChange)="selecionarMaterialDivergencia(linha, $event)">
                   <option [ngValue]="null">Material não cadastrado / informar abaixo</option>
                   @for (item of itens; track item.idItem) {
-                    <option [ngValue]="item.idItem">#{{ item.idItem }} · {{ item.descricaoItem }}</option>
+                    <option [ngValue]="item.idItem">#{{ item.idItem }} · {{ item.descricaoItem }}{{ item.statusIt === 'A' ? '' : ' (inativo)' }}</option>
                   }
                 </select>
               </div>
@@ -358,3 +340,76 @@
     </section>
   </div>
 }
+
+
+<!-- Pop-up não modal, inserido junto ao campo que o abriu. Sem overlay adicional. -->
+<ng-template #seletorMapa>
+  <section class="inventory-map-popover" aria-label="Selecionar localização no mapa">
+    <header class="inventory-map-head">
+      <strong>{{ mapaSelecao === 'inicio' ? 'Estantes para auditar' : 'Local da divergência' }}</strong>
+      <button type="button" class="btn small" (click)="fecharMapaSelecao()">Fechar (Esc)</button>
+    </header>
+    <div class="inventory-map-groups" role="group" aria-label="Grupos de localização">
+      @for (g of gruposMapa; track g.key) {
+        <button type="button" class="btn small" [class.primary]="g.key === mapaGrupoKey"
+          [attr.aria-pressed]="g.key === mapaGrupoKey" (click)="trocarGrupoMapa(g.key)">{{ g.name }}</button>
+      }
+    </div>
+    @if (grupoMapa; as g) {
+      <div class="inventory-map-viewport">
+        <div class="inventory-map-grid" [style.grid-template-columns]="'repeat(' + g.cols + ', 72px)'"
+          [style.grid-template-rows]="'repeat(' + g.rows + ', 48px)'">
+          @for (s of g.slots; track s.idlocalizacao) {
+            @let niveis = niveisMapa(g, s);
+            @let marcadas = quantidadeMarcada(g, s);
+            @if (!s.blocked) {
+              <button type="button" class="inventory-map-tile" [class.audited]="marcadas > 0"
+                [class.partial]="marcadas > 0 && marcadas < niveis.length" [class.current]="mapaEstanteId === s.idlocalizacao"
+                [disabled]="!niveis.length" [style.grid-row]="s.r" [style.grid-column]="s.c"
+                [attr.aria-pressed]="mapaSelecao === 'inicio' ? marcadas > 0 : mapaEstanteId === s.idlocalizacao"
+                [title]="nomeEstante(s) + ' · #' + s.idlocalizacao" (click)="clicarEstanteMapa(g, s)">
+                @if (planta.numeracaoEstantes) { <strong>{{ planta.numeroVisual(g, s) }}</strong> }
+                @else {
+                  @if (planta.camposEstante.nome) { <strong>{{ nomeEstante(s) }}</strong> }
+                  @if (planta.camposEstante.id) { <small>#{{ s.idlocalizacao }}</small> }
+                  @if (planta.camposEstante.quantidade) { <small>{{ s.contents.length }} itens</small> }
+                }
+                @if (mapaSelecao === 'inicio') { <small class="inventory-map-count">{{ marcadas }}/{{ niveis.length }} níveis</small> }
+                @else { <small class="inventory-map-count">{{ niveis.length }} auditado(s)</small> }
+              </button>
+            } @else if (planta.showBlocked) {
+              <div class="inventory-map-blocked" [style.grid-row]="s.r" [style.grid-column]="s.c">Vazio</div>
+            }
+          }
+        </div>
+      </div>
+      @if (mapaSelecao === 'inicio') {
+        <div class="inventory-map-bulk">
+          <button class="btn small" type="button" (click)="selecionarPrateleirasDoGrupo(g, true)">Marcar grupo</button>
+          <button class="btn small" type="button" (click)="selecionarPrateleirasDoGrupo(g, false)">Limpar grupo</button>
+          <span class="hint">{{ prateleirasSelecionadas.length }} níveis selecionados no total</span>
+        </div>
+      }
+      @if (estanteMapa; as s) {
+        <div class="inventory-map-levels">
+          <strong>{{ nomeEstante(s) }} · {{ mapaSelecao === 'inicio' ? 'Ajustar prateleiras' : 'Escolher prateleira auditada' }}</strong>
+          <div class="inventory-map-level-buttons">
+            @for (p of niveisEstanteMapa; track p.chave) {
+              @if (mapaSelecao === 'inicio') {
+                <button type="button" class="btn small" [class.primary]="prateleirasSelecionadas.includes(p.chave)"
+                  [attr.aria-pressed]="prateleirasSelecionadas.includes(p.chave)"
+                  (click)="alternarPrateleira(p.chave, !prateleirasSelecionadas.includes(p.chave))">P{{ p.nivel }}</button>
+              } @else {
+                <button type="button" class="btn small" (click)="escolherLocalDivergencia(p.chave)">P{{ p.nivel }}</button>
+              }
+            }
+          </div>
+        </div>
+      }
+    }
+    @for (p of locaisSemMapa; track p.chave) {
+      <button type="button" class="btn small" (click)="escolherLocalDivergencia(p.chave)">{{ rotuloPrateleiraRegistro(p) }} (referência do inventário)</button>
+    }
+    <p class="hint">{{ mapaSelecao === 'inicio' ? 'Verde: selecionada · parcial: alguns níveis · cinza: não selecionada.' : 'Somente as prateleiras incluídas no inventário podem receber divergências.' }}</p>
+  </section>
+</ng-template>

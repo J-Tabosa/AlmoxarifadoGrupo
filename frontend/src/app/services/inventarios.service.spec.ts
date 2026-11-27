@@ -3,6 +3,8 @@ import { validarMovimentacaoPermitida } from '../core/banco-local.service';
 import { InventarioModel } from '../models/inventario.model';
 import { InventariosService } from './inventarios.service';
 import { PlantaService } from './planta';
+import { AlertasService } from './alertas.service';
+import { BancoLocalService } from '../core/banco-local.service';
 
 describe('InventariosService', () => {
   let service: InventariosService;
@@ -57,6 +59,34 @@ describe('InventariosService', () => {
     expect(finalizado?.quantidadeJustificadas).toBe(1);
     expect(finalizado?.divergencias[0].diferenca).toBe(3);
     expect(finalizado?.divergencias[0].justificativa).toContain('nota fiscal');
+  });
+
+  it('integra divergências finalizadas aos alertas sem duplicar ou alterar o saldo', () => {
+    const alertas = TestBed.inject(AlertasService);
+    const banco = TestBed.inject(BancoLocalService);
+    let criado!: InventarioModel;
+    service.iniciar(payload()).subscribe(r => criado = r);
+    alertas.listar().subscribe(a => expect(a.filter(x => x.tipo === 'divergencia_inventario').length).toBe(0));
+    service.finalizar(criado.idInventario, [{
+      chavePrateleira: criado.prateleiras[0].chave, idItem: 1, descricaoItem: '', quantidadeContada: 3
+    }]).subscribe();
+    let id = 0;
+    banco.ler(d => d.alertas ?? []).subscribe(a => {
+      const ocorrencias = a.filter(x => x.tipo === 'divergencia_inventario');
+      expect(ocorrencias.length).toBe(1);
+      id = ocorrencias[0].id;
+      expect(ocorrencias[0].diferenca).toBe(3);
+    });
+    alertas.listar().subscribe(a => expect(a.filter(x => x.tipo === 'divergencia_inventario').length).toBe(1));
+    alertas.registrarContramedida(id, { descricao: 'Conferir saldo físico', responsavel: 'Almoxarife', prazo: null, situacao: 'executada' }).subscribe();
+    alertas.encerrarDivergencia(id, 'Conferência concluída e autorizada.').subscribe();
+    alertas.listar().subscribe(a => {
+      const ocorrencias = a.filter(x => x.tipo === 'divergencia_inventario');
+      expect(ocorrencias.length).toBe(1);
+      expect(ocorrencias[0].estado).toBe('resolvido');
+      expect(ocorrencias[0].contramedidas.length).toBe(1);
+    });
+    banco.ler(d => d.itens[0].estoques![0].saldo).subscribe(s => expect(s).toBe(25));
   });
 
   it('não permite registrar como divergência uma quantidade igual ao saldo de referência', () => {
