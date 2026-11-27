@@ -61,6 +61,26 @@ describe('Conferencia', () => {
     });
   });
 
+  it('abre o cancelamento e exige uma justificativa antes de confirmar', () => {
+    const grupo = component.planta.groups[0];
+    const estante = grupo.slots.find(s => !s.blocked)!;
+    let inventario: import('../../models/inventario.model').InventarioModel | undefined;
+    TestBed.inject(InventariosService).iniciar({
+      idResponsavel: component.funcionarios[0].idFuncionario,
+      idsContadores: [component.funcionarios[1].idFuncionario],
+      prateleiras: [{ grupoKey: grupo.key, idEstante: estante.idlocalizacao, nivel: 1 }],
+    }).subscribe(registro => inventario = registro);
+
+    component.abrirModalCancelamento(inventario!);
+    expect(component.modalCancelamentoAberto).toBe(true);
+    expect(component.podeConfirmarCancelamento).toBe(false);
+
+    component.motivoCancelamento = 'Cliquei errado ao iniciar o inventário.';
+    expect(component.podeConfirmarCancelamento).toBe(true);
+    component.fecharComEscape();
+    expect(component.modalCancelamentoAberto).toBe(false);
+  });
+
   it('habilita iniciar somente com responsável, contador e prateleira', () => {
     expect(component.podeIniciar).toBe(false);
     component.idResponsavel = component.funcionarios[0].idFuncionario;

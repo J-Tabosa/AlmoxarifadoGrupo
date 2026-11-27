@@ -23,7 +23,7 @@ export class InventariosService {
   iniciar(payload: InventarioInicioPayload) {
     return this.banco.alterar(d => {
       if ((d.inventarios ?? []).some(i => i.status === 'em_andamento')) {
-        throw new Error('Já existe um inventário em andamento. Finalize-o antes de iniciar outro.');
+        throw new Error('Já existe um inventário em andamento. Finalize ou cancele-o antes de iniciar outro.');
       }
 
       const responsavel = this.funcionarioAtivo(payload.idResponsavel, d.funcionarios, 'responsável');
@@ -88,6 +88,25 @@ export class InventariosService {
       d.inventarios ??= [];
       d.inventarios.push(registro);
       return registro;
+    }, true);
+  }
+
+  cancelar(idInventario: number, motivo: string) {
+    return this.banco.alterar(d => {
+      const inventario = (d.inventarios ?? []).find(i => i.idInventario === idInventario);
+      if (!inventario || inventario.status !== 'em_andamento') {
+        throw new Error('Este inventário não está mais em andamento. Atualize a tela.');
+      }
+
+      const justificativa = (motivo ?? '').trim();
+      if (justificativa.length < 5 || justificativa.length > 600) {
+        throw new Error('Informe uma justificativa com pelo menos 5 e no máximo 600 caracteres.');
+      }
+
+      inventario.status = 'cancelado';
+      inventario.dataFim = new Date().toISOString();
+      inventario.motivoCancelamento = justificativa;
+      return inventario;
     }, true);
   }
 

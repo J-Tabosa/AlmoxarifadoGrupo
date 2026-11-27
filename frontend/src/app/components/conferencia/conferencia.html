@@ -52,6 +52,7 @@
       <div class="inventory-active-actions">
         <button class="btn" type="button" (click)="abrirDetalhes(ativo)">Ver dados do inventário</button>
         <button class="btn primary" type="button" (click)="abrirFinalizacao(ativo)">Registrar resultado e finalizar</button>
+        <button class="btn danger" type="button" (click)="abrirModalCancelamento(ativo)">Cancelar inventário</button>
       </div>
     </section>
   }
@@ -70,7 +71,7 @@
         <tr>
           <th>Inventário</th>
           <th>Data de início</th>
-          <th>Data de fim</th>
+          <th>Data de encerramento</th>
           <th>Responsável</th>
           <th>Prateleiras</th>
           <th>Divergências</th>
@@ -89,8 +90,9 @@
             <td>{{ inventario.prateleiras.length }}</td>
             <td>{{ inventario.quantidadeDivergencias }}</td>
             <td>{{ inventario.quantidadeJustificadas }}</td>
-            <td><span class="tag" [class.good]="inventario.status === 'finalizado'" [class.review]="inventario.status === 'em_andamento'">
-              {{ inventario.status === 'finalizado' ? 'Finalizado' : 'Em andamento' }}
+            <td><span class="tag" [class.good]="inventario.status === 'finalizado'"
+              [class.review]="inventario.status === 'em_andamento'" [class.bad]="inventario.status === 'cancelado'">
+              {{ inventario.status === 'finalizado' ? 'Finalizado' : inventario.status === 'cancelado' ? 'Cancelado' : 'Em andamento' }}
             </span></td>
             <td><button type="button" class="btn small" (click)="abrirDetalhes(inventario)">Detalhes</button></td>
           </tr>
@@ -263,6 +265,37 @@
   </div>
 }
 
+@if (modalCancelamentoAberto && inventarioCancelando; as ativo) {
+  <div class="drawer-overlay open inventory-overlay" role="presentation" (click)="fecharCancelamento()">
+    <section class="dialog inventory-dialog inventory-cancel-dialog" role="dialog" aria-modal="true"
+      aria-labelledby="inventory-cancel-title" (click)="$event.stopPropagation()">
+      <header class="dialog-head">
+        <span id="inventory-cancel-title">Cancelar inventário #{{ ativo.idInventario }}</span>
+        <button type="button" aria-label="Fechar cancelamento" (click)="fecharCancelamento()" [disabled]="salvando">×</button>
+      </header>
+      <div class="dialog-body inventory-dialog-body">
+        <p class="inventory-intro">O cancelamento encerra a contagem sem registrar divergências. O inventário continuará no histórico e as movimentações do estoque serão liberadas.</p>
+        <div class="field">
+          <label for="motivoCancelamento">Justificativa do cancelamento <span class="req">*</span></label>
+          <textarea id="motivoCancelamento" name="motivoCancelamento" rows="4"
+            minlength="5" maxlength="600" required [(ngModel)]="motivoCancelamento"
+            placeholder="Ex.: Inventário iniciado por engano; cliquei na opção incorreta."></textarea>
+          <small class="hint">Explique por que o inventário está sendo cancelado. Mínimo de 5 e máximo de 600 caracteres.</small>
+        </div>
+        @if (erro) { <p class="entry-error" role="alert">{{ erro }}</p> }
+      </div>
+      <footer class="dialog-actions inventory-dialog-actions">
+        <span class="hint">A data e a justificativa ficarão registradas no histórico.</span>
+        <div class="actions">
+          <button class="btn danger" type="button" (click)="confirmarCancelamento()"
+            [disabled]="!podeConfirmarCancelamento">{{ salvando ? 'Cancelando…' : 'Confirmar cancelamento' }}</button>
+          <button class="btn" type="button" (click)="fecharCancelamento()" [disabled]="salvando">Voltar</button>
+        </div>
+      </footer>
+    </section>
+  </div>
+}
+
 @if (inventarioDetalhe; as detalhe) {
   <div class="drawer-overlay open inventory-overlay" role="presentation" (click)="inventarioDetalhe = null">
     <section class="dialog inventory-dialog inventory-detail-dialog" role="dialog" aria-modal="true"
@@ -280,6 +313,10 @@
           <article><small>Prateleiras contadas</small><strong>{{ detalhe.prateleiras.length }}</strong></article>
           <article><small>Divergências</small><strong>{{ detalhe.quantidadeDivergencias }}</strong></article>
           <article><small>Justificadas</small><strong>{{ detalhe.quantidadeJustificadas }}</strong></article>
+          <article><small>Situação</small><strong>{{ detalhe.status === 'finalizado' ? 'Finalizado' : detalhe.status === 'cancelado' ? 'Cancelado' : 'Em andamento' }}</strong></article>
+          @if (detalhe.status === 'cancelado') {
+            <article class="inventory-cancellation-detail"><small>JUSTIFICATIVA DO CANCELAMENTO</small><strong>{{ detalhe.motivoCancelamento }}</strong></article>
+          }
         </div>
 
         <section class="inventory-detail-section">
@@ -334,7 +371,7 @@
         </section>
       </div>
       <footer class="dialog-actions inventory-dialog-actions">
-        <span class="hint">{{ detalhe.status === 'finalizado' ? 'Registro histórico finalizado.' : 'Este inventário ainda está em andamento.' }}</span>
+        <span class="hint">{{ detalhe.status === 'finalizado' ? 'Registro histórico finalizado.' : detalhe.status === 'cancelado' ? 'Inventário cancelado; justificativa preservada no histórico.' : 'Este inventário ainda está em andamento.' }}</span>
         <button class="btn" type="button" (click)="inventarioDetalhe = null">Fechar</button>
       </footer>
     </section>

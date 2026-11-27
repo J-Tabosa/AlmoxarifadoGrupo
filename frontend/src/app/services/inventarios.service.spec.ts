@@ -99,6 +99,43 @@ describe('InventariosService', () => {
     expect(mensagem).toContain('igual ao saldo de referência');
   });
 
+  it('cancela inventário aberto, preserva histórico e libera movimentações', () => {
+    let criado!: InventarioModel;
+    service.iniciar(payload()).subscribe(registro => criado = registro);
+
+    let cancelado!: InventarioModel;
+    service.cancelar(criado.idInventario, 'Cliquei errado ao iniciar o inventário.').subscribe(registro => cancelado = registro);
+
+    expect(cancelado.status).toBe('cancelado');
+    expect(cancelado.dataFim).toBeTruthy();
+    expect(cancelado.motivoCancelamento).toBe('Cliquei errado ao iniciar o inventário.');
+    expect(cancelado.quantidadeDivergencias).toBe(0);
+
+    service.listar().subscribe(registros => {
+      expect(registros.length).toBe(1);
+      expect(registros[0].status).toBe('cancelado');
+      expect(() => validarMovimentacaoPermitida({ inventarios: registros })).not.toThrow();
+    });
+  });
+
+  it('exige justificativa de pelo menos cinco caracteres para cancelar', () => {
+    let criado!: InventarioModel;
+    service.iniciar(payload()).subscribe(registro => criado = registro);
+    let mensagem = '';
+    service.cancelar(criado.idInventario, 'ops').subscribe({ error: erro => mensagem = erro.message });
+    expect(mensagem).toContain('justificativa');
+    service.listar().subscribe(registros => expect(registros[0].status).toBe('em_andamento'));
+  });
+
+  it('não permite cancelar inventário já finalizado', () => {
+    let criado!: InventarioModel;
+    service.iniciar(payload()).subscribe(registro => criado = registro);
+    service.finalizar(criado.idInventario, []).subscribe();
+    let mensagem = '';
+    service.cancelar(criado.idInventario, 'Cliquei errado.').subscribe({ error: erro => mensagem = erro.message });
+    expect(mensagem).toContain('não está mais em andamento');
+  });
+
   it('bloqueia movimentos de estoque enquanto existe inventário aberto', () => {
     const inventario = { idInventario: 9, status: 'em_andamento' } as InventarioModel;
     expect(() => validarMovimentacaoPermitida({ inventarios: [inventario] })).toThrowError(/bloqueadas durante o inventário/);

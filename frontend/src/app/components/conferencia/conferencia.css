@@ -368,7 +368,8 @@
   .inventory-dialog,
   .inventory-start-dialog,
   .inventory-finish-dialog,
-  .inventory-detail-dialog {
+  .inventory-detail-dialog,
+  .inventory-cancel-dialog {
     width: calc(100vw - 14px);
     max-height: 96dvh;
   }
@@ -405,3 +406,10 @@
 .inventory-map-levels { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); background: var(--paper2); }
 .inventory-map-popover > p { margin: 0; }
 .inventory-location-button { width: 100%; height: auto; min-height: 36px; text-align: left; white-space: normal; }
+
+
+/* Registro e confirmação de cancelamento do inventário. */
+.inventory-cancel-dialog { width: min(640px, calc(100vw - 32px)); }
+.inventory-cancellation-detail { grid-column: 1 / -1; }
+.inventory-cancellation-detail strong { white-space: pre-wrap; line-height: 1.5; }
+.inventory-table .tag.bad { color: var(--red); }

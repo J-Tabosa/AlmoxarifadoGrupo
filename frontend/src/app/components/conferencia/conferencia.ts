@@ -51,8 +51,11 @@ export class Conferencia implements OnInit {
 
   modalInicioAberto = false;
   modalFinalizacaoAberto = false;
+  modalCancelamentoAberto = false;
   inventarioDetalhe: InventarioModel | null = null;
   inventarioFinalizando: InventarioModel | null = null;
+  inventarioCancelando: InventarioModel | null = null;
+  motivoCancelamento = '';
   salvando = false;
   erro = '';
 
@@ -73,6 +76,7 @@ export class Conferencia implements OnInit {
   @HostListener('document:keydown.escape')
   fecharComEscape(): void {
     if (this.mapaSelecao) { this.fecharMapaSelecao(); return; }
+    if (this.modalCancelamentoAberto && !this.salvando) { this.fecharCancelamento(); return; }
     if (this.inventarioDetalhe) {
       this.inventarioDetalhe = null;
       return;
@@ -329,6 +333,61 @@ export class Conferencia implements OnInit {
     });
   }
 
+  abrirModalCancelamento(inventario: InventarioModel): void {
+    if (inventario.status !== 'em_andamento' || this.salvando) return;
+    this.fecharMapaSelecao();
+    this.inventarioCancelando = inventario;
+    this.motivoCancelamento = '';
+    this.erro = '';
+    this.modalCancelamentoAberto = true;
+  }
+
+  fecharCancelamento(): void {
+    if (this.salvando) return;
+    this.modalCancelamentoAberto = false;
+    this.inventarioCancelando = null;
+    this.motivoCancelamento = '';
+    this.erro = '';
+  }
+
+  get podeConfirmarCancelamento(): boolean {
+    const motivo = this.motivoCancelamento.trim();
+    return !!this.inventarioCancelando &&
+      this.inventarioCancelando.status === 'em_andamento' &&
+      !this.salvando &&
+      motivo.length >= 5 &&
+      motivo.length <= 600;
+  }
+
+  confirmarCancelamento(): void {
+    if (!this.podeConfirmarCancelamento || !this.inventarioCancelando) {
+      this.erro = 'Informe a justificativa do cancelamento (pelo menos 5 caracteres).';
+      return;
+    }
+
+    const id = this.inventarioCancelando.idInventario;
+    const justificativa = this.motivoCancelamento.trim();
+    this.salvando = true;
+    this.erro = '';
+    this.inventariosApi.cancelar(id, justificativa).subscribe({
+      next: inventario => {
+        this.salvando = false;
+        this.modalCancelamentoAberto = false;
+        this.inventarioCancelando = null;
+        this.motivoCancelamento = '';
+        this.dialogo.sucesso(
+          'Inventário #' + inventario.idInventario + ' cancelado. Justificativa registrada e movimentações de estoque liberadas.',
+          'Inventário cancelado',
+        );
+        this.carregar();
+      },
+      error: e => {
+        this.salvando = false;
+        this.dialogo.erro(mensagemErro(e), 'Não foi possível cancelar o inventário');
+      },
+    });
+  }
+
   abrirFinalizacao(inventario: InventarioModel): void {
     if (inventario.status !== 'em_andamento') return;
     this.fecharMapaSelecao();
@@ -460,6 +519,8 @@ export class Conferencia implements OnInit {
   }
 
   get totalPrateleirasContadas(): number {
-    return this.inventarios.reduce((total, inventario) => total + inventario.prateleiras.length, 0);
+    return this.inventarios
+      .filter(inventario => inventario.status === 'finalizado')
+      .reduce((total, inventario) => total + inventario.prateleiras.length, 0);
   }
 }
